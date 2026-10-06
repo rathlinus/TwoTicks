@@ -78,6 +78,8 @@ ICONS = {
     'EmojiFood': 'WDSIconIcEmojiFoodBeverage', 'EmojiActivity': 'WDSIconIcSportsBasketball', 'EmojiTravel': 'WDSIconIcDirectionsCar',
     'EmojiObjects': 'WDSIconIcEmojiObjects', 'EmojiSymbols': 'WDSIconIcEmojiSymbols', 'EmojiFlags': 'WDSIconIcFlag',
     'ZoomIn': 'WDSIconIcZoomIn', 'Visibility': 'WDSIconIcVisibility', 'Keyboard': 'WDSIconIcKeyboard',
+    'Forward': 'WDSIconIcFastForward', 'Keep': 'WDSIconIcBookmark', 'Kept': 'WDSIconIcBookmarkFilled',
+    'Unkeep': 'WDSIconWdsIcBookmarkSlash',
 }
 
 
@@ -329,7 +331,9 @@ def build_icons(work, node):
         if icon is None:
             sys.exit(f'Icon {module} is no longer in WhatsApp Web.')
         view_box = icon['viewBox'] or f'0 0 {icon["w"]} {icon["h"]}'
-        paths = [(normalize_path(e['d']), e.get('fillRule') == 'evenodd') for e in icon['elements'] if e['tag'] == 'path' and e.get('d')]
+        # A path with a colour of its own is the shape of a mask, not part of the icon.
+        paths = [(normalize_path(e['d']), e.get('fillRule') == 'evenodd') for e in icon['elements']
+                 if e['tag'] == 'path' and e.get('d') and e.get('fill') in (None, 'currentColor')]
         entries.append((name, view_box, paths))
 
     # Two shapes that are not built with the icon helper: the tail on the first
