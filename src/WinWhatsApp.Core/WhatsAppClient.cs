@@ -289,6 +289,12 @@ public sealed class WhatsAppClient : IDisposable
     public async Task<string> GetAvatarAsync(string jid, bool force = false) =>
         (await CallAsync("avatar", new JsonObject { ["jid"] = jid, ["force"] = force }, BridgeJson.Default.PathData).ConfigureAwait(false)).Path;
 
+    /// <summary>The profile picture at full size, fetched once; "" when there is none.</summary>
+    public async Task<string> GetPictureAsync(string jid) =>
+        (await CallAsync("picture", new JsonObject { ["jid"] = jid }, BridgeJson.Default.PathData).ConfigureAwait(false)).Path;
+
+    public Task<ProfileData> GetProfileAsync(string jid) => CallAsync("profile", new JsonObject { ["jid"] = jid }, BridgeJson.Default.ProfileData);
+
     public Task SetTypingAsync(string chat, bool typing) => CallAsync("typing", new JsonObject { ["chat"] = chat, ["typing"] = typing });
 
     public Task SetOnlineAsync(bool online) => CallAsync("online", new JsonObject { ["online"] = online });

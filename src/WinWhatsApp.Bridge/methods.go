@@ -320,6 +320,35 @@ func (b *Bridge) methods() map[string]handler {
 			return map[string]string{"path": path}, nil
 		},
 
+		// The profile picture at full size, to look at.
+		"picture": func(ctx context.Context, raw json.RawMessage) (any, error) {
+			p, err := params[struct {
+				JID string `json:"jid"`
+			}](raw)
+			if err != nil {
+				return nil, err
+			}
+			path, err := b.picture(ctx, p.JID)
+			if err != nil {
+				return nil, err
+			}
+			return map[string]string{"path": path}, nil
+		},
+
+		"profile": func(ctx context.Context, raw json.RawMessage) (any, error) {
+			p, err := params[struct {
+				JID string `json:"jid"`
+			}](raw)
+			if err != nil {
+				return nil, err
+			}
+			jid, err := types.ParseJID(p.JID)
+			if err != nil {
+				return nil, err
+			}
+			return b.profileOf(ctx, jid), nil
+		},
+
 		"typing": func(ctx context.Context, raw json.RawMessage) (any, error) {
 			p, err := params[struct {
 				Chat   string `json:"chat"`
@@ -468,7 +497,18 @@ func (b *Bridge) methods() map[string]handler {
 				members = append(members, member{JID: person.String(), Name: name, Admin: part.IsAdmin || part.IsSuperAdmin, Me: me})
 			}
 			_, _ = b.w.ExecContext(ctx, `UPDATE chats SET name = ?, members = ? WHERE jid = ?`, info.Name, len(members), jid.String())
-			return map[string]any{"name": info.Name, "topic": info.Topic, "members": members}, nil
+			result := map[string]any{"name": info.Name, "topic": info.Topic, "members": members}
+			if !info.GroupCreated.IsZero() {
+				result["created"] = info.GroupCreated.Unix()
+			}
+			owner := info.OwnerPN
+			if owner.IsEmpty() {
+				owner = info.OwnerJID
+			}
+			if !owner.IsEmpty() {
+				result["createdBy"] = strings.TrimPrefix(b.senderName(ctx, b.canonical(ctx, owner).String(), ""), "~")
+			}
+			return result, nil
 		},
 	}
 }

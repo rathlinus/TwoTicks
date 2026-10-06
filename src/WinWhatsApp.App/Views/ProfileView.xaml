@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="WinWhatsApp.App.Views.ProfileView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:c="using:WinWhatsApp.App.Controls"
+    xmlns:m="using:WinWhatsApp.App.Models">
+
+    <UserControl.Resources>
+        <!-- A member in the group's info. -->
+        <DataTemplate x:Key="MemberTemplate" x:DataType="m:MemberItem">
+            <Grid Height="64" Padding="16,0,12,0" ColumnSpacing="14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="40" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <c:Avatar VerticalAlignment="Center" Size="40" Source="{x:Bind Avatar, Mode=OneWay}" />
+                <c:EmojiLabel Text="{x:Bind Name}" Grid.Column="1" VerticalAlignment="Center" FontSize="16" Foreground="{ThemeResource TextPrimaryBrush}" />
+                <Border Grid.Column="2" Padding="7,2" VerticalAlignment="Center" Background="{ThemeResource FilterChipSelectedBrush}" CornerRadius="6"
+                        Visibility="{x:Bind AdminVisibility}">
+                    <TextBlock FontSize="12" Foreground="{ThemeResource FilterChipSelectedTextBrush}" Text="Group admin" />
+                </Border>
+            </Grid>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <!-- Contact info or group info, beside the chat, as in WhatsApp Web. -->
+    <Grid Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource DividerBrush}" BorderThickness="1,0,0,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Height="60" Padding="10,0,16,0" ColumnSpacing="12" BorderBrush="{ThemeResource DividerBrush}" BorderThickness="0,0,0,1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Button x:Name="CloseButton" VerticalAlignment="Center" AutomationProperties.Name="Close" Click="OnCloseClick" Style="{StaticResource IconButtonStyle}">
+                <c:WaIcon x:Name="CloseIcon" Kind="Close" Size="22" />
+            </Button>
+            <TextBlock x:Name="TitleText" Grid.Column="1" VerticalAlignment="Center" FontSize="16" FontWeight="Medium" Foreground="{ThemeResource TextPrimaryBrush}" />
+        </Grid>
+
+        <!-- One list, so a group of hundreds still scrolls smoothly: the profile is its header, the members its rows. -->
+        <ListView
+            x:Name="MemberList"
+            Grid.Row="1"
+            ContainerContentChanging="OnMemberContainerContentChanging"
+            IsItemClickEnabled="True"
+            ItemClick="OnMemberClick"
+            ItemContainerStyle="{StaticResource ChatContainerStyle}"
+            ItemTemplate="{StaticResource MemberTemplate}"
+            SelectionMode="None">
+            <ListView.Header>
+                <StackPanel>
+                    <StackPanel Padding="24,28,24,22">
+                        <c:PlainButton x:Name="PictureButton" HorizontalAlignment="Center" AutomationProperties.Name="View photo" Click="OnPictureClick" CornerRadius="100">
+                            <c:Avatar x:Name="BigAvatar" Size="200" />
+                        </c:PlainButton>
+                        <RichTextBlock x:Name="NameText" Margin="0,16,0,0" FontSize="22" Foreground="{ThemeResource TextPrimaryBrush}" IsTextSelectionEnabled="True"
+                                       TextAlignment="Center" TextWrapping="Wrap" />
+                        <TextBlock x:Name="SubtitleText" Margin="0,4,0,0" HorizontalAlignment="Center" FontSize="15" Foreground="{ThemeResource TextSecondaryBrush}"
+                                   IsTextSelectionEnabled="True" TextAlignment="Center" TextWrapping="Wrap" />
+                        <Button x:Name="MessageButton" Margin="0,18,0,0" Padding="18,8" HorizontalAlignment="Center" Click="OnMessageClick" CornerRadius="20">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <c:WaIcon VerticalAlignment="Center" Kind="Chat" Size="20" Foreground="{ThemeResource AccentGreenBrush}" />
+                                <TextBlock VerticalAlignment="Center" Text="Message" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <StackPanel x:Name="AboutSection" Padding="24,14,24,18" Spacing="6" BorderBrush="{ThemeResource DividerBrush}" BorderThickness="0,1,0,0">
+                        <TextBlock x:Name="AboutHeading" FontSize="14" Foreground="{ThemeResource TextSecondaryBrush}" />
+                        <RichTextBlock x:Name="AboutText" FontSize="15" Foreground="{ThemeResource TextPrimaryBrush}" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
+                        <TextBlock x:Name="CreatedText" Margin="0,4,0,0" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <Border x:Name="MembersHeading" Padding="24,14,24,6" BorderBrush="{ThemeResource DividerBrush}" BorderThickness="0,1,0,0">
+                        <TextBlock x:Name="MembersCount" FontSize="14" Foreground="{ThemeResource TextSecondaryBrush}" />
+                    </Border>
+                </StackPanel>
+            </ListView.Header>
+        </ListView>
+    </Grid>
+</UserControl>

@@ -64,6 +64,40 @@ func (b *Bridge) nameOf(ctx context.Context, jid types.JID) string {
 	return jid.User
 }
 
+// profile is what the contact info of a person shows.
+type profile struct {
+	JID   string `json:"jid"`
+	Name  string `json:"name"`
+	Phone string `json:"phone,omitempty"`
+	About string `json:"about,omitempty"`
+	Me    bool   `json:"me,omitempty"`
+}
+
+// profileOf collects the name, number and about text of a person. The about
+// text comes from WhatsApp and is left out when it cannot be reached.
+func (b *Bridge) profileOf(ctx context.Context, jid types.JID) *profile {
+	jid = b.canonical(ctx, jid)
+	p := &profile{JID: jid.String(), Name: b.nameOf(ctx, jid), Me: b.isOwn(jid)}
+	switch jid.Server {
+	case types.DefaultUserServer:
+		p.Phone = formatPhone(jid.User)
+	case types.HiddenUserServer:
+		if pn, err := b.cli.Store.LIDs.GetPNForLID(ctx, jid); err == nil && !pn.IsEmpty() {
+			p.Phone = formatPhone(pn.User)
+		}
+	}
+	if b.cli.Store.ID != nil && b.cli.IsConnected() {
+		infos, err := b.cli.GetUserInfo(ctx, []types.JID{jid})
+		if err != nil {
+			b.log.Debugf("User info of %s: %v", jid, err)
+		}
+		for _, info := range infos {
+			p.About = info.Status
+		}
+	}
+	return p
+}
+
 // isSavedContact reports whether the phone has a name saved for the person.
 func (b *Bridge) isSavedContact(ctx context.Context, jid types.JID) bool {
 	info, err := b.cli.Store.Contacts.GetContact(ctx, jid.ToNonAD())

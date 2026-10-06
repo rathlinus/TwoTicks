@@ -786,6 +786,15 @@ public sealed partial class ConversationView : UserControl
 
     private void OnMapClick(object sender, RoutedEventArgs e) => OpenUrl(ItemOf(sender)?.MapUrl);
 
+    /// <summary>The name above a message in a group opens the sender's info.</summary>
+    private void OnSenderClick(object sender, RoutedEventArgs e)
+    {
+        if (ItemOf(sender) is { FromMe: false, Data.Sender: { Length: > 0 } jid } item)
+        {
+            App.Current.Window.ShowProfile(jid, item.SenderName.TrimStart('~'), isGroup: false);
+        }
+    }
+
     private static void OpenUrl(string? url)
     {
         if (url is not null && Uri.TryCreate(url, UriKind.Absolute, out Uri? uri) && uri.Scheme is "http" or "https")
@@ -1015,11 +1024,23 @@ public sealed partial class ConversationView : UserControl
 
     // ---- The chat's menu ----
 
+    private void OnHeaderClick(object sender, RoutedEventArgs e)
+    {
+        if (_shown?.Chat is { } chat)
+        {
+            App.Current.Window.ShowProfile(chat.Jid, chat.Name, chat.IsGroup);
+        }
+    }
+
     private void OnChatMenuOpening(object? sender, object e)
     {
         ChatMenu.Items.Clear();
         if (_shown?.Chat is { } chat)
         {
+            var info = new MenuFlyoutItem { Text = chat.IsGroup ? "Group info" : "Contact info", Icon = WaIcons.PathIcon("Info") };
+            info.Click += (_, _) => App.Current.Window.ShowProfile(chat.Jid, chat.Name, chat.IsGroup);
+            ChatMenu.Items.Add(info);
+            ChatMenu.Items.Add(new MenuFlyoutSeparator());
             foreach (MenuFlyoutItemBase entry in ChatMenus.Build(chat, Session))
             {
                 ChatMenu.Items.Add(entry);

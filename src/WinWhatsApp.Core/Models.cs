@@ -246,6 +246,10 @@ public sealed class GroupData
     public string Name { get; set; } = "";
     public string? Topic { get; set; }
     public List<GroupMember> Members { get; set; } = [];
+
+    /// <summary>When the group was created, in Unix seconds; 0 when unknown.</summary>
+    public long Created { get; set; }
+    public string? CreatedBy { get; set; }
 }
 
 public sealed class GroupMember
@@ -253,6 +257,16 @@ public sealed class GroupMember
     public string Jid { get; set; } = "";
     public string Name { get; set; } = "";
     public bool Admin { get; set; }
+    public bool Me { get; set; }
+}
+
+/// <summary>What the contact info of a person shows.</summary>
+public sealed class ProfileData
+{
+    public string Jid { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string? Phone { get; set; }
+    public string? About { get; set; }
     public bool Me { get; set; }
 }
 
@@ -294,6 +308,7 @@ public static class MessageStatus
 [JsonSerializable(typeof(JidData))]
 [JsonSerializable(typeof(CodeData))]
 [JsonSerializable(typeof(GroupData))]
+[JsonSerializable(typeof(ProfileData))]
 [JsonSerializable(typeof(ErrorData))]
 [JsonSerializable(typeof(Cursor))]
 [JsonSerializable(typeof(LinkData))]

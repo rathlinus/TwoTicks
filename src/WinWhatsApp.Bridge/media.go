@@ -402,6 +402,53 @@ func (b *Bridge) avatar(ctx context.Context, jidText string, force bool) (string
 	return newPath, err
 }
 
+// picture returns the profile picture of a person or group at full size, as a
+// local file, or "" when there is none. Each picture is fetched once; the
+// avatars table knows the current one once its preview was fetched.
+func (b *Bridge) picture(ctx context.Context, jidText string) (string, error) {
+	jid, err := types.ParseJID(jidText)
+	if err != nil {
+		return "", err
+	}
+	prefix := filepath.Join(b.dataDir, "avatars", safeFileName(jid.User+"-"+jid.Server)+"-")
+	var pictureID string
+	_ = b.r.QueryRowContext(ctx, `SELECT picture_id FROM avatars WHERE jid = ?`, jidText).Scan(&pictureID)
+	if pictureID != "" {
+		path := prefix + safeFileName(pictureID) + "-full.jpg"
+		if _, err := os.Stat(path); err == nil {
+			return path, nil
+		}
+	}
+	if b.cli.Store.ID == nil || !b.cli.IsConnected() {
+		return "", errors.New("not connected to WhatsApp")
+	}
+
+	info, err := b.cli.GetProfilePictureInfo(ctx, jid, &whatsmeow.GetProfilePictureParams{})
+	switch {
+	case errors.Is(err, whatsmeow.ErrProfilePictureNotSet) || errors.Is(err, whatsmeow.ErrProfilePictureUnauthorized):
+		return "", nil
+	case err != nil:
+		return "", err
+	case info == nil:
+		return "", nil
+	}
+	path := prefix + safeFileName(info.ID) + "-full.jpg"
+	if _, err := os.Stat(path); err == nil {
+		return path, nil
+	}
+	if err := fetchToFile(ctx, info.URL, path); err != nil {
+		return "", err
+	}
+	// Pictures the person had before.
+	old, _ := filepath.Glob(prefix + "*-full.jpg")
+	for _, other := range old {
+		if other != path {
+			_ = os.Remove(other)
+		}
+	}
+	return path, nil
+}
+
 func (b *Bridge) onPictureChanged(evt *events.Picture) {
 	jid := b.canonical(b.ctx, evt.JID).String()
 	_, _ = b.w.ExecContext(b.ctx, `UPDATE avatars SET checked_at = 0 WHERE jid = ?`, jid)

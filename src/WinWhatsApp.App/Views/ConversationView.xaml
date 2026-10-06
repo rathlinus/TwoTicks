@@ -41,7 +41,9 @@
                             CornerRadius="{x:Bind BubbleCorners, Mode=OneWay}" Visibility="{x:Bind OutgoingVisibility}" />
 
                     <StackPanel Padding="4,3,4,4" Spacing="3">
-                        <c:EmojiLabel Text="{x:Bind SenderName}" Margin="6,2,6,0" FontSize="13" FontWeight="SemiBold" Foreground="{x:Bind SenderBrush}" Visibility="{x:Bind SenderVisibility, Mode=OneWay}" />
+                        <c:PlainButton Margin="6,2,6,0" HorizontalAlignment="Left" Click="OnSenderClick" Visibility="{x:Bind SenderVisibility, Mode=OneWay}">
+                            <c:EmojiLabel Text="{x:Bind SenderName}" FontSize="13" FontWeight="SemiBold" Foreground="{x:Bind SenderBrush}" />
+                        </c:PlainButton>
 
                         <Grid x:Name="QuoteBox" x:Load="{x:Bind HasQuote, Mode=OneWay}" MinWidth="180" CornerRadius="7"
                               Background="{ThemeResource QuoteBackgroundBrush}" Tapped="OnQuoteTapped">
@@ -183,8 +185,9 @@
 
                 <Grid HorizontalAlignment="{x:Bind Alignment}" Margin="{x:Bind BubbleMargin}">
                     <StackPanel Spacing="2">
-                        <RichTextBlock Margin="2,0" c:EmojiText.Text="{x:Bind SenderName}" FontSize="13" FontWeight="SemiBold" Foreground="{x:Bind SenderBrush}"
-                                       IsTextSelectionEnabled="False" Visibility="{x:Bind SenderVisibility, Mode=OneWay}" />
+                        <c:PlainButton Margin="2,0" HorizontalAlignment="Left" Click="OnSenderClick" Visibility="{x:Bind SenderVisibility, Mode=OneWay}">
+                            <RichTextBlock c:EmojiText.Text="{x:Bind SenderName}" FontSize="13" FontWeight="SemiBold" Foreground="{x:Bind SenderBrush}" IsTextSelectionEnabled="False" />
+                        </c:PlainButton>
                         <Image x:Name="StickerImage" x:Load="{x:Bind IsSticker}" Width="{x:Bind VisualWidth}" Height="{x:Bind VisualHeight}" Source="{x:Bind Visual, Mode=OneWay}" />
                         <RichTextBlock x:Name="JumboText" x:Load="{x:Bind IsJumbo}" c:EmojiText.Text="{x:Bind Data.Text}" FontSize="{x:Bind JumboFontSize}"
                                        IsTextSelectionEnabled="False" />
@@ -243,20 +246,28 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- The header: who the chat is with, and what they are doing. -->
+        <!-- The header: who the chat is with, and what they are doing. A click opens their info. -->
         <Grid Height="60" Padding="16,0,10,0" ColumnSpacing="14" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource DividerBrush}" BorderThickness="0,0,0,1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <c:Avatar VerticalAlignment="Center" Size="40" IsGroup="{x:Bind Session.Current.Chat.IsGroup, Mode=OneWay}" Source="{x:Bind Session.Current.Chat.Avatar, Mode=OneWay}" />
-            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                <c:EmojiLabel Text="{x:Bind Session.Current.Chat.Name, Mode=OneWay}" FontSize="16" FontWeight="Medium" Foreground="{ThemeResource TextPrimaryBrush}" />
-                <TextBlock x:Name="HeaderStatusText" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" MaxLines="1"
-                           Text="{x:Bind Session.HeaderStatus, Mode=OneWay}" TextTrimming="CharacterEllipsis" />
-            </StackPanel>
-            <Button Grid.Column="2" AutomationProperties.Name="More" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="More">
+            <c:PlainButton x:Name="HeaderButton" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center"
+                           Click="OnHeaderClick">
+                <Grid ColumnSpacing="14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <c:Avatar VerticalAlignment="Center" Size="40" IsGroup="{x:Bind Session.Current.Chat.IsGroup, Mode=OneWay}" Source="{x:Bind Session.Current.Chat.Avatar, Mode=OneWay}" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <c:EmojiLabel Text="{x:Bind Session.Current.Chat.Name, Mode=OneWay}" FontSize="16" FontWeight="Medium" Foreground="{ThemeResource TextPrimaryBrush}" />
+                        <TextBlock x:Name="HeaderStatusText" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" MaxLines="1"
+                                   Text="{x:Bind Session.HeaderStatus, Mode=OneWay}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                </Grid>
+            </c:PlainButton>
+            <Button Grid.Column="1" AutomationProperties.Name="More" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="More">
                 <c:WaIcon Kind="MoreVert" Size="22" />
                 <Button.Flyout>
                     <MenuFlyout x:Name="ChatMenu" Opening="OnChatMenuOpening" Placement="BottomEdgeAlignedRight" />

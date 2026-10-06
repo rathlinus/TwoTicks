@@ -45,8 +45,8 @@ public sealed partial class MainWindow : Window
     private double _dragStartX;
     private double _dragStartWidth;
     private RectInt32 _normalBounds;
-    private MessageItem? _viewerItem;
     private string? _viewerPath;
+    private string? _viewerSaveName;
 
     public MainWindow()
     {
@@ -247,6 +247,10 @@ public sealed partial class MainWindow : Window
         bool open = Session.Current is not null;
         ConversationPane.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
         EmptyState.Visibility = open ? Visibility.Collapsed : Visibility.Visible;
+        if (ProfilePane.IsOpen && ProfilePane.ChatJid != Session.Current?.Jid)
+        {
+            ProfilePane.Close();
+        }
         SelectCurrentChat();
 
         if (Session.Error is { } error)
@@ -518,6 +522,11 @@ public sealed partial class MainWindow : Window
         {
             args.Handled = true;
         }
+        else if (ProfilePane.IsOpen)
+        {
+            args.Handled = true;
+            ProfilePane.Close();
+        }
         else if (SearchPanel.Visibility == Visibility.Visible)
         {
             args.Handled = true;
@@ -554,6 +563,23 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    // ---- Contact and group info ----
+
+    /// <summary>Opens the info of a person or group beside the open chat.</summary>
+    public void ShowProfile(string jid, string name, bool isGroup) => ProfilePane.Show(jid, name, isGroup, Session.Current?.Jid);
+
+    /// <summary>
+    /// The info goes beside the chat when there is room for both, and over the
+    /// right of the chat when the window is narrow.
+    /// </summary>
+    private void OnChatAreaSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        bool beside = e.NewSize.Width >= 800;
+        Grid.SetColumn(ProfilePane, beside ? 1 : 0);
+        ProfilePane.HorizontalAlignment = beside ? HorizontalAlignment.Stretch : HorizontalAlignment.Right;
+        ProfilePane.Width = Math.Min(400, e.NewSize.Width);
+    }
+
     // ---- Dialogs ----
 
     private void OnNewChatClick(object sender, RoutedEventArgs e) => _ = NewChatAsync();
@@ -587,8 +613,8 @@ public sealed partial class MainWindow : Window
 
     public void ShowMedia(MessageItem item, string path)
     {
-        _viewerItem = item;
         _viewerPath = path;
+        _viewerSaveName = $"WhatsApp {Formatting.ToLocal(item.Ts):yyyy-MM-dd HH.mm.ss}";
         EmojiText.SetText(ViewerTitle, item.FromMe ? "You" : !string.IsNullOrEmpty(item.SenderName) ? item.SenderName : Session.Current?.Chat.Name ?? "");
         ViewerSubtitle.Text = Formatting.ToLocal(item.Ts).ToString("g");
 
@@ -613,13 +639,32 @@ public sealed partial class MainWindow : Window
         Viewer.Focus(FocusState.Programmatic);
     }
 
+    /// <summary>Shows a profile photo at full size.</summary>
+    public void ShowPicture(string path, string name)
+    {
+        _viewerPath = path;
+        _viewerSaveName = string.Concat(name.Split(Path.GetInvalidFileNameChars())).Trim();
+        if (_viewerSaveName.Length == 0)
+        {
+            _viewerSaveName = "Profile photo";
+        }
+        EmojiText.SetText(ViewerTitle, name);
+        ViewerSubtitle.Text = "Profile photo";
+        ViewerScroll.Visibility = Visibility.Visible;
+        ViewerVideo.Visibility = Visibility.Collapsed;
+        ViewerImage.Source = Images.FromFile(path);
+        ViewerScroll.ChangeView(0, 0, 1, true);
+        Viewer.Visibility = Visibility.Visible;
+        Viewer.Focus(FocusState.Programmatic);
+    }
+
     private void CloseViewer()
     {
         Viewer.Visibility = Visibility.Collapsed;
         ViewerVideo.MediaPlayer?.Pause();
         ViewerVideo.Source = null;
         ViewerImage.Source = null;
-        _viewerItem = null;
+        _viewerPath = null;
     }
 
     private void OnViewerCloseClick(object sender, RoutedEventArgs e) => CloseViewer();
@@ -642,14 +687,11 @@ public sealed partial class MainWindow : Window
 
     private async void OnViewerSaveClick(object sender, RoutedEventArgs e)
     {
-        if (_viewerPath is null || _viewerItem is null)
+        if (_viewerPath is null)
         {
             return;
         }
-        var picker = new Windows.Storage.Pickers.FileSavePicker
-        {
-            SuggestedFileName = $"WhatsApp {Formatting.ToLocal(_viewerItem.Ts):yyyy-MM-dd HH.mm.ss}",
-        };
+        var picker = new Windows.Storage.Pickers.FileSavePicker { SuggestedFileName = _viewerSaveName ?? Path.GetFileNameWithoutExtension(_viewerPath) };
         WinRT.Interop.InitializeWithWindow.Initialize(picker, App.Current.WindowHandle);
         string extension = Path.GetExtension(_viewerPath);
         picker.FileTypeChoices.Add(extension.TrimStart('.').ToUpperInvariant(), [extension]);

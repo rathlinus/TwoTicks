@@ -12,7 +12,10 @@
         <MicaBackdrop />
     </Window.SystemBackdrop>
 
-    <Grid x:Name="Root" Background="{ThemeResource SurfaceBrush}">
+    <Grid
+        x:Name="Root"
+        Background="{ThemeResource SurfaceBrush}"
+        KeyboardAcceleratorPlacementMode="Hidden">
         <Grid.Resources>
             <!-- A row of the chat list, laid out as in WhatsApp Web. -->
             <DataTemplate x:Key="ChatTemplate" x:DataType="m:ChatItem">
@@ -233,8 +236,12 @@
             <c:SplitterHandle x:Name="Splitter" Width="7" Margin="0,0,-4,0" HorizontalAlignment="Right" Background="Transparent"
                               PointerPressed="OnSplitterPressed" PointerMoved="OnSplitterMoved" PointerReleased="OnSplitterReleased" PointerCaptureLost="OnSplitterReleased" />
 
-            <!-- The open chat, or a welcome when none is open. -->
-            <Grid Grid.Column="1">
+            <!-- The open chat, or a welcome when none is open, and the info of a contact or group beside it. -->
+            <Grid x:Name="ChatArea" Grid.Column="1" SizeChanged="OnChatAreaSizeChanged">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
                 <Grid x:Name="EmptyState" Background="{ThemeResource SurfaceEmphasizedBrush}">
                     <StackPanel MaxWidth="460" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="14">
                         <Image Width="88" Height="88" Source="Assets/Logo.png" />
@@ -248,6 +255,7 @@
                     </StackPanel>
                 </Grid>
                 <v:ConversationView x:Name="ConversationPane" Visibility="Collapsed" />
+                <v:ProfileView x:Name="ProfilePane" Grid.Column="1" Width="400" Visibility="Collapsed" />
             </Grid>
         </Grid>
 
