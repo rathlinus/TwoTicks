@@ -112,7 +112,10 @@ internal sealed partial class SettingsDialog : ContentDialog
         {
             Content = Loc.T("settings.sourceCode"),
             NavigateUri = new Uri("https://github.com/rathlinus/WinWhatsApp"),
-            Margin = new Thickness(-12, 0, 0, 0),
+            // No padding instead of a negative margin: the scroll viewer clips anything
+            // left of the panel, which cut the hover background off at the left edge.
+            Padding = new Thickness(0),
+            Margin = new Thickness(0, 4, 0, 4),
         });
 
         panel.Children.Add(Heading(Loc.T("settings.disclaimer")));
