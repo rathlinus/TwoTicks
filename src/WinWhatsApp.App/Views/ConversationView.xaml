@@ -133,7 +133,7 @@
                                       Visibility="{x:Bind AudioFileVisibility}" />
                         </Grid>
 
-                        <Grid x:Name="LinkBox" x:Load="{x:Bind HasLink, Mode=OneWay}" MaxWidth="440" ColumnSpacing="10" CornerRadius="7"
+                        <Grid x:Name="LinkBox" x:Load="{x:Bind HasLink, Mode=OneWay}" ColumnSpacing="10" CornerRadius="7"
                               Background="{ThemeResource QuoteBackgroundBrush}" Tapped="OnLinkTapped">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
