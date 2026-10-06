@@ -49,6 +49,8 @@ public sealed class MessageItem : Observable
     private string _audioTime = "";
     private bool _isHighlighted;
     private bool _hasHighlight;
+    private bool _isHovered;
+    private bool _showReactButton;
 
     public MessageItem(MessageData data, bool isGroup)
     {
@@ -177,6 +179,28 @@ public sealed class MessageItem : Observable
     public Thickness BubbleMargin => FromMe ? new Thickness(80, 0, 24, 0) : new Thickness(24, 0, 80, 0);
     public Visibility IncomingVisibility => FromMe ? Visibility.Collapsed : Visibility.Visible;
     public Visibility OutgoingVisibility => FromMe ? Visibility.Visible : Visibility.Collapsed;
+
+    // ---- The buttons that show while the pointer is over the message ----
+
+    /// <summary>The pointer is over the message's row: its menu button shows, and the react button beside it.</summary>
+    public void SetHover(bool hovered, bool canReact)
+    {
+        bool react = hovered && canReact;
+        if (_isHovered != hovered || _showReactButton != react)
+        {
+            _isHovered = hovered;
+            _showReactButton = react;
+            OnPropertyChanged(nameof(HoverVisibility));
+            OnPropertyChanged(nameof(ReactButtonVisibility));
+        }
+    }
+
+    public Visibility HoverVisibility => _isHovered ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility ReactButtonVisibility => _showReactButton ? Visibility.Visible : Visibility.Collapsed;
+
+    /// <summary>The react button sits in the gap beside the bubble, on the side away from its sender.</summary>
+    public HorizontalAlignment ReactButtonAlignment => FromMe ? HorizontalAlignment.Left : HorizontalAlignment.Right;
+    public Thickness ReactButtonMargin => FromMe ? new Thickness(-44, 0, 0, 0) : new Thickness(0, 0, -44, 0);
 
     /// <summary>Briefly set when the conversation jumps to this message.</summary>
     public bool IsHighlighted
@@ -332,6 +356,7 @@ public sealed class MessageItem : Observable
     public void Unrealize()
     {
         _realized = false;
+        SetHover(false, false);
         if (_visualIsFull)
         {
             _visualIsFull = false;

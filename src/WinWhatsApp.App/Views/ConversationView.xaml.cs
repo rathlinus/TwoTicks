@@ -921,6 +921,39 @@ public sealed partial class ConversationView : UserControl
         }
     }
 
+    /// <summary>The chevron in the corner of a message, shown while the pointer is over it.</summary>
+    private void OnMessageMenuClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement button || ItemOf(sender) is not { } item)
+        {
+            return;
+        }
+        // The button goes once the pointer leaves the message for the menu,
+        // so the menu and what it opens are placed by where it was.
+        Point at = button.TransformToVisual(MessageList).TransformPoint(new Point(button.ActualWidth, button.ActualHeight));
+        MenuFlyout menu = BuildMessageMenu(item, null, at);
+        menu.ShowAt(MessageList, new FlyoutShowOptions { Position = at, Placement = FlyoutPlacementMode.BottomEdgeAlignedRight });
+    }
+
+    /// <summary>The smiley beside a message, shown while the pointer is over it.</summary>
+    private void OnHoverReactClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement button && ItemOf(sender) is { } item)
+        {
+            ShowReactionBar(item, button.TransformToVisual(MessageList).TransformPoint(new Point(button.ActualWidth / 2, 0)));
+        }
+    }
+
+    private void OnRowPointerEntered(object sender, PointerRoutedEventArgs e)
+    {
+        if (ItemOf(sender) is { } item && item.Kind != "system")
+        {
+            item.SetHover(true, item.CanReact && _shown?.Chat.IsReadOnly != true);
+        }
+    }
+
+    private void OnRowPointerExited(object sender, PointerRoutedEventArgs e) => ItemOf(sender)?.SetHover(false, false);
+
     private MenuFlyout BuildMessageMenu(MessageItem item, RichTextBlock? textBlock, Point? point)
     {
         var menu = new MenuFlyout();
@@ -932,14 +965,24 @@ public sealed partial class ConversationView : UserControl
             return entry;
         }
 
+        bool writable = _shown?.Chat.IsReadOnly != true;
+        bool react = item.CanReact && writable;
+        if (react)
+        {
+            // WhatsApp's quick reactions above the menu's entries.
+            menu.Items.Add(new MenuFlyoutItem
+            {
+                Style = (Style)Resources["MenuContentItemStyle"],
+                Tag = ReactionRow(item, menu.Hide, () => ShowEmojiPicker(item, point)),
+            });
+        }
         if (item.IsFailed)
         {
             Add("Send again", "Refresh", () => _ = Session.RetryAsync(item));
         }
-        if (item.CanReact && _shown?.Chat.IsReadOnly != true)
+        if (react)
         {
             Add("Reply", "Reply", () => StartReply(item));
-            Add("React", "React", () => ShowReactionBar(item, point));
         }
 
         string selected = textBlock?.SelectedText ?? "";
@@ -952,6 +995,14 @@ public sealed partial class ConversationView : UserControl
                 Clipboard.SetContent(package);
             });
         }
+        if (react)
+        {
+            Add("React", "React", () => ShowEmojiPicker(item, point));
+        }
+        if (item.CanEdit)
+        {
+            Add("Edit", "Edit", () => StartEdit(item));
+        }
         if (item.HasMedia)
         {
             if (item.IsDownloaded)
@@ -960,10 +1011,6 @@ public sealed partial class ConversationView : UserControl
                 Add("Show in folder", "Folder", () => Process.Start("explorer.exe", $"/select,\"{item.Data.Media!.Path}\""));
             }
             Add("Save as…", "Download", () => _ = SaveAsAsync(item));
-        }
-        if (item.CanEdit)
-        {
-            Add("Edit", "Edit", () => StartEdit(item));
         }
 
         menu.Items.Add(new MenuFlyoutSeparator());
@@ -975,13 +1022,19 @@ public sealed partial class ConversationView : UserControl
         return menu;
     }
 
-    /// <summary>WhatsApp's row of quick reactions, and a plus for any other emoji.</summary>
+    /// <summary>WhatsApp's row of quick reactions, on its own above the message.</summary>
     private void ShowReactionBar(MessageItem item, Point? point)
     {
-        var bar = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 };
-        var flyout = new Flyout { Content = bar, Placement = FlyoutPlacementMode.Top };
+        var flyout = new Flyout { Placement = FlyoutPlacementMode.Top };
+        flyout.Content = ReactionRow(item, flyout.Hide, () => ShowEmojiPicker(item, point));
         flyout.FlyoutPresenterStyle = ReactionBarStyle();
+        ShowFlyout(flyout, point);
+    }
 
+    /// <summary>The quick reactions, and a plus for any other emoji. Picking one closes what holds the row.</summary>
+    private StackPanel ReactionRow(MessageItem item, Action close, Action more)
+    {
+        var bar = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 };
         foreach (string emoji in s_quickReactions)
         {
             var button = new Button
@@ -999,13 +1052,13 @@ public sealed partial class ConversationView : UserControl
             ToolTipService.SetToolTip(button, item.OwnReaction == emoji ? "Remove your reaction" : null);
             button.Click += (_, _) =>
             {
-                flyout.Hide();
+                close();
                 _ = Session.ReactAsync(item, item.OwnReaction == emoji ? "" : emoji);
             };
             bar.Children.Add(button);
         }
 
-        var more = new Button
+        var plus = new Button
         {
             Width = 44,
             Height = 44,
@@ -1015,22 +1068,27 @@ public sealed partial class ConversationView : UserControl
             Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
             Content = new WaIcon { Kind = "Add", Size = 24 },
         };
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(more, "More reactions");
-        more.Click += (_, _) =>
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(plus, "More reactions");
+        plus.Click += (_, _) =>
         {
-            flyout.Hide();
-            var picker = new EmojiPicker();
-            var pickerFlyout = new Flyout { Content = picker, Placement = FlyoutPlacementMode.Top };
-            pickerFlyout.Opened += (_, _) => picker.FocusSearch();
-            picker.Picked += emoji =>
-            {
-                pickerFlyout.Hide();
-                _ = Session.ReactAsync(item, emoji);
-            };
-            ShowFlyout(pickerFlyout, point);
+            close();
+            more();
         };
-        bar.Children.Add(more);
-        ShowFlyout(flyout, point);
+        bar.Children.Add(plus);
+        return bar;
+    }
+
+    private void ShowEmojiPicker(MessageItem item, Point? point)
+    {
+        var picker = new EmojiPicker();
+        var pickerFlyout = new Flyout { Content = picker, Placement = FlyoutPlacementMode.Top };
+        pickerFlyout.Opened += (_, _) => picker.FocusSearch();
+        picker.Picked += emoji =>
+        {
+            pickerFlyout.Hide();
+            _ = Session.ReactAsync(item, emoji);
+        };
+        ShowFlyout(pickerFlyout, point);
     }
 
     private void ShowFlyout(Flyout flyout, Point? point)

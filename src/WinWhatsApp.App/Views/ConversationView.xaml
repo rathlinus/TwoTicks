@@ -14,7 +14,7 @@
     <UserControl.Resources>
         <!-- A message in a bubble, incoming on the left and one's own on the right. -->
         <DataTemplate x:Key="BubbleTemplate" x:DataType="m:MessageItem">
-            <Grid Padding="{x:Bind RowPadding, Mode=OneWay}">
+            <Grid Padding="{x:Bind RowPadding, Mode=OneWay}" Background="Transparent" PointerEntered="OnRowPointerEntered" PointerExited="OnRowPointerExited">
                 <!-- Across the whole row for a moment when the chat jumps to this message. -->
                 <Border x:Name="HighlightBand" x:Load="{x:Bind HasHighlight, Mode=OneWay}" Margin="{x:Bind HighlightMargin, Mode=OneWay}" Background="{ThemeResource MessageHighlightBrush}"
                         IsHitTestVisible="False" Opacity="{x:Bind HighlightOpacity, Mode=OneWay}">
@@ -178,13 +178,27 @@
                             ToolTipService.ToolTip="{x:Bind ReactionsTooltip, Mode=OneWay}">
                         <RichTextBlock c:EmojiText.Text="{x:Bind ReactionsText, Mode=OneWay}" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" IsTextSelectionEnabled="False" />
                     </Border>
+
+                    <!-- While the pointer is over the message: its menu in the corner, and a button to react beside it. -->
+                    <Grid Margin="0,2,2,0" HorizontalAlignment="Right" VerticalAlignment="Top" Visibility="{x:Bind HoverVisibility, Mode=OneWay}">
+                        <Border Background="{ThemeResource IncomingBubbleBrush}" CornerRadius="11" Visibility="{x:Bind IncomingVisibility}" />
+                        <Border Background="{ThemeResource OutgoingBubbleBrush}" CornerRadius="11" Visibility="{x:Bind OutgoingVisibility}" />
+                        <Button Width="30" Height="22" Click="OnMessageMenuClick" CornerRadius="11" Style="{StaticResource IconButtonStyle}" AutomationProperties.Name="Message menu">
+                            <c:WaIcon Kind="ChevronDown" Size="20" Foreground="{ThemeResource MetaTextBrush}" />
+                        </Button>
+                    </Grid>
+                    <Button Width="32" Height="32" Margin="{x:Bind ReactButtonMargin}" HorizontalAlignment="{x:Bind ReactButtonAlignment}" VerticalAlignment="Center"
+                            Background="{ThemeResource DayChipBrush}" Click="OnHoverReactClick" CornerRadius="16" Style="{StaticResource IconButtonStyle}"
+                            Visibility="{x:Bind ReactButtonVisibility, Mode=OneWay}" AutomationProperties.Name="React" ToolTipService.ToolTip="React">
+                        <c:WaIcon Kind="Mood" Size="20" />
+                    </Button>
                 </Grid>
             </Grid>
         </DataTemplate>
 
         <!-- Stickers and messages that are only a few emoji: no bubble. -->
         <DataTemplate x:Key="BareTemplate" x:DataType="m:MessageItem">
-            <Grid Padding="{x:Bind RowPadding, Mode=OneWay}">
+            <Grid Padding="{x:Bind RowPadding, Mode=OneWay}" Background="Transparent" PointerEntered="OnRowPointerEntered" PointerExited="OnRowPointerExited">
                 <Border x:Name="BareHighlightBand" x:Load="{x:Bind HasHighlight, Mode=OneWay}" Margin="{x:Bind HighlightMargin, Mode=OneWay}" Background="{ThemeResource MessageHighlightBrush}"
                         IsHitTestVisible="False" Opacity="{x:Bind HighlightOpacity, Mode=OneWay}">
                     <Border.OpacityTransition>
@@ -213,6 +227,17 @@
                             ToolTipService.ToolTip="{x:Bind ReactionsTooltip, Mode=OneWay}">
                         <RichTextBlock c:EmojiText.Text="{x:Bind ReactionsText, Mode=OneWay}" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" IsTextSelectionEnabled="False" />
                     </Border>
+
+                    <Button Width="30" Height="22" Margin="0,2,2,0" HorizontalAlignment="Right" VerticalAlignment="Top" Background="{ThemeResource DayChipBrush}"
+                            Click="OnMessageMenuClick" CornerRadius="11" Style="{StaticResource IconButtonStyle}" Visibility="{x:Bind HoverVisibility, Mode=OneWay}"
+                            AutomationProperties.Name="Message menu">
+                        <c:WaIcon Kind="ChevronDown" Size="20" Foreground="{ThemeResource MetaTextBrush}" />
+                    </Button>
+                    <Button Width="32" Height="32" Margin="{x:Bind ReactButtonMargin}" HorizontalAlignment="{x:Bind ReactButtonAlignment}" VerticalAlignment="Center"
+                            Background="{ThemeResource DayChipBrush}" Click="OnHoverReactClick" CornerRadius="16" Style="{StaticResource IconButtonStyle}"
+                            Visibility="{x:Bind ReactButtonVisibility, Mode=OneWay}" AutomationProperties.Name="React" ToolTipService.ToolTip="React">
+                        <c:WaIcon Kind="Mood" Size="20" />
+                    </Button>
                 </Grid>
             </Grid>
         </DataTemplate>
@@ -238,6 +263,18 @@
                 </Border>
             </Border>
         </DataTemplate>
+
+        <!-- A menu entry that shows other content: the row of reactions at the top of a message's menu. -->
+        <Style x:Key="MenuContentItemStyle" TargetType="MenuFlyoutItem">
+            <Setter Property="IsTabStop" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuFlyoutItem">
+                        <ContentPresenter Margin="4,0,4,4" Content="{TemplateBinding Tag}" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
         <c:MessageTemplateSelector
             x:Key="MessageTemplates"
