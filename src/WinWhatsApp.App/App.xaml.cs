@@ -150,9 +150,30 @@ public partial class App : Application
         {
             return;
         }
-        _quitting = true;
         Log.Info("Quitting");
         Updater.InstallOnQuit();
+        Shutdown();
+        Exit();
+    }
+
+    /// <summary>Quits and starts again, as after picking another language.</summary>
+    public void Restart()
+    {
+        if (_quitting)
+        {
+            return;
+        }
+        Log.Info("Restarting");
+        Shutdown();
+        // Ends this process when it works.
+        var failure = AppInstance.Restart("");
+        Log.Info($"Failed to restart: {failure}");
+        Exit();
+    }
+
+    private void Shutdown()
+    {
+        _quitting = true;
         AudioPlayer.Stop();
         Session.Calls.Shutdown();
         _tray?.Dispose();
@@ -161,6 +182,5 @@ public partial class App : Application
         _badge?.Dispose();
         Session.Client.Dispose();
         Window.CloseForGood();
-        Exit();
     }
 }

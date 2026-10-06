@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <!--
     Everything the app does that is not drawing: talking to the WhatsApp helper,
@@ -11,6 +11,11 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="WinWhatsApp.Core.Tests" />
+  </ItemGroup>
+
+  <!-- The app's text, one folder per language. See Loc.cs. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Strings\**\*.json" WithCulture="false" />
   </ItemGroup>
 
 </Project>

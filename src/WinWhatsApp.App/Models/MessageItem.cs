@@ -16,7 +16,7 @@ public sealed class DayItem(DateTime day)
 /// <summary>The line above the first unread message when a chat opens.</summary>
 public sealed class UnreadItem(int count)
 {
-    public string Label { get; } = count == 1 ? "1 unread message" : $"{count} unread messages";
+    public string Label { get; } = Loc.Plural("conversation.unread", count);
 }
 
 /// <summary>One message in the conversation.</summary>
@@ -101,10 +101,10 @@ public sealed class MessageItem : Observable
 
     private static string DisplayText(MessageData data) => data.Kind switch
     {
-        "revoked" => data.FromMe ? "You deleted this message" : "This message was deleted",
-        "pending" => "Waiting for this message. This may take a while.",
-        "viewonce" => "View once message. Open it on your phone.",
-        "unsupported" => "This message type isn't supported yet. Open it on your phone.",
+        "revoked" => MessagePreview.Describe(data.Kind, null, null, 0, data.FromMe).Text,
+        "pending" => Loc.T("message.waiting"),
+        "viewonce" => Loc.T("message.viewOnce"),
+        "unsupported" => Loc.T("message.unsupported"),
         "poll" => data.Text ?? "",
         _ => data.Text ?? "",
     };
@@ -159,7 +159,7 @@ public sealed class MessageItem : Observable
     public bool IsForwarded => _data.Forwarded > 0;
 
     /// <summary>WhatsApp marks a message that went through five or more forwards.</summary>
-    public string ForwardedText => _data.Forwarded >= 5 ? "Forwarded many times" : "Forwarded";
+    public string ForwardedText => _data.Forwarded >= 5 ? Loc.T("message.forwardedMany") : Loc.T("message.forwarded");
 
     public string SenderName => _data.SenderName ?? "";
     public Brush SenderBrush => BrushFor(_data.Sender);
@@ -434,7 +434,7 @@ public sealed class MessageItem : Observable
     // ---- Documents ----
 
     public bool HasDocument => _data.Kind == "document";
-    public string DocumentName => _data.Media?.Name ?? "Document";
+    public string DocumentName => _data.Media?.Name ?? Loc.T("message.document");
 
     public string DocumentInfo
     {
@@ -453,7 +453,7 @@ public sealed class MessageItem : Observable
             }
             if (media.Pages > 0)
             {
-                parts.Add(media.Pages == 1 ? "1 page" : $"{media.Pages} pages");
+                parts.Add(Loc.Plural("message.pages", media.Pages));
             }
             if (media.Size > 0)
             {

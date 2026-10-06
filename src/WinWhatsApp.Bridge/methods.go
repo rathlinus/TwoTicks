@@ -97,7 +97,7 @@ func (b *Bridge) methods() map[string]handler {
 		// Starts linking again after the QR codes ran out.
 		"login": func(ctx context.Context, _ json.RawMessage) (any, error) {
 			if b.cli.Store.ID != nil {
-				return nil, errors.New("already linked")
+				return nil, userError("alreadyLinked")
 			}
 			b.cli.Disconnect()
 			go b.connect()
@@ -119,7 +119,7 @@ func (b *Bridge) methods() map[string]handler {
 				return -1
 			}, p.Phone)
 			if !b.cli.IsConnected() {
-				return nil, errors.New("not connected to WhatsApp yet, try again in a moment")
+				return nil, userError("notConnectedYet")
 			}
 			code, err := b.cli.PairPhone(ctx, phone, true, whatsmeow.PairClientChrome, "Chrome (Windows)")
 			if err != nil {
@@ -544,7 +544,7 @@ func (b *Bridge) methods() map[string]handler {
 					return map[string]string{"jid": r.JID.String()}, nil
 				}
 			}
-			return nil, errors.New("this number is not on WhatsApp")
+			return nil, userError("notOnWhatsApp")
 		},
 
 		"setChat": func(ctx context.Context, raw json.RawMessage) (any, error) {
@@ -710,7 +710,7 @@ func (b *Bridge) messages(ctx context.Context, p messagesParams) (*messagesResul
 		var ts, seq int64
 		err = b.r.QueryRowContext(ctx, `SELECT ts, rowid FROM messages WHERE chat = ? AND id = ?`, p.Chat, p.Around).Scan(&ts, &seq)
 		if err != nil {
-			return nil, errors.New("message not found")
+			return nil, userError("messageNotFound")
 		}
 		older, err := b.queryMessages(ctx, sel+`AND (m.ts < ? OR (m.ts = ? AND m.rowid <= ?)) ORDER BY m.ts DESC, m.rowid DESC LIMIT ?`,
 			p.Chat, ts, ts, seq, limit/2+1)
@@ -927,7 +927,7 @@ func (b *Bridge) requestOlder(ctx context.Context, chat string) error {
 	err := b.r.QueryRowContext(ctx, `SELECT id, raw_chat, raw_sender, from_me, ts FROM messages WHERE chat = ? AND kind != 'system'
 		ORDER BY ts, rowid LIMIT 1`, chat).Scan(&id, &rawChat, &rawSender, &fromMe, &ts)
 	if err != nil {
-		return errors.New("no messages to continue from")
+		return userError("noMessagesToGoOnFrom")
 	}
 	keyChat, err := types.ParseJID(rawChat)
 	if err != nil {

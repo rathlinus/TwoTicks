@@ -96,6 +96,23 @@ The messages of a chat are a virtualized `ListView`. `Conversation` builds its r
 
 Notifications use the plain Windows toast API under the AppUserModelID `WinWhatsApp`, which the app registers itself; the Windows App SDK's notification API does not work for apps that ship the SDK in their folder without being packaged. The unread count on the taskbar button is an overlay icon drawn by `TaskbarBadge`.
 
+## Languages
+
+The app's text is in `src/WinWhatsApp.Core/Strings/<language>/*.json`, one
+folder per language, with English as the fallback for anything missing. C#
+reads it with `Loc.T("key")` and `Loc.Plural("key", count)`, XAML with
+`{app:L Key=key}`. Values go in braces, such as `{name}`. The language follows
+Windows unless one is picked in the settings; a change needs a restart.
+
+The helper writes some text itself (group notices such as "Anna added Bob",
+missed calls, and errors the app shows). That text is in
+`src/WinWhatsApp.Bridge/text.go`, and the app passes its language with `--lang`.
+Notices are stored in the language that was active when they arrived.
+
+To add a language, copy the `en` folder to the new language code, translate
+the files, add the language to `text.go`, and add it to `[Languages]` in
+`packaging/WinWhatsApp.iss`. The tests check that every language has the same
+keys and placeholders as English, and that every key the code uses exists.
 ## Calls
 
 Calls run WhatsApp Web's own calling engine: WhatsApp's calling library compiled to WebAssembly, with the script Emscripten made for it. The app runs it in a WebView2 that is never shown, and passes call stanzas between it and the helper.

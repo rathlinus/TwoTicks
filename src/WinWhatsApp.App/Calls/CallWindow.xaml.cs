@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Windows.Graphics;
+using WinWhatsApp.Core;
 
 namespace WinWhatsApp.App.Calls;
 
@@ -84,7 +85,7 @@ public sealed partial class CallWindow : Window
 
     private void Refresh()
     {
-        Title = _call.Name.Length > 0 ? _call.Name : "WinWhatsApp call";
+        Title = _call.Name.Length > 0 ? _call.Name : Loc.T("calls.windowTitle");
         NameText.Text = _call.Name;
         StatusText.Text = _call.Status;
         Picture.Source = _call.Avatar;
@@ -97,11 +98,11 @@ public sealed partial class CallWindow : Window
         MuteButton.IsEnabled = !ended;
         DeclineButton.IsEnabled = !ended;
 
-        string hangUp = ringing ? "Decline" : "End call";
+        string hangUp = ringing ? Loc.T("calls.decline") : Loc.T("calls.hangUp");
         AutomationProperties.SetName(DeclineButton, hangUp);
         ToolTipService.SetToolTip(DeclineButton, hangUp);
 
-        string mute = _call.IsMuted ? "Unmute" : "Mute";
+        string mute = _call.IsMuted ? Loc.T("calls.unmute") : Loc.T("calls.mute");
         AutomationProperties.SetName(MuteButton, mute);
         ToolTipService.SetToolTip(MuteButton, mute);
         // Muted shows as a light button, as in WhatsApp.

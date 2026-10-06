@@ -85,7 +85,7 @@ internal sealed class Notifier
     public void ShowMessage(string chatName, MessageData message, string? avatarPath, bool showText, bool sound)
     {
         Preview preview = MessagePreview.Describe(message.Kind, message.Text, message.Media?.Name, message.Media?.Seconds ?? 0, message.FromMe);
-        string text = showText ? preview.Text : "New message";
+        string text = showText ? preview.Text : Loc.T("notify.newMessage");
         if (showText && !string.IsNullOrEmpty(message.SenderName))
         {
             text = $"{message.SenderName}: {text}";
@@ -99,9 +99,9 @@ internal sealed class Notifier
             $"<text>{Escape(chatName)}</text><text>{Escape(text)}</text>{Logo(avatarPath)}" +
             "</binding></visual>" +
             "<actions>" +
-            $"<input id=\"{ReplyInput}\" type=\"text\" placeHolderContent=\"Type a reply\"/>" +
-            $"<action content=\"Reply\" arguments=\"action=reply&amp;chat={chat}\" activationType=\"foreground\" hint-inputId=\"{ReplyInput}\"/>" +
-            $"<action content=\"Mark as read\" arguments=\"action=read&amp;chat={chat}\" activationType=\"foreground\"/>" +
+            $"<input id=\"{ReplyInput}\" type=\"text\" placeHolderContent=\"{Escape(Loc.T("notify.replyPlaceholder"))}\"/>" +
+            $"<action content=\"{Escape(Loc.T("notify.reply"))}\" arguments=\"action=reply&amp;chat={chat}\" activationType=\"foreground\" hint-inputId=\"{ReplyInput}\"/>" +
+            $"<action content=\"{Escape(Loc.T("notify.markRead"))}\" arguments=\"action=read&amp;chat={chat}\" activationType=\"foreground\"/>" +
             "</actions>" +
             (sound ? "" : "<audio silent=\"true\"/>") +
             "</toast>";
@@ -110,13 +110,19 @@ internal sealed class Notifier
 
     public void ShowCall(CallData call, string? avatarPath)
     {
-        string kind = call.Video ? "video call" : "voice call";
+        string text = (call.Group, call.Video) switch
+        {
+            (false, false) => Loc.T("notify.incomingVoiceCall"),
+            (false, true) => Loc.T("notify.incomingVideoCall"),
+            (true, false) => Loc.T("notify.incomingGroupVoiceCall"),
+            (true, true) => Loc.T("notify.incomingGroupVideoCall"),
+        };
         string xml =
             $"<toast launch=\"action=open&amp;chat={Escape(call.From)}\" activationType=\"foreground\" scenario=\"incomingCall\">" +
             "<visual><binding template=\"ToastGeneric\">" +
-            $"<text>{Escape(call.Name)}</text><text>Incoming {(call.Group ? "group " : "")}{kind}. Answer it on your phone.</text>{Logo(avatarPath)}" +
+            $"<text>{Escape(call.Name)}</text><text>{Escape(text)}</text>{Logo(avatarPath)}" +
             "</binding></visual>" +
-            "<actions><action content=\"OK\" arguments=\"action=dismiss\" activationType=\"foreground\"/></actions>" +
+            $"<actions><action content=\"{Escape(Loc.T("common.ok"))}\" arguments=\"action=dismiss\" activationType=\"foreground\"/></actions>" +
             "</toast>";
         Show(xml, "calls");
     }
@@ -127,11 +133,11 @@ internal sealed class Notifier
         string xml =
             "<toast launch=\"action=showCall\" activationType=\"foreground\" scenario=\"incomingCall\">" +
             "<visual><binding template=\"ToastGeneric\">" +
-            $"<text>{Escape(name)}</text><text>Incoming voice call</text>{Logo(avatarPath)}" +
+            $"<text>{Escape(name)}</text><text>{Escape(Loc.T("calls.incomingVoiceCall"))}</text>{Logo(avatarPath)}" +
             "</binding></visual>" +
             "<actions>" +
-            "<action content=\"Decline\" arguments=\"action=decline\" activationType=\"foreground\"/>" +
-            "<action content=\"Answer\" arguments=\"action=answer\" activationType=\"foreground\"/>" +
+            $"<action content=\"{Escape(Loc.T("calls.decline"))}\" arguments=\"action=decline\" activationType=\"foreground\"/>" +
+            $"<action content=\"{Escape(Loc.T("calls.answer"))}\" arguments=\"action=answer\" activationType=\"foreground\"/>" +
             "</actions>" +
             "<audio silent=\"true\"/>" +
             "</toast>";
@@ -156,16 +162,16 @@ internal sealed class Notifier
     public void ShowUpdate(string version, bool canInstall)
     {
         string text = canInstall
-            ? "Install it now; WinWhatsApp restarts with it."
-            : "Download it from GitHub.";
+            ? Loc.T("notify.updateInstallText")
+            : Loc.T("notify.updateDownloadText");
         string xml =
             "<toast launch=\"action=open\" activationType=\"foreground\">" +
             "<visual><binding template=\"ToastGeneric\">" +
-            $"<text>WinWhatsApp {Escape(version)} is available</text><text>{text}</text>" +
+            $"<text>{Escape(Loc.T("notify.updateAvailable", ("version", version)))}</text><text>{Escape(text)}</text>" +
             "</binding></visual>" +
             "<actions>" +
-            $"<action content=\"{(canInstall ? "Install and restart" : "Download")}\" arguments=\"action=update\" activationType=\"foreground\"/>" +
-            "<action content=\"Later\" arguments=\"action=dismiss\" activationType=\"foreground\"/>" +
+            $"<action content=\"{Escape(canInstall ? Loc.T("notify.updateInstall") : Loc.T("notify.updateDownload"))}\" arguments=\"action=update\" activationType=\"foreground\"/>" +
+            $"<action content=\"{Escape(Loc.T("notify.updateLater"))}\" arguments=\"action=dismiss\" activationType=\"foreground\"/>" +
             "</actions>" +
             "</toast>";
         Show(xml, "updates");

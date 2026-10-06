@@ -58,7 +58,7 @@ func (b *Bridge) doDownload(ctx context.Context, chat, id string) (string, error
 		return "", err
 	}
 	if m == nil {
-		return "", errors.New("message not found")
+		return "", userError("messageNotFound")
 	}
 	if m.localPath != "" {
 		if _, err := os.Stat(m.localPath); err == nil {
@@ -67,7 +67,7 @@ func (b *Bridge) doDownload(ctx context.Context, chat, id string) (string, error
 	}
 	raw, err := b.loadRaw(ctx, chat, id)
 	if err != nil || len(raw) == 0 {
-		return "", errors.New("this message has no file to download")
+		return "", userError("noFile")
 	}
 	var msg waE2E.Message
 	if err := proto.Unmarshal(raw, &msg); err != nil {
@@ -75,7 +75,7 @@ func (b *Bridge) doDownload(ctx context.Context, chat, id string) (string, error
 	}
 	part, name, mimeType := downloadablePart(&msg)
 	if part == nil || len(part.GetMediaKey()) == 0 {
-		return "", errors.New("this message has no file to download")
+		return "", userError("noFile")
 	}
 
 	path := b.mediaPath(id, name, mimeType)
@@ -129,9 +129,9 @@ func (b *Bridge) doDownload(ctx context.Context, chat, id string) (string, error
 func friendlyDownloadError(err error) error {
 	switch {
 	case errors.Is(err, whatsmeow.ErrMediaNotAvailableOnPhone):
-		return errors.New("this file is no longer on your phone")
+		return userError("fileGone")
 	case errors.Is(err, context.DeadlineExceeded):
-		return errors.New("your phone did not answer. Make sure it is online and try again")
+		return userError("phoneNoAnswer")
 	}
 	return err
 }
@@ -326,7 +326,7 @@ func (b *Bridge) thumbnail(ctx context.Context, chat, id string) error {
 	}
 	raw, err := b.loadRaw(ctx, chat, id)
 	if err != nil || len(raw) == 0 {
-		return errors.New("message not found")
+		return userError("messageNotFound")
 	}
 	var msg waE2E.Message
 	if err := proto.Unmarshal(raw, &msg); err != nil {
@@ -335,7 +335,7 @@ func (b *Bridge) thumbnail(ctx context.Context, chat, id string) error {
 	part, _, _ := downloadablePart(&msg)
 	withThumb, ok := part.(whatsmeow.DownloadableThumbnail)
 	if !ok || withThumb.GetThumbnailDirectPath() == "" {
-		return errors.New("this message has no preview")
+		return userError("noPreview")
 	}
 	data, err := b.cli.DownloadThumbnail(ctx, withThumb)
 	if err != nil {
@@ -343,7 +343,7 @@ func (b *Bridge) thumbnail(ctx context.Context, chat, id string) error {
 	}
 	m, err := b.loadMessage(ctx, chat, id)
 	if err != nil || m == nil {
-		return errors.New("message not found")
+		return userError("messageNotFound")
 	}
 	if m.Media == nil {
 		m.Media = &Media{}
@@ -436,7 +436,7 @@ func (b *Bridge) picture(ctx context.Context, jidText string) (string, error) {
 		}
 	}
 	if b.cli.Store.ID == nil || !b.cli.IsConnected() {
-		return "", errors.New("not connected to WhatsApp")
+		return "", userError("notConnected")
 	}
 
 	info, err := b.cli.GetProfilePictureInfo(ctx, jid, &whatsmeow.GetProfilePictureParams{})

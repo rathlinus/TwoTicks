@@ -43,6 +43,9 @@ public sealed class AppSettings
     /// <summary>"System", "Light" or "Dark".</summary>
     public string Theme { get; set; } = "System";
 
+    /// <summary>The language of the app, such as "de"; null for the one Windows shows.</summary>
+    public string? Language { get; set; }
+
     /// <summary>Shows WhatsApp's own icon instead of the WinWhatsApp logo.</summary>
     public bool WhatsAppIcon { get; set; }
 

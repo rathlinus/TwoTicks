@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 
@@ -81,7 +80,7 @@ func describe(msg *waE2E.Message) (kind, text string, media *Media, ci *waE2E.Co
 
 	case msg.LiveLocationMessage != nil:
 		m := msg.LiveLocationMessage
-		return "location", strings.TrimSpace("Live location\n" + m.GetCaption()), &Media{
+		return "location", strings.TrimSpace(tr("liveLocation") + "\n" + m.GetCaption()), &Media{
 			Lat: m.GetDegreesLatitude(), Lng: m.GetDegreesLongitude(), Thumb: m.GetJPEGThumbnail(),
 		}, m.GetContextInfo()
 
@@ -117,7 +116,7 @@ func describe(msg *waE2E.Message) (kind, text string, media *Media, ci *waE2E.Co
 
 	case msg.GroupInviteMessage != nil:
 		m := msg.GroupInviteMessage
-		return "text", strings.TrimSpace(fmt.Sprintf("Invitation to join the group \"%s\"\n%s", m.GetGroupName(), m.GetCaption())), nil, m.GetContextInfo()
+		return "text", strings.TrimSpace(tr("groupInvite", "name", m.GetGroupName()) + "\n" + m.GetCaption()), nil, m.GetContextInfo()
 
 	case msg.ButtonsMessage != nil:
 		m := msg.ButtonsMessage

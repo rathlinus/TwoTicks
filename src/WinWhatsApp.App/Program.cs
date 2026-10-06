@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
@@ -32,6 +33,8 @@ public static class Program
             return 0;
         }
 
+        UseLanguage(SettingsStore.Load().Language);
+
         Application.Start(_ =>
         {
             var context = new DispatcherQueueSynchronizationContext(DispatcherQueue.GetForCurrentThread());
@@ -39,6 +42,25 @@ public static class Program
             new App();
         });
         return 0;
+    }
+
+    /// <summary>
+    /// Picks the language for the app's text, and for the text WinUI brings
+    /// itself, such as the menu of a text box. It holds until the app quits:
+    /// another one in the settings takes effect at the next start.
+    /// </summary>
+    private static void UseLanguage(string? language)
+    {
+        Loc.Use(language);
+        CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.CurrentUICulture = Loc.Culture;
+        try
+        {
+            Microsoft.Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride = Loc.Language;
+        }
+        catch (Exception e)
+        {
+            Log.Error("Failed to set the language", e);
+        }
     }
 
     private static bool HandOverToRunningInstance()

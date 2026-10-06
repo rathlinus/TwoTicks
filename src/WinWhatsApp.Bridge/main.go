@@ -27,6 +27,7 @@ var version = "0.1.0"
 func main() {
 	dataDir := flag.String("data", "", "the folder for the session, the message database and downloaded media")
 	debug := flag.Bool("debug", false, "write the protocol's debug messages to the log")
+	flag.StringVar(&lang, "lang", lang, "the language of the text it writes itself, such as de")
 	flag.Parse()
 
 	if *dataDir == "" {

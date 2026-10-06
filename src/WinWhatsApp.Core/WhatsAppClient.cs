@@ -99,7 +99,7 @@ public sealed class WhatsAppClient : IDisposable
         {
             // A crash. Start again after a pause, so a helper that fails right
             // away does not spin.
-            Failed?.Invoke("The WhatsApp helper stopped unexpectedly and is being restarted.");
+            Failed?.Invoke(Loc.T("helper.restarting"));
             _ = Task.Delay(2000).ContinueWith(_ =>
             {
                 try
@@ -192,7 +192,7 @@ public sealed class WhatsAppClient : IDisposable
         {
             lock (_lock)
             {
-                return _connection ?? throw new BridgeException("The WhatsApp helper is not running.");
+                return _connection ?? throw new BridgeException(Loc.T("helper.notRunning"));
             }
         }
     }

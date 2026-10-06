@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml.Controls;
 using WinWhatsApp.App.Models;
+using WinWhatsApp.Core;
 
 namespace WinWhatsApp.App.Views;
 
@@ -18,25 +19,25 @@ internal static class ChatMenus
 
         if (chat.HasUnread)
         {
-            items.Add(Item("Mark as read", "Check", () => _ = session.MarkReadAsync(chat.Jid)));
+            items.Add(Item(Loc.T("chats.markRead"), "Check", () => _ = session.MarkReadAsync(chat.Jid)));
         }
         else
         {
-            items.Add(Item("Mark as unread", "Unread", () => _ = session.MarkUnreadAsync(chat)));
+            items.Add(Item(Loc.T("chats.markUnread"), "Unread", () => _ = session.MarkUnreadAsync(chat)));
         }
 
         items.Add(chat.IsPinned
-            ? Item("Unpin chat", "Unpin", () => _ = session.SetPinnedAsync(chat, false))
-            : Item("Pin chat", "Pin", () => _ = session.SetPinnedAsync(chat, true)));
+            ? Item(Loc.T("chats.unpin"), "Unpin", () => _ = session.SetPinnedAsync(chat, false))
+            : Item(Loc.T("chats.pin"), "Pin", () => _ = session.SetPinnedAsync(chat, true)));
 
         if (chat.IsMuted)
         {
-            items.Add(Item("Unmute notifications", "Notifications", () => _ = session.SetMutedAsync(chat, 0)));
+            items.Add(Item(Loc.T("chats.unmute"), "Notifications", () => _ = session.SetMutedAsync(chat, 0)));
         }
         else
         {
-            var mute = new MenuFlyoutSubItem { Text = "Mute notifications", Icon = Controls.WaIcons.PathIcon("Muted") };
-            foreach ((string text, long seconds) in new[] { ("For 8 hours", 8 * 3600L), ("For 1 week", 7 * 24 * 3600L), ("Always", -1L) })
+            var mute = new MenuFlyoutSubItem { Text = Loc.T("chats.mute"), Icon = Controls.WaIcons.PathIcon("Muted") };
+            foreach ((string text, long seconds) in new[] { (Loc.T("chats.mute8Hours"), 8 * 3600L), (Loc.T("chats.muteWeek"), 7 * 24 * 3600L), (Loc.T("chats.muteAlways"), -1L) })
             {
                 var entry = new MenuFlyoutItem { Text = text };
                 entry.Click += (_, _) => _ = session.SetMutedAsync(chat, seconds);
@@ -46,8 +47,8 @@ internal static class ChatMenus
         }
 
         items.Add(chat.IsArchived
-            ? Item("Unarchive chat", "Unarchive", () => _ = session.SetArchivedAsync(chat, false))
-            : Item("Archive chat", "Archive", () => _ = session.SetArchivedAsync(chat, true)));
+            ? Item(Loc.T("chats.unarchive"), "Unarchive", () => _ = session.SetArchivedAsync(chat, false))
+            : Item(Loc.T("chats.archive"), "Archive", () => _ = session.SetArchivedAsync(chat, true)));
         return items;
     }
 }

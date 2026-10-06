@@ -174,7 +174,7 @@ public sealed class ChatItem : Observable
         Time = Formatting.ChatListTime(_data.Ts, DateTime.Now);
         if (!string.IsNullOrEmpty(_draft))
         {
-            PreviewPrefix = "Draft: ";
+            PreviewPrefix = Loc.T("main.draftPrefix");
             PreviewGlyph = null;
             PreviewText = _draft.ReplaceLineEndings(" ");
             Status = -2;
@@ -194,7 +194,7 @@ public sealed class ChatItem : Observable
         PreviewGlyph = preview.Glyph;
         PreviewText = preview.Text;
         bool showSender = last.Kind is not ("system" or "revoked");
-        PreviewPrefix = showSender && _data.Group && !last.FromMe && !string.IsNullOrEmpty(last.SenderName) ? last.SenderName + ": " : "";
+        PreviewPrefix = showSender && _data.Group && !last.FromMe && !string.IsNullOrEmpty(last.SenderName) ? Loc.T("main.senderPrefix", ("name", last.SenderName)) : "";
         Status = last.FromMe && showSender ? last.Status : -2;
     }
 }

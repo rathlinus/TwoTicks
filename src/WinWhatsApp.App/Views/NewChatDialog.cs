@@ -17,13 +17,13 @@ internal sealed partial class NewChatDialog : ContentDialog
     public NewChatDialog(Session session)
     {
         _session = session;
-        Title = "New chat";
-        PrimaryButtonText = "Chat";
-        CloseButtonText = "Cancel";
+        Title = Loc.T("main.newChat");
+        PrimaryButtonText = Loc.T("chats.startChat");
+        CloseButtonText = Loc.T("common.cancel");
         DefaultButton = ContentDialogButton.Primary;
         IsPrimaryButtonEnabled = false;
 
-        _search = new TextBox { PlaceholderText = "Search contacts or type a phone number" };
+        _search = new TextBox { PlaceholderText = Loc.T("chats.newChatSearch") };
         _search.TextChanged += (_, _) => Filter();
         _list = new ListView { Height = 340, SelectionMode = ListViewSelectionMode.Single };
         _list.SelectionChanged += (_, _) => IsPrimaryButtonEnabled = _list.SelectedItem is not null || LooksLikeNumber(_search.Text);

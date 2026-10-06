@@ -164,7 +164,7 @@ internal sealed class Updater
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
         {
             Log.Info($"Could not look for updates: {e.Message}");
-            Error = "Could not reach GitHub to look for updates.";
+            Error = Loc.T("updater.unreachable");
             SetState(Update is null ? UpdateState.Failed : _setupPath is not null ? UpdateState.Ready : UpdateState.Available);
             return;
         }
@@ -199,7 +199,7 @@ internal sealed class Updater
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException or IOException or UnauthorizedAccessException or InvalidDataException)
         {
             Log.Error($"Failed to download WinWhatsApp {update.Version}", e);
-            Error = "The download of the new version failed.";
+            Error = Loc.T("updater.downloadFailed");
             SetState(UpdateState.Available);
             return false;
         }
@@ -294,7 +294,7 @@ internal sealed class Updater
         catch (Exception e)
         {
             Log.Error("Failed to start the setup program", e);
-            Error = "The setup program did not start.";
+            Error = Loc.T("updater.setupFailed");
             _setupPath = null;
             SetState(UpdateState.Available);
             return false;
@@ -321,14 +321,14 @@ internal sealed class Updater
     /// <summary>The text the settings show for the current state.</summary>
     public string Describe() => State switch
     {
-        UpdateState.Checking => "Looking for updates...",
-        UpdateState.UpToDate => "WinWhatsApp is up to date.",
+        UpdateState.Checking => Loc.T("updater.checking"),
+        UpdateState.UpToDate => Loc.T("updater.upToDate"),
         UpdateState.Available when Error is not null => Error,
-        UpdateState.Available => $"WinWhatsApp {Update!.Version} is available.",
-        UpdateState.Downloading => $"Downloading WinWhatsApp {Update!.Version}...",
-        UpdateState.Ready when _settings.InstallUpdates => $"WinWhatsApp {Update!.Version} is ready. It installs when the window is closed, or when you restart now.",
-        UpdateState.Ready => $"WinWhatsApp {Update!.Version} is ready to install.",
-        UpdateState.Failed => Error ?? "Looking for updates failed.",
+        UpdateState.Available => Loc.T("updater.available", ("version", Update!.Version)),
+        UpdateState.Downloading => Loc.T("updater.downloading", ("version", Update!.Version)),
+        UpdateState.Ready when _settings.InstallUpdates => Loc.T("updater.readyAuto", ("version", Update!.Version)),
+        UpdateState.Ready => Loc.T("updater.ready", ("version", Update!.Version)),
+        UpdateState.Failed => Error ?? Loc.T("updater.failed"),
         _ => "",
     };
 

@@ -96,7 +96,7 @@ public static class Updates
             long size = new FileInfo(partial).Length;
             if (update.SetupSize > 0 && size != update.SetupSize)
             {
-                throw new InvalidDataException($"The download has {size} bytes instead of {update.SetupSize}.");
+                throw new InvalidDataException(Loc.T("update.wrongSize", ("size", size), ("expected", update.SetupSize)));
             }
             if (update.Sha256 is not null)
             {
@@ -107,7 +107,7 @@ public static class Updates
                 }
                 if (hash != update.Sha256)
                 {
-                    throw new InvalidDataException("The download does not match the hash GitHub lists for it.");
+                    throw new InvalidDataException(Loc.T("update.wrongHash"));
                 }
             }
             File.Move(partial, path, overwrite: true);

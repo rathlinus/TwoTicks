@@ -65,7 +65,7 @@ public sealed partial class LoginView : UserControl
         bool showPhone = PhonePanel.Visibility == Visibility.Collapsed;
         PhonePanel.Visibility = showPhone ? Visibility.Visible : Visibility.Collapsed;
         QrSteps.Visibility = showPhone ? Visibility.Collapsed : Visibility.Visible;
-        SwitchButton.Content = showPhone ? "Scan a QR code instead" : "Link with phone number instead";
+        SwitchButton.Content = showPhone ? Loc.T("login.scanQr") : Loc.T("login.linkWithPhone");
         if (showPhone)
         {
             PhoneBox.Focus(FocusState.Programmatic);
@@ -85,7 +85,7 @@ public sealed partial class LoginView : UserControl
     {
         if (PhoneBox.Text.Count(char.IsDigit) < 7)
         {
-            StatusText.Text = "Enter the whole number, starting with the country code.";
+            StatusText.Text = Loc.T("login.wholeNumber");
             StatusText.Visibility = Visibility.Visible;
             return;
         }

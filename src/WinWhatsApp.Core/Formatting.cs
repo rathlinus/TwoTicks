@@ -23,8 +23,8 @@ public static class Formatting
         return days switch
         {
             <= 0 => time.ToString("t", CultureInfo.CurrentCulture),
-            1 => "Yesterday",
-            < 7 => CultureInfo.CurrentCulture.DateTimeFormat.GetDayName(time.DayOfWeek),
+            1 => Loc.T("time.yesterday"),
+            < 7 => Loc.Culture.DateTimeFormat.GetDayName(time.DayOfWeek),
             _ => time.ToString("d", CultureInfo.CurrentCulture),
         };
     }
@@ -35,11 +35,11 @@ public static class Formatting
         int days = (now.Date - day.Date).Days;
         return days switch
         {
-            <= 0 => "Today",
-            1 => "Yesterday",
-            < 7 => CultureInfo.CurrentCulture.DateTimeFormat.GetDayName(day.DayOfWeek),
-            _ when day.Year == now.Year => day.ToString("M", CultureInfo.CurrentCulture),
-            _ => day.ToString("D", CultureInfo.CurrentCulture),
+            <= 0 => Loc.T("time.today"),
+            1 => Loc.T("time.yesterday"),
+            < 7 => Loc.Culture.DateTimeFormat.GetDayName(day.DayOfWeek),
+            _ when day.Year == now.Year => day.ToString("M", Loc.Culture),
+            _ => day.ToString("D", Loc.Culture),
         };
     }
 
@@ -50,9 +50,9 @@ public static class Formatting
         int days = (now.Date - time.Date).Days;
         return days switch
         {
-            <= 0 => $"last seen today at {clock}",
-            1 => $"last seen yesterday at {clock}",
-            _ => $"last seen {time.ToString("d", CultureInfo.CurrentCulture)} at {clock}",
+            <= 0 => Loc.T("time.lastSeenToday", ("time", clock)),
+            1 => Loc.T("time.lastSeenYesterday", ("time", clock)),
+            _ => Loc.T("time.lastSeenOn", ("date", time.ToString("d", CultureInfo.CurrentCulture)), ("time", clock)),
         };
     }
 
@@ -70,9 +70,9 @@ public static class Formatting
 
     /// <summary>How long messages stay in a chat with disappearing messages, such as "90 days", or "Off".</summary>
     public static string Disappearing(long seconds) =>
-        seconds <= 0 ? "Off"
-        : seconds > 86400 && seconds % 86400 == 0 ? $"{seconds / 86400} days"
-        : $"{Math.Max(1, seconds / 3600)} hours";
+        seconds <= 0 ? Loc.T("time.off")
+        : seconds > 86400 && seconds % 86400 == 0 ? Loc.Plural("time.days", seconds / 86400)
+        : Loc.Plural("time.hours", Math.Max(1, seconds / 3600));
 
     public static string FileSize(long bytes)
     {
@@ -142,20 +142,20 @@ public static class MessagePreview
         return kind switch
         {
             "text" or "system" => new(null, firstLine),
-            "image" => new(PhotoGlyph, Or(firstLine, "Photo")),
-            "video" => new(VideoGlyph, Or(firstLine, "Video")),
-            "gif" => new(GifGlyph, Or(firstLine, "GIF")),
-            "voice" => new(MicrophoneGlyph, seconds > 0 ? Formatting.Duration(TimeSpan.FromSeconds(seconds)) : "Voice message"),
-            "audio" => new(AudioGlyph, "Audio"),
-            "document" => new(DocumentGlyph, Or(firstLine, Or(fileName ?? "", "Document"))),
-            "sticker" => new(StickerGlyph, "Sticker"),
-            "location" => new(LocationGlyph, Or(firstLine, "Location")),
-            "contact" => new(ContactGlyph, Or(firstLine, "Contact")),
-            "poll" => new(PollGlyph, Or(firstLine, "Poll")),
-            "revoked" => new(DeletedGlyph, fromMe ? "You deleted this message" : "This message was deleted"),
-            "viewonce" => new(ViewOnceGlyph, "View once message"),
-            "pending" => new(WaitingGlyph, "Waiting for this message"),
-            _ => new(UnsupportedGlyph, "Unsupported message"),
+            "image" => new(PhotoGlyph, Or(firstLine, Loc.T("preview.photo"))),
+            "video" => new(VideoGlyph, Or(firstLine, Loc.T("preview.video"))),
+            "gif" => new(GifGlyph, Or(firstLine, Loc.T("preview.gif"))),
+            "voice" => new(MicrophoneGlyph, seconds > 0 ? Formatting.Duration(TimeSpan.FromSeconds(seconds)) : Loc.T("preview.voice")),
+            "audio" => new(AudioGlyph, Loc.T("preview.audio")),
+            "document" => new(DocumentGlyph, Or(firstLine, Or(fileName ?? "", Loc.T("preview.document")))),
+            "sticker" => new(StickerGlyph, Loc.T("preview.sticker")),
+            "location" => new(LocationGlyph, Or(firstLine, Loc.T("preview.location"))),
+            "contact" => new(ContactGlyph, Or(firstLine, Loc.T("preview.contact"))),
+            "poll" => new(PollGlyph, Or(firstLine, Loc.T("preview.poll"))),
+            "revoked" => new(DeletedGlyph, fromMe ? Loc.T("preview.youDeleted") : Loc.T("preview.deleted")),
+            "viewonce" => new(ViewOnceGlyph, Loc.T("preview.viewOnce")),
+            "pending" => new(WaitingGlyph, Loc.T("preview.waiting")),
+            _ => new(UnsupportedGlyph, Loc.T("preview.unsupported")),
         };
     }
 

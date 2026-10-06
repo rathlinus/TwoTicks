@@ -25,7 +25,7 @@ public sealed partial class ConversationView : UserControl
     private static readonly string[] s_quickReactions = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
     // How long a pin lasts, as WhatsApp offers it.
-    private static readonly (string Text, long Seconds)[] s_pinDurations = [("24 hours", 86_400), ("7 days", 604_800), ("30 days", 2_592_000)];
+    private static readonly long[] s_pinDurations = [86_400, 604_800, 2_592_000];
 
     private readonly HashSet<string> _autoDownloads = [];
     private readonly DispatcherQueueTimer _highlightTimer;
@@ -633,7 +633,7 @@ public sealed partial class ConversationView : UserControl
     {
         _editing = null;
         _replyTo = item;
-        EmojiText.SetText(ReplyTitle, item.FromMe ? "You" : !string.IsNullOrEmpty(item.SenderName) ? item.SenderName : _shown?.Chat.Name ?? "");
+        EmojiText.SetText(ReplyTitle, item.FromMe ? Loc.T("common.you") : !string.IsNullOrEmpty(item.SenderName) ? item.SenderName : _shown?.Chat.Name ?? "");
         EmojiText.SetText(ReplyText, MessagePreview.Describe(item.Kind, item.Data.Text, item.Data.Media?.Name, item.Data.Media?.Seconds ?? 0, item.FromMe).Text);
         ShowReplyBar(item.ReplyBrush);
         FocusComposer();
@@ -643,7 +643,7 @@ public sealed partial class ConversationView : UserControl
     {
         _replyTo = null;
         _editing = item;
-        EmojiText.SetText(ReplyTitle, "Edit message");
+        EmojiText.SetText(ReplyTitle, Loc.T("conversation.editMessage"));
         EmojiText.SetText(ReplyText, item.Data.Text ?? "");
         ShowReplyBar((Brush)Application.Current.Resources["AccentGreenBrush"]);
         SetText(item.Data.Text ?? "");
@@ -785,7 +785,7 @@ public sealed partial class ConversationView : UserControl
         if (_shown is not null && !_shown.Chat.IsReadOnly && e.DataView.Contains(StandardDataFormats.StorageItems))
         {
             e.AcceptedOperation = DataPackageOperation.Copy;
-            e.DragUIOverride.Caption = "Send";
+            e.DragUIOverride.Caption = Loc.T("conversation.send");
             DropOverlay.Visibility = Visibility.Visible;
         }
     }
@@ -916,7 +916,7 @@ public sealed partial class ConversationView : UserControl
         }
         catch (Exception e) when (e is System.ComponentModel.Win32Exception or InvalidOperationException)
         {
-            App.Current.Session.ShowError($"No app could open {Path.GetFileName(path)}.");
+            App.Current.Session.ShowError(Loc.T("conversation.noAppToOpen", ("file", Path.GetFileName(path))));
         }
     }
 
@@ -996,17 +996,17 @@ public sealed partial class ConversationView : UserControl
         }
         if (item.IsFailed)
         {
-            Add("Send again", "Refresh", () => _ = Session.RetryAsync(item));
+            Add(Loc.T("conversation.sendAgain"), "Refresh", () => _ = Session.RetryAsync(item));
         }
         if (react)
         {
-            Add("Reply", "Reply", () => StartReply(item));
+            Add(Loc.T("conversation.reply"), "Reply", () => StartReply(item));
         }
 
         string selected = textBlock?.SelectedText ?? "";
         if (selected.Length > 0 || item.HasText && !item.IsNotice)
         {
-            Add(selected.Length > 0 ? "Copy selection" : "Copy", "Copy", () =>
+            Add(selected.Length > 0 ? Loc.T("conversation.copySelection") : Loc.T("common.copy"), "Copy", () =>
             {
                 var package = new DataPackage();
                 package.SetText(selected.Length > 0 ? selected : item.CopyText);
@@ -1015,24 +1015,24 @@ public sealed partial class ConversationView : UserControl
         }
         if (react)
         {
-            Add("React", "React", () => ShowEmojiPicker(item, point));
+            Add(Loc.T("conversation.react"), "React", () => ShowEmojiPicker(item, point));
         }
         if (item.CanForward)
         {
-            Add("Forward", "Forward", () => _ = ForwardAsync(item));
+            Add(Loc.T("conversation.forward"), "Forward", () => _ = ForwardAsync(item));
         }
         if (item.CanAddOn && writable)
         {
             if (item.IsPinned)
             {
-                Add("Unpin", "Unpin", () => _ = Session.PinAsync(item.Chat, item.Id, false));
+                Add(Loc.T("conversation.unpin"), "Unpin", () => _ = Session.PinAsync(item.Chat, item.Id, false));
             }
             else
             {
-                var pin = new MenuFlyoutSubItem { Text = "Pin", Icon = WaIcons.PathIcon("Pin") };
-                foreach ((string text, long seconds) in s_pinDurations)
+                var pin = new MenuFlyoutSubItem { Text = Loc.T("conversation.pin"), Icon = WaIcons.PathIcon("Pin") };
+                foreach (long seconds in s_pinDurations)
                 {
-                    var entry = new MenuFlyoutItem { Text = text };
+                    var entry = new MenuFlyoutItem { Text = Formatting.Disappearing(seconds) };
                     entry.Click += (_, _) => _ = Session.PinAsync(item.Chat, item.Id, true, seconds);
                     pin.Items.Add(entry);
                 }
@@ -1041,33 +1041,33 @@ public sealed partial class ConversationView : UserControl
             // Keeping is for disappearing messages; only who sent one can let it go again.
             if (item.IsKept ? item.FromMe : _shown?.Chat.Data.Ephemeral > 0)
             {
-                Add(item.IsKept ? "Unkeep" : "Keep", item.IsKept ? "Unkeep" : "Keep", () => _ = Session.KeepAsync(item, !item.IsKept));
+                Add(item.IsKept ? Loc.T("conversation.unkeep") : Loc.T("conversation.keep"), item.IsKept ? "Unkeep" : "Keep", () => _ = Session.KeepAsync(item, !item.IsKept));
             }
         }
         if (item.CanAddOn)
         {
-            Add(item.IsStarred ? "Unstar" : "Star", item.IsStarred ? "StarFilled" : "Star", () => _ = Session.StarAsync(item, !item.IsStarred));
+            Add(item.IsStarred ? Loc.T("conversation.unstar") : Loc.T("conversation.star"), item.IsStarred ? "StarFilled" : "Star", () => _ = Session.StarAsync(item, !item.IsStarred));
         }
         if (item.CanEdit)
         {
-            Add("Edit", "Edit", () => StartEdit(item));
+            Add(Loc.T("conversation.edit"), "Edit", () => StartEdit(item));
         }
         if (item.HasMedia)
         {
             if (item.IsDownloaded)
             {
-                Add("Open", "OpenInNew", () => OpenFile(item.Data.Media!.Path!));
-                Add("Show in folder", "Folder", () => Process.Start("explorer.exe", $"/select,\"{item.Data.Media!.Path}\""));
+                Add(Loc.T("common.open"), "OpenInNew", () => OpenFile(item.Data.Media!.Path!));
+                Add(Loc.T("conversation.showInFolder"), "Folder", () => Process.Start("explorer.exe", $"/select,\"{item.Data.Media!.Path}\""));
             }
-            Add("Save as…", "Download", () => _ = SaveAsAsync(item));
+            Add(Loc.T("conversation.saveAs"), "Download", () => _ = SaveAsAsync(item));
         }
 
         menu.Items.Add(new MenuFlyoutSeparator());
         if (item.CanRevoke)
         {
-            Add("Delete for everyone", "Delete", () => _ = ConfirmRevokeAsync(item));
+            Add(Loc.T("conversation.deleteForEveryone"), "Delete", () => _ = ConfirmRevokeAsync(item));
         }
-        Add("Delete for me", "Delete", () => _ = Session.DeleteForMeAsync(item));
+        Add(Loc.T("conversation.deleteForMe"), "Delete", () => _ = Session.DeleteForMeAsync(item));
         return menu;
     }
 
@@ -1098,7 +1098,7 @@ public sealed partial class ConversationView : UserControl
                     : new SolidColorBrush(Microsoft.UI.Colors.Transparent),
                 Content = EmojiVisual(emoji, 30),
             };
-            ToolTipService.SetToolTip(button, item.OwnReaction == emoji ? "Remove your reaction" : null);
+            ToolTipService.SetToolTip(button, item.OwnReaction == emoji ? Loc.T("conversation.removeReaction") : null);
             button.Click += (_, _) =>
             {
                 close();
@@ -1117,7 +1117,7 @@ public sealed partial class ConversationView : UserControl
             Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
             Content = new WaIcon { Kind = "Add", Size = 24 },
         };
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(plus, "More reactions");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(plus, Loc.T("conversation.moreReactions"));
         plus.Click += (_, _) =>
         {
             close();
@@ -1187,10 +1187,10 @@ public sealed partial class ConversationView : UserControl
     {
         var dialog = new ContentDialog
         {
-            Title = "Delete for everyone?",
-            Content = "The message is removed for everyone in this chat. They can see that it was deleted.",
-            PrimaryButtonText = "Delete",
-            CloseButtonText = "Cancel",
+            Title = Loc.T("conversation.deleteForEveryoneTitle"),
+            Content = Loc.T("conversation.deleteForEveryoneText"),
+            PrimaryButtonText = Loc.T("common.delete"),
+            CloseButtonText = Loc.T("common.cancel"),
             DefaultButton = ContentDialogButton.Close,
             XamlRoot = XamlRoot,
             // A dialog is not inside the window's content, so it does not take its theme by itself.
@@ -1212,7 +1212,7 @@ public sealed partial class ConversationView : UserControl
         var picker = new Windows.Storage.Pickers.FileSavePicker { SuggestedFileName = Path.GetFileNameWithoutExtension(path) };
         WinRT.Interop.InitializeWithWindow.Initialize(picker, App.Current.WindowHandle);
         string extension = Path.GetExtension(path);
-        picker.FileTypeChoices.Add(extension.Length > 1 ? extension.TrimStart('.').ToUpperInvariant() + " file" : "File", [extension.Length > 1 ? extension : ".bin"]);
+        picker.FileTypeChoices.Add(extension.Length > 1 ? Loc.T("conversation.fileType", ("type", extension.TrimStart('.').ToUpperInvariant())) : Loc.T("conversation.file"), [extension.Length > 1 ? extension : ".bin"]);
         if (item.Data.Media?.Name is { Length: > 0 } name)
         {
             picker.SuggestedFileName = Path.GetFileNameWithoutExtension(name);
@@ -1252,7 +1252,7 @@ public sealed partial class ConversationView : UserControl
         string text = MessagePreview.Describe(pin.Kind, pin.Text, pin.Media?.Name, pin.Media?.Seconds ?? 0, pin.FromMe).Text;
         if (_shown.Chat.IsGroup)
         {
-            text = (pin.FromMe ? "You" : pin.SenderName ?? "") + ": " + text;
+            text = Loc.T("conversation.pinFrom", ("name", pin.FromMe ? Loc.T("common.you") : pin.SenderName ?? ""), ("text", text));
         }
         EmojiText.SetText(PinText, text);
 
@@ -1333,7 +1333,7 @@ public sealed partial class ConversationView : UserControl
         ChatMenu.Items.Clear();
         if (_shown?.Chat is { } chat)
         {
-            var info = new MenuFlyoutItem { Text = chat.IsGroup ? "Group info" : "Contact info", Icon = WaIcons.PathIcon("Info") };
+            var info = new MenuFlyoutItem { Text = chat.IsGroup ? Loc.T("conversation.groupInfo") : Loc.T("conversation.contactInfo"), Icon = WaIcons.PathIcon("Info") };
             info.Click += (_, _) => App.Current.Window.ShowProfile(chat.Jid, chat.Name, chat.IsGroup);
             ChatMenu.Items.Add(info);
             ChatMenu.Items.Add(new MenuFlyoutSeparator());

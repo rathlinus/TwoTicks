@@ -3,6 +3,7 @@
     x:Class="WinWhatsApp.App.Views.ConversationView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:app="using:WinWhatsApp.App"
     xmlns:c="using:WinWhatsApp.App.Controls"
     xmlns:local="using:WinWhatsApp.App.Views"
     xmlns:m="using:WinWhatsApp.App.Models"
@@ -117,7 +118,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <Button Width="40" Height="40" Padding="0" Click="OnPlayClick" CornerRadius="20" Style="{StaticResource IconButtonStyle}" AutomationProperties.Name="Play">
+                            <Button Width="40" Height="40" Padding="0" Click="OnPlayClick" CornerRadius="20" Style="{StaticResource IconButtonStyle}" AutomationProperties.Name="{app:L Key=conversation.play}">
                                 <Grid>
                                     <c:WaIcon Kind="{x:Bind PlayGlyph, Mode=OneWay}" Size="30" Foreground="{ThemeResource MetaTextBrush}" />
                                     <ProgressRing Width="36" Height="36" IsActive="{x:Bind IsBusy, Mode=OneWay}" />
@@ -163,7 +164,7 @@
                         <HyperlinkButton x:Name="MapLink" x:Load="{x:Bind IsLocation, Mode=OneWay}" Margin="2,0" Padding="4,2" Click="OnMapClick">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <c:WaIcon Kind="Location" Size="18" />
-                                <TextBlock Text="Open in Maps" />
+                                <TextBlock Text="{app:L Key=conversation.openInMaps}" />
                             </StackPanel>
                         </HyperlinkButton>
 
@@ -179,7 +180,7 @@
                                 <c:WaIcon VerticalAlignment="Center" Kind="StarFilled" Size="14" Foreground="{ThemeResource MetaTextBrush}" Visibility="{x:Bind StarredVisibility, Mode=OneWay}" />
                                 <c:WaIcon VerticalAlignment="Center" Kind="Pin" Size="14" Foreground="{ThemeResource MetaTextBrush}" Visibility="{x:Bind PinnedVisibility, Mode=OneWay}" />
                                 <c:WaIcon VerticalAlignment="Center" Kind="Kept" Size="14" Foreground="{ThemeResource MetaTextBrush}" Visibility="{x:Bind KeptVisibility, Mode=OneWay}" />
-                                <TextBlock Style="{StaticResource MetaTextStyle}" Text="Edited" Visibility="{x:Bind EditedVisibility, Mode=OneWay}" />
+                                <TextBlock Style="{StaticResource MetaTextStyle}" Text="{app:L Key=conversation.edited}" Visibility="{x:Bind EditedVisibility, Mode=OneWay}" />
                                 <TextBlock Style="{StaticResource MetaTextStyle}" Text="{x:Bind TimeText}" />
                                 <c:Ticks x:Name="TextTicks" x:Load="{x:Bind FromMe}" Status="{x:Bind Status, Mode=OneWay}" />
                             </StackPanel>
@@ -198,13 +199,13 @@
                     <Grid Margin="-30,2,2,-24" HorizontalAlignment="Right" VerticalAlignment="Top" Visibility="{x:Bind HoverVisibility, Mode=OneWay}">
                         <Border Background="{ThemeResource IncomingBubbleBrush}" CornerRadius="11" Visibility="{x:Bind IncomingVisibility}" />
                         <Border Background="{ThemeResource OutgoingBubbleBrush}" CornerRadius="11" Visibility="{x:Bind OutgoingVisibility}" />
-                        <Button Width="30" Height="22" Click="OnMessageMenuClick" CornerRadius="11" Style="{StaticResource IconButtonStyle}" AutomationProperties.Name="Message menu">
+                        <Button Width="30" Height="22" Click="OnMessageMenuClick" CornerRadius="11" Style="{StaticResource IconButtonStyle}" AutomationProperties.Name="{app:L Key=conversation.messageMenu}">
                             <c:WaIcon Kind="ChevronDown" Size="20" Foreground="{ThemeResource MetaTextBrush}" />
                         </Button>
                     </Grid>
                     <Button Width="32" Height="32" Margin="{x:Bind ReactButtonMargin}" HorizontalAlignment="{x:Bind ReactButtonAlignment}" VerticalAlignment="Center"
                             Background="{ThemeResource DayChipBrush}" Click="OnHoverReactClick" CornerRadius="16" Style="{StaticResource IconButtonStyle}"
-                            Visibility="{x:Bind ReactButtonVisibility, Mode=OneWay}" AutomationProperties.Name="React" ToolTipService.ToolTip="React">
+                            Visibility="{x:Bind ReactButtonVisibility, Mode=OneWay}" AutomationProperties.Name="{app:L Key=conversation.react}" ToolTipService.ToolTip="{app:L Key=conversation.react}">
                         <c:WaIcon Kind="Mood" Size="20" />
                     </Button>
                 </Grid>
@@ -248,12 +249,12 @@
 
                     <Button Width="30" Height="22" Margin="-30,2,2,-24" HorizontalAlignment="Right" VerticalAlignment="Top" Background="{ThemeResource DayChipBrush}"
                             Click="OnMessageMenuClick" CornerRadius="11" Style="{StaticResource IconButtonStyle}" Visibility="{x:Bind HoverVisibility, Mode=OneWay}"
-                            AutomationProperties.Name="Message menu">
+                            AutomationProperties.Name="{app:L Key=conversation.messageMenu}">
                         <c:WaIcon Kind="ChevronDown" Size="20" Foreground="{ThemeResource MetaTextBrush}" />
                     </Button>
                     <Button Width="32" Height="32" Margin="{x:Bind ReactButtonMargin}" HorizontalAlignment="{x:Bind ReactButtonAlignment}" VerticalAlignment="Center"
                             Background="{ThemeResource DayChipBrush}" Click="OnHoverReactClick" CornerRadius="16" Style="{StaticResource IconButtonStyle}"
-                            Visibility="{x:Bind ReactButtonVisibility, Mode=OneWay}" AutomationProperties.Name="React" ToolTipService.ToolTip="React">
+                            Visibility="{x:Bind ReactButtonVisibility, Mode=OneWay}" AutomationProperties.Name="{app:L Key=conversation.react}" ToolTipService.ToolTip="{app:L Key=conversation.react}">
                         <c:WaIcon Kind="Mood" Size="20" />
                     </Button>
                 </Grid>
@@ -335,11 +336,11 @@
                     </StackPanel>
                 </Grid>
             </c:PlainButton>
-            <Button x:Name="CallButton" Grid.Column="1" AutomationProperties.Name="Voice call" Click="OnCallClick" Style="{StaticResource IconButtonStyle}"
-                    ToolTipService.ToolTip="Voice call" Visibility="{x:Bind CallVisibility(Session.Current.Chat), Mode=OneWay}">
+            <Button x:Name="CallButton" Grid.Column="1" AutomationProperties.Name="{app:L Key=conversation.voiceCall}" Click="OnCallClick" Style="{StaticResource IconButtonStyle}"
+                    ToolTipService.ToolTip="{app:L Key=conversation.voiceCall}" Visibility="{x:Bind CallVisibility(Session.Current.Chat), Mode=OneWay}">
                 <c:WaIcon Kind="Call" Size="22" />
             </Button>
-            <Button Grid.Column="2" AutomationProperties.Name="More" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="More">
+            <Button Grid.Column="2" AutomationProperties.Name="{app:L Key=conversation.more}" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="{app:L Key=conversation.more}">
                 <c:WaIcon Kind="MoreVert" Size="22" />
                 <Button.Flyout>
                     <MenuFlyout x:Name="ChatMenu" Opening="OnChatMenuOpening" Placement="BottomEdgeAlignedRight" />
@@ -370,7 +371,7 @@
                 <c:WaIcon Grid.Column="1" VerticalAlignment="Center" Kind="Pin" Size="20" Foreground="{ThemeResource MetaTextBrush}" />
                 <RichTextBlock x:Name="PinText" Grid.Column="2" VerticalAlignment="Center" FontSize="14" Foreground="{ThemeResource TextSecondaryBrush}" IsTextSelectionEnabled="False"
                                MaxLines="1" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
-                <Button Grid.Column="3" VerticalAlignment="Center" AutomationProperties.Name="Unpin" Click="OnUnpinBarClick" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="Unpin">
+                <Button Grid.Column="3" VerticalAlignment="Center" AutomationProperties.Name="{app:L Key=conversation.unpin}" Click="OnUnpinBarClick" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="{app:L Key=conversation.unpin}">
                     <c:WaIcon Kind="Unpin" Size="20" />
                 </Button>
             </Grid>
@@ -404,7 +405,7 @@
                         <Button x:Name="OlderButton" Background="{ThemeResource DayChipBrush}" BorderThickness="0" Click="OnRequestOlderClick" CornerRadius="8">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <c:WaIcon Kind="History" Size="18" />
-                                <TextBlock Text="Get older messages from your phone" />
+                                <TextBlock Text="{app:L Key=conversation.getOlder}" />
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -414,7 +415,7 @@
             <!-- Back to the newest messages. -->
             <Button x:Name="ScrollDownButton" Grid.Row="1" Width="44" Height="44" Margin="0,0,20,16" Padding="0" HorizontalAlignment="Right" VerticalAlignment="Bottom"
                     Background="{ThemeResource ComposerBrush}" BorderBrush="{ThemeResource DividerBrush}" Click="OnScrollDownClick"
-                    CornerRadius="22" Visibility="Collapsed" AutomationProperties.Name="Scroll to the newest message">
+                    CornerRadius="22" Visibility="Collapsed" AutomationProperties.Name="{app:L Key=conversation.scrollToNewest}">
                 <Grid>
                     <c:WaIcon Kind="ChevronDown" Size="24" Foreground="{ThemeResource IconBrush}" />
                     <InfoBadge x:Name="NewMessagesBadge" Margin="0,-24,-24,0" HorizontalAlignment="Right" VerticalAlignment="Top" Background="{ThemeResource UnreadBadgeBrush}"
@@ -442,8 +443,8 @@
                                    MaxLines="2" TextTrimming="CharacterEllipsis" TextWrapping="Wrap" />
                     <TextBlock x:Name="LinkBarHost" FontSize="13" Foreground="{ThemeResource MetaTextBrush}" MaxLines="1" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
-                <Button Grid.Column="2" Margin="0,0,8,0" VerticalAlignment="Center" AutomationProperties.Name="Remove the preview" Click="OnRemoveLinkPreviewClick"
-                        Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="Send without the preview">
+                <Button Grid.Column="2" Margin="0,0,8,0" VerticalAlignment="Center" AutomationProperties.Name="{app:L Key=conversation.removePreview}" Click="OnRemoveLinkPreviewClick"
+                        Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="{app:L Key=conversation.sendWithoutPreview}">
                     <c:WaIcon Kind="Close" Size="22" />
                 </Button>
             </Grid>
@@ -474,7 +475,7 @@
                         <RichTextBlock x:Name="ReplyText" FontSize="13.5" Foreground="{ThemeResource TextSecondaryBrush}" IsTextSelectionEnabled="False" MaxLines="2"
                                        TextTrimming="CharacterEllipsis" TextWrapping="Wrap" />
                     </StackPanel>
-                    <Button Grid.Column="2" Margin="0,0,6,0" VerticalAlignment="Center" AutomationProperties.Name="Cancel" Click="OnCancelReplyClick" Style="{StaticResource IconButtonStyle}">
+                    <Button Grid.Column="2" Margin="0,0,6,0" VerticalAlignment="Center" AutomationProperties.Name="{app:L Key=common.cancel}" Click="OnCancelReplyClick" Style="{StaticResource IconButtonStyle}">
                         <c:WaIcon Kind="Close" Size="22" />
                     </Button>
                 </Grid>
@@ -493,16 +494,16 @@
                         <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="Transparent" />
                         <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="Transparent" />
                     </Grid.Resources>
-                    <Button VerticalAlignment="Bottom" AutomationProperties.Name="Attach" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="Attach">
+                    <Button VerticalAlignment="Bottom" AutomationProperties.Name="{app:L Key=conversation.attach}" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="{app:L Key=conversation.attach}">
                         <c:WaIcon Kind="Add" Size="24" />
                         <Button.Flyout>
                             <MenuFlyout Placement="TopEdgeAlignedLeft">
-                                <MenuFlyoutItem x:Name="AttachPhotosItem" Click="OnAttachPhotosClick" Text="Photos and videos" />
-                                <MenuFlyoutItem x:Name="AttachFilesItem" Click="OnAttachFilesClick" Text="Document" />
+                                <MenuFlyoutItem x:Name="AttachPhotosItem" Click="OnAttachPhotosClick" Text="{app:L Key=conversation.photosAndVideos}" />
+                                <MenuFlyoutItem x:Name="AttachFilesItem" Click="OnAttachFilesClick" Text="{app:L Key=conversation.document}" />
                             </MenuFlyout>
                         </Button.Flyout>
                     </Button>
-                    <Button x:Name="EmojiButton" Grid.Column="1" VerticalAlignment="Bottom" AutomationProperties.Name="Emoji" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="Emoji">
+                    <Button x:Name="EmojiButton" Grid.Column="1" VerticalAlignment="Bottom" AutomationProperties.Name="{app:L Key=conversation.emoji}" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="{app:L Key=conversation.emoji}">
                         <c:WaIcon Kind="Mood" Size="24" />
                         <Button.Flyout>
                             <Flyout x:Name="EmojiFlyout" Placement="TopEdgeAlignedLeft" Opened="OnEmojiFlyoutOpened">
@@ -519,15 +520,15 @@
                         BorderThickness="0"
                         FontSize="15"
                         Paste="OnPaste"
-                        PlaceholderText="Type a message"
+                        PlaceholderText="{app:L Key=conversation.typeMessage}"
                         PreviewKeyDown="OnMessageBoxKeyDown"
                         ScrollViewer.VerticalScrollBarVisibility="Auto"
                         TextChanged="OnMessageBoxTextChanged"
                         TextWrapping="Wrap" />
                 </Grid>
             </Grid>
-            <Button x:Name="SendButton" Grid.Column="1" Width="48" Height="48" VerticalAlignment="Bottom" AutomationProperties.Name="Send" Background="{ThemeResource SendButtonBrush}"
-                    Click="OnSendClick" CornerRadius="24" Padding="0" ToolTipService.ToolTip="Send (Enter)" Visibility="Collapsed">
+            <Button x:Name="SendButton" Grid.Column="1" Width="48" Height="48" VerticalAlignment="Bottom" AutomationProperties.Name="{app:L Key=conversation.send}" Background="{ThemeResource SendButtonBrush}"
+                    Click="OnSendClick" CornerRadius="24" Padding="0" ToolTipService.ToolTip="{app:L Key=conversation.sendTooltip}" Visibility="Collapsed">
                 <Button.Resources>
                     <ResourceDictionary>
                         <ResourceDictionary.ThemeDictionaries>
@@ -547,7 +548,7 @@
         </Grid>
 
         <Border x:Name="ReadOnlyNotice" Grid.Row="3" Padding="16" Visibility="Collapsed">
-            <TextBlock HorizontalAlignment="Center" Foreground="{ThemeResource TextSecondaryBrush}" Text="Only admins can send messages to this group." />
+            <TextBlock HorizontalAlignment="Center" Foreground="{ThemeResource TextSecondaryBrush}" Text="{app:L Key=conversation.onlyAdmins}" />
         </Border>
 
         <!-- Files about to be sent, over the chat. -->
@@ -557,7 +558,7 @@
                 BorderThickness="2" CornerRadius="12" Visibility="Collapsed" IsHitTestVisible="False">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
                 <c:WaIcon HorizontalAlignment="Center" Kind="Media" Size="44" Foreground="White" />
-                <TextBlock FontSize="16" Foreground="White" Text="Drop files to send them" />
+                <TextBlock FontSize="16" Foreground="White" Text="{app:L Key=conversation.dropFiles}" />
             </StackPanel>
         </Border>
     </Grid>

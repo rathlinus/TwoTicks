@@ -813,17 +813,17 @@ func (b *Bridge) convertHistory(ctx context.Context, chat types.JID, web *waWeb.
 // joined, the subject changed, a call was missed) into system messages.
 func (b *Bridge) stubMessage(ctx context.Context, evt *events.Message, web *waWeb.WebMessageInfo) *Message {
 	info := evt.Info
-	actor := "You"
-	if !info.IsFromMe {
+	actor, me := "", info.IsFromMe
+	if !me {
 		actor = b.nameOf(ctx, b.canonical(ctx, info.Sender))
 	}
-	var names []string
+	var names people
 	for _, p := range web.GetMessageStubParameters() {
 		if jid, err := types.ParseJID(p); err == nil && jid.User != "" && (jid.Server == types.DefaultUserServer || jid.Server == types.HiddenUserServer) {
 			if b.isOwn(jid) {
-				names = append(names, "you")
+				names.me = true
 			} else {
-				names = append(names, b.nameOf(ctx, b.canonical(ctx, jid)))
+				names.names = append(names.names, b.nameOf(ctx, b.canonical(ctx, jid)))
 			}
 		}
 	}
@@ -839,33 +839,33 @@ func (b *Bridge) stubMessage(ctx context.Context, evt *events.Message, web *waWe
 		m := b.convertRevokedStub(ctx, evt)
 		return m
 	case waWeb.WebMessageInfo_GROUP_CREATE:
-		text = fmt.Sprintf("%s created group \"%s\"", actor, first)
+		text = didNotice("groupCreated", actor, me, "name", first)
 	case waWeb.WebMessageInfo_GROUP_CHANGE_SUBJECT:
-		text = fmt.Sprintf("%s changed the group name to \"%s\"", actor, first)
+		text = didNotice("groupRenamed", actor, me, "name", first)
 	case waWeb.WebMessageInfo_GROUP_CHANGE_ICON:
-		text = actor + " changed this group's icon"
+		text = didNotice("groupIcon", actor, me)
 	case waWeb.WebMessageInfo_GROUP_CHANGE_DESCRIPTION:
-		text = actor + " changed the group description"
+		text = didNotice("groupDescription", actor, me)
 	case waWeb.WebMessageInfo_GROUP_PARTICIPANT_ADD:
-		text = fmt.Sprintf("%s added %s", actor, joinNames(names))
+		text = didToNotice("added", actor, me, names)
 	case waWeb.WebMessageInfo_GROUP_PARTICIPANT_REMOVE:
-		text = fmt.Sprintf("%s removed %s", actor, joinNames(names))
+		text = didToNotice("removed", actor, me, names)
 	case waWeb.WebMessageInfo_GROUP_PARTICIPANT_LEAVE:
-		text = joinNames(names) + " left"
+		text = aboutNotice("left", names)
 	case waWeb.WebMessageInfo_GROUP_PARTICIPANT_INVITE:
-		text = joinNames(names) + " joined using an invite link"
+		text = aboutNotice("joinedByLink", names)
 	case waWeb.WebMessageInfo_GROUP_PARTICIPANT_PROMOTE:
-		text = joinNames(names) + " is now an admin"
+		text = aboutNotice("promoted", names)
 	case waWeb.WebMessageInfo_CALL_MISSED_VOICE:
-		text = "Missed voice call"
+		text = tr("missedVoiceCall")
 	case waWeb.WebMessageInfo_CALL_MISSED_VIDEO:
-		text = "Missed video call"
+		text = tr("missedVideoCall")
 	case waWeb.WebMessageInfo_CALL_MISSED_GROUP_VOICE:
-		text = "Missed group voice call"
+		text = tr("missedGroupVoiceCall")
 	case waWeb.WebMessageInfo_CALL_MISSED_GROUP_VIDEO:
-		text = "Missed group video call"
+		text = tr("missedGroupVideoCall")
 	case waWeb.WebMessageInfo_CHANGE_EPHEMERAL_SETTING:
-		text = actor + " changed the disappearing messages setting"
+		text = didNotice("disappearing", actor, me)
 	default:
 		return nil
 	}
@@ -895,16 +895,6 @@ func (b *Bridge) convertRevokedStub(ctx context.Context, evt *events.Message) *M
 	}
 }
 
-func joinNames(names []string) string {
-	switch len(names) {
-	case 0:
-		return "someone"
-	case 1:
-		return names[0]
-	default:
-		return strings.Join(names[:len(names)-1], ", ") + " and " + names[len(names)-1]
-	}
-}
 
 // systemMessage stores a notice that happened live, such as someone joining a
 // group, under an ID derived from its content so it is stored once.
@@ -926,50 +916,50 @@ func (b *Bridge) systemMessage(chat types.JID, sender types.JID, ts time.Time, t
 func (b *Bridge) onGroupInfo(evt *events.GroupInfo) {
 	ctx := b.ctx
 	chat := evt.JID
-	actor := "Someone"
+	actor, me := tr("someoneActor"), false
 	var actorJID types.JID
 	if evt.Sender != nil {
 		actorJID = b.canonical(ctx, *evt.Sender)
 		if b.isOwn(actorJID) {
-			actor = "You"
+			me = true
 		} else {
 			actor = b.nameOf(ctx, actorJID)
 		}
 	}
-	names := func(list []types.JID) string {
-		var out []string
+	names := func(list []types.JID) people {
+		var out people
 		for _, jid := range list {
 			if b.isOwn(jid) {
-				out = append(out, "you")
+				out.me = true
 			} else {
-				out = append(out, b.nameOf(ctx, b.canonical(ctx, jid)))
+				out.names = append(out.names, b.nameOf(ctx, b.canonical(ctx, jid)))
 			}
 		}
-		return joinNames(out)
+		return out
 	}
 
 	if evt.Name != nil {
 		_, _ = b.w.ExecContext(ctx, `UPDATE chats SET name = ? WHERE jid = ?`, evt.Name.Name, chat.String())
-		b.systemMessage(chat, actorJID, evt.Timestamp, fmt.Sprintf("%s changed the group name to \"%s\"", actor, evt.Name.Name))
+		b.systemMessage(chat, actorJID, evt.Timestamp, didNotice("groupRenamed", actor, me, "name", evt.Name.Name))
 	}
 	if len(evt.Join) > 0 {
 		_, _ = b.w.ExecContext(ctx, `UPDATE chats SET members = members + ? WHERE jid = ? AND members > 0`, len(evt.Join), chat.String())
 		if evt.Sender != nil && !(len(evt.Join) == 1 && evt.Join[0].User == evt.Sender.User) {
-			b.systemMessage(chat, actorJID, evt.Timestamp, fmt.Sprintf("%s added %s", actor, names(evt.Join)))
+			b.systemMessage(chat, actorJID, evt.Timestamp, didToNotice("added", actor, me, names(evt.Join)))
 		} else {
-			b.systemMessage(chat, actorJID, evt.Timestamp, names(evt.Join)+" joined")
+			b.systemMessage(chat, actorJID, evt.Timestamp, aboutNotice("joined", names(evt.Join)))
 		}
 	}
 	if len(evt.Leave) > 0 {
 		_, _ = b.w.ExecContext(ctx, `UPDATE chats SET members = MAX(members - ?, 0) WHERE jid = ?`, len(evt.Leave), chat.String())
 		if evt.Sender != nil && !(len(evt.Leave) == 1 && evt.Leave[0].User == evt.Sender.User) {
-			b.systemMessage(chat, actorJID, evt.Timestamp, fmt.Sprintf("%s removed %s", actor, names(evt.Leave)))
+			b.systemMessage(chat, actorJID, evt.Timestamp, didToNotice("removed", actor, me, names(evt.Leave)))
 		} else {
-			b.systemMessage(chat, actorJID, evt.Timestamp, names(evt.Leave)+" left")
+			b.systemMessage(chat, actorJID, evt.Timestamp, aboutNotice("left", names(evt.Leave)))
 		}
 	}
 	if evt.Topic != nil {
-		b.systemMessage(chat, actorJID, evt.Timestamp, actor+" changed the group description")
+		b.systemMessage(chat, actorJID, evt.Timestamp, didNotice("groupDescription", actor, me))
 	}
 	if evt.Announce != nil {
 		if !evt.Announce.IsAnnounce {

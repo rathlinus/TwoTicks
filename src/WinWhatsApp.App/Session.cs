@@ -94,7 +94,7 @@ public sealed class Session : Observable
         Client.ChatCleared += c => Post(() => OnCleared(c));
         Client.SyncProgress += s => Post(() => SyncProgress = s.Progress);
         Client.CallReceived += c => Post(() => OnCall(c));
-        Client.SendFailed += r => Post(() => ShowError("A message could not be sent. Right-click it to try again."));
+        Client.SendFailed += r => Post(() => ShowError(Loc.T("session.sendFailed")));
         Client.Failed += message => Post(() => ShowError(message));
 
         Chats.UnreadChanged += () => UnreadChanged?.Invoke(Chats.UnreadChats);
@@ -173,13 +173,13 @@ public sealed class Session : Observable
         "connected" => null,
         "starting" => null,
         "qr" => null,
-        "syncing" => "Syncing your chats from your phone…",
-        "connecting" => "Connecting…",
-        "replaced" => "WhatsApp is open on another computer or browser.",
-        "banned" => "WhatsApp has temporarily banned this account. " + _stateMessage,
-        "outdated" => "WhatsApp no longer accepts this version. Update WinWhatsApp.",
-        "loggedOut" => "Logged out.",
-        _ => "Can't connect to WhatsApp. " + _stateMessage,
+        "syncing" => Loc.T("session.syncing"),
+        "connecting" => Loc.T("session.connecting"),
+        "replaced" => Loc.T("session.replaced"),
+        "banned" => Loc.T("session.banned", ("reason", _stateMessage)),
+        "outdated" => Loc.T("session.outdated"),
+        "loggedOut" => Loc.T("session.loggedOut"),
+        _ => Loc.T("session.cantConnect", ("reason", _stateMessage)),
     };
 
     public string? Error { get => _error; private set => Set(ref _error, value); }
@@ -534,7 +534,7 @@ public sealed class Session : Observable
             IEnumerable<string> names = group.Members.Where(m => !m.Me).Select(m => m.Name).Order(StringComparer.CurrentCultureIgnoreCase);
             if (group.Members.Any(m => m.Me))
             {
-                names = names.Append("You");
+                names = names.Append(Loc.T("common.you"));
             }
             _groupMembersText = string.Join(", ", names);
             UpdateHeaderStatus();
@@ -676,16 +676,21 @@ public sealed class Session : Observable
             ClearTyping(chat);
             return;
         }
-        string action = typing.Audio ? "recording audio…" : "typing…";
         string? who = null;
         if (chat.IsGroup)
         {
             who = _current?.Jid == chat.Jid
                 ? _current.Messages.LastOrDefault(m => m.Data.Sender == typing.Sender)?.SenderName
                 : null;
-            who ??= "Someone";
+            who ??= Loc.T("session.someone");
         }
-        chat.Typing = who is null ? action : $"{who} is {action}";
+        chat.Typing = (who, typing.Audio) switch
+        {
+            (null, false) => Loc.T("session.typing"),
+            (null, true) => Loc.T("session.recording"),
+            (_, false) => Loc.T("session.typingName", ("name", who)),
+            (_, true) => Loc.T("session.recordingName", ("name", who)),
+        };
         if (!_typingTimers.TryGetValue(chat.Jid, out DispatcherQueueTimer? timer))
         {
             timer = NewTimer(TimeSpan.FromSeconds(8), () => ClearTyping(chat));
@@ -714,7 +719,7 @@ public sealed class Session : Observable
         {
             return;
         }
-        _presenceText = presence.Online ? "online" : presence.LastSeen > 0 ? Formatting.LastSeen(presence.LastSeen, DateTime.Now) : null;
+        _presenceText = presence.Online ? Loc.T("session.online") : presence.LastSeen > 0 ? Formatting.LastSeen(presence.LastSeen, DateTime.Now) : null;
         UpdateHeaderStatus();
     }
 
@@ -772,7 +777,7 @@ public sealed class Session : Observable
         }
         catch (BridgeException e)
         {
-            ShowError($"{Path.GetFileName(media.Path)} could not be sent: {e.Message}");
+            ShowError(Loc.T("session.fileNotSent", ("file", Path.GetFileName(media.Path)), ("error", e.Message)));
         }
     }
 
@@ -834,7 +839,7 @@ public sealed class Session : Observable
         }
         catch (BridgeException e)
         {
-            ShowError($"Download failed: {e.Message}");
+            ShowError(Loc.T("session.downloadFailed", ("error", e.Message)));
             return null;
         }
         finally

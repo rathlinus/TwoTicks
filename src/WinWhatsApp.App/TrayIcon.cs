@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using WinWhatsApp.Core;
 
 namespace WinWhatsApp.App;
 
@@ -108,12 +109,7 @@ internal sealed unsafe class TrayIcon : IDisposable
     public void SetUnread(int chats)
     {
         _unread = chats > 0;
-        _tooltip = chats switch
-        {
-            0 => "WinWhatsApp",
-            1 => "WinWhatsApp: 1 unread chat",
-            _ => $"WinWhatsApp: {chats} unread chats",
-        };
+        _tooltip = chats > 0 ? Loc.Plural("notify.trayUnread", chats) : "WinWhatsApp";
         if (_added)
         {
             var data = CreateData(Native.NIF_ICON | Native.NIF_TIP | Native.NIF_SHOWTIP);
@@ -151,13 +147,13 @@ internal sealed unsafe class TrayIcon : IDisposable
     private void ShowMenu()
     {
         nint menu = Native.CreatePopupMenu();
-        Native.AppendMenu(menu, Native.MF_STRING, OpenCommand, "Open WinWhatsApp");
+        Native.AppendMenu(menu, Native.MF_STRING, OpenCommand, Loc.T("notify.trayOpen"));
         if (UpdateVersion is not null)
         {
-            Native.AppendMenu(menu, Native.MF_STRING, UpdateCommand, $"Install WinWhatsApp {UpdateVersion} and restart");
+            Native.AppendMenu(menu, Native.MF_STRING, UpdateCommand, Loc.T("notify.trayInstall", ("version", UpdateVersion)));
         }
         Native.AppendMenu(menu, Native.MF_SEPARATOR, 0, null);
-        Native.AppendMenu(menu, Native.MF_STRING, QuitCommand, "Quit");
+        Native.AppendMenu(menu, Native.MF_STRING, QuitCommand, Loc.T("notify.trayQuit"));
         Native.GetCursorPos(out Native.POINT point);
         // Without this the menu would not close when clicking elsewhere.
         Native.SetForegroundWindow(_window);

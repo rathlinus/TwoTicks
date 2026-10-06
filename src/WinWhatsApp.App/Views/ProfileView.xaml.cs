@@ -24,7 +24,8 @@ public sealed partial class ProfileView : UserControl
 {
     private const int PageSize = 60;
 
-    private static readonly (string Text, long Seconds)[] s_muteDurations = [("For 8 hours", 8 * 3600L), ("For 1 week", 7 * 24 * 3600L), ("Always", -1L)];
+    private static (string Text, long Seconds)[] MuteDurations =>
+        [(Loc.T("profile.mute8Hours"), 8 * 3600L), (Loc.T("profile.mute1Week"), 7 * 24 * 3600L), (Loc.T("profile.muteAlways"), -1L)];
     private static readonly long[] s_disappearingTimers = [0, 86400, 7 * 86400, 90 * 86400];
 
     private readonly ObservableCollection<MemberItem> _members = [];
@@ -162,7 +163,7 @@ public sealed partial class ProfileView : UserControl
         KeptRow.Visibility = chat?.Data.Ephemeral > 0 ? Visibility.Visible : Visibility.Collapsed;
         ShowChatState();
         _blocked = false;
-        BlockText.Text = $"Block {DisplayName}";
+        BlockText.Text = Loc.T("profile.block", ("name", DisplayName));
         ClearRow.Visibility = chat is not null ? Visibility.Visible : Visibility.Collapsed;
         BlockRow.Visibility = !target.IsGroup && !isSelf ? Visibility.Visible : Visibility.Collapsed;
         // A group can be deleted only after leaving it; which of the two shows is known with its members.
@@ -237,12 +238,12 @@ public sealed partial class ProfileView : UserControl
             }
             if (Session.Chats.Get(target.Jid) is null && profile.Name.Length > 0)
             {
-                EmojiText.SetText(NameText, profile.Me ? profile.Name + " (You)" : profile.Name);
+                EmojiText.SetText(NameText, profile.Me ? Loc.T("profile.nameYou", ("name", profile.Name)) : profile.Name);
             }
             SubtitleText.Text = profile.Phone ?? "";
             if (!string.IsNullOrEmpty(profile.About))
             {
-                AboutHeading.Text = "About";
+                AboutHeading.Text = Loc.T("profile.about");
                 AboutHeading.Visibility = Visibility.Visible;
                 EmojiText.SetText(AboutText, profile.About);
                 AboutText.Visibility = Visibility.Visible;
@@ -264,7 +265,7 @@ public sealed partial class ProfileView : UserControl
 
     private async Task LoadGroupAsync(Target target, int version)
     {
-        SubtitleText.Text = "Group";
+        SubtitleText.Text = Loc.T("profile.group");
         bool member = false;
         try
         {
@@ -277,19 +278,18 @@ public sealed partial class ProfileView : UserControl
             {
                 EmojiText.SetText(NameText, group.Name);
             }
-            string count = group.Members.Count == 1 ? "1 member" : $"{group.Members.Count} members";
-            SubtitleText.Text = "Group · " + count;
+            SubtitleText.Text = Loc.Plural("profile.groupMembers", group.Members.Count);
 
             bool hasTopic = !string.IsNullOrWhiteSpace(group.Topic);
-            AboutHeading.Text = "Group description";
+            AboutHeading.Text = Loc.T("profile.groupDescription");
             EmojiText.SetText(AboutText, group.Topic ?? "");
             AboutText.Visibility = hasTopic ? Visibility.Visible : Visibility.Collapsed;
             AboutHeading.Visibility = hasTopic ? Visibility.Visible : Visibility.Collapsed;
             string created = group.Created > 0 ? Formatting.ToLocal(group.Created).ToString("d") : "";
             CreatedText.Text = (group.CreatedBy, created) switch
             {
-                ({ Length: > 0 } by, { Length: > 0 }) => $"Created by {by}, {created}",
-                (_, { Length: > 0 }) => $"Created {created}",
+                ({ Length: > 0 } by, { Length: > 0 }) => Loc.T("profile.createdBy", ("name", by), ("date", created)),
+                (_, { Length: > 0 }) => Loc.T("profile.created", ("date", created)),
                 _ => "",
             };
             CreatedText.Visibility = CreatedText.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -303,7 +303,7 @@ public sealed partial class ProfileView : UserControl
             {
                 _members.Add(new MemberItem(m));
             }
-            MembersCount.Text = count;
+            MembersCount.Text = Loc.Plural("profile.members", group.Members.Count);
             MembersHeading.Visibility = Visibility.Visible;
             member = group.Members.Any(m => m.Me);
         }
@@ -342,7 +342,7 @@ public sealed partial class ProfileView : UserControl
                 _groups.Add(group);
                 _ = LoadGroupAvatarAsync(group);
             }
-            GroupsCount.Text = groups.Count == 1 ? "1 group in common" : $"{groups.Count} groups in common";
+            GroupsCount.Text = Loc.Plural("profile.groupsInCommon", groups.Count);
             GroupsSection.Visibility = Visibility.Visible;
         }
         catch (BridgeException e)
@@ -465,12 +465,12 @@ public sealed partial class ProfileView : UserControl
         }
         MuteSwitch.IsOn = chat.IsMuted;
         long until = chat.Data.MutedUntil;
-        MuteUntilText.Text = chat.IsMuted && until > 0 ? $"Until {Formatting.ToLocal(until):g}" : "";
+        MuteUntilText.Text = chat.IsMuted && until > 0 ? Loc.T("profile.mutedUntil", ("time", Formatting.ToLocal(until).ToString("g"))) : "";
         MuteUntilText.Visibility = MuteUntilText.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
         DisappearingText.Text = Formatting.Disappearing(chat.Data.Ephemeral);
         if (!_blocked)
         {
-            BlockText.Text = $"Block {DisplayName}";
+            BlockText.Text = Loc.T("profile.block", ("name", DisplayName));
         }
     }
 
@@ -513,7 +513,7 @@ public sealed partial class ProfileView : UserControl
                 Content = new MediaTile(message),
                 ContentTemplate = template,
             };
-            AutomationProperties.SetName(button, message.Kind == "image" ? "Photo" : "Video");
+            AutomationProperties.SetName(button, message.Kind == "image" ? Loc.T("preview.photo") : Loc.T("preview.video"));
             button.Click += (_, _) => App.Current.Window.ShowMedia(new MessageItem(message, isGroup));
             Grid.SetColumn(button, i);
             MediaStrip.Children.Add(button);
@@ -533,7 +533,7 @@ public sealed partial class ProfileView : UserControl
             return;
         }
         var menu = new MenuFlyout { Placement = FlyoutPlacementMode.BottomEdgeAlignedRight };
-        foreach ((string text, long seconds) in s_muteDurations)
+        foreach ((string text, long seconds) in MuteDurations)
         {
             var item = new MenuFlyoutItem { Text = text };
             item.Click += (_, _) => _ = Session.SetMutedAsync(chat, seconds);
@@ -573,7 +573,7 @@ public sealed partial class ProfileView : UserControl
     private void SetBlocked(bool blocked)
     {
         _blocked = blocked;
-        BlockText.Text = blocked ? $"Unblock {DisplayName}" : $"Block {DisplayName}";
+        BlockText.Text = blocked ? Loc.T("profile.unblock", ("name", DisplayName)) : Loc.T("profile.block", ("name", DisplayName));
     }
 
     private async void OnClearClick(object sender, RoutedEventArgs e)
@@ -582,7 +582,7 @@ public sealed partial class ProfileView : UserControl
         {
             return;
         }
-        if (await ConfirmAsync("Clear this chat?", "Its messages are deleted on all your linked devices. Starred messages stay.", "Clear chat")
+        if (await ConfirmAsync(Loc.T("profile.clearTitle"), Loc.T("profile.clearText"), Loc.T("profile.clearChat"))
             && await TryAsync(() => Session.Client.ClearChatAsync(target.Jid)) && _target == target)
         {
             _ = LoadChatInfoAsync(target, _version);
@@ -596,7 +596,7 @@ public sealed partial class ProfileView : UserControl
             return;
         }
         bool block = !_blocked;
-        if (block && !await ConfirmAsync($"Block {DisplayName}?", "Blocked contacts can't call you or send you messages.", "Block"))
+        if (block && !await ConfirmAsync(Loc.T("profile.blockTitle", ("name", DisplayName)), Loc.T("profile.blockText"), Loc.T("profile.blockAction")))
         {
             return;
         }
@@ -612,7 +612,7 @@ public sealed partial class ProfileView : UserControl
         {
             return;
         }
-        if (await ConfirmAsync($"Exit {DisplayName}?", "You will no longer get messages from this group.", "Exit group")
+        if (await ConfirmAsync(Loc.T("profile.exitTitle", ("name", DisplayName)), Loc.T("profile.exitText"), Loc.T("profile.exitGroup"))
             && await TryAsync(() => Session.Client.LeaveGroupAsync(target.Jid)) && _target == target)
         {
             ShowMembership(false);
@@ -625,7 +625,7 @@ public sealed partial class ProfileView : UserControl
         {
             return;
         }
-        if (await ConfirmAsync("Delete this chat?", "The chat and its messages are deleted on all your linked devices.", "Delete chat")
+        if (await ConfirmAsync(Loc.T("profile.deleteTitle"), Loc.T("profile.deleteText"), Loc.T("profile.deleteChat"))
             && await TryAsync(() => Session.Client.DeleteChatAsync(target.Jid)))
         {
             if (Session.Current?.Jid == target.Jid)
@@ -643,7 +643,7 @@ public sealed partial class ProfileView : UserControl
             Title = title,
             Content = text,
             PrimaryButtonText = action,
-            CloseButtonText = "Cancel",
+            CloseButtonText = Loc.T("common.cancel"),
             DefaultButton = ContentDialogButton.Close,
             XamlRoot = XamlRoot,
             // A dialog is not inside the window's content, so it does not take its theme by itself.
@@ -700,13 +700,13 @@ public sealed partial class ProfileView : UserControl
         bool media = page is "media" or "docs" or "links";
         TitleText.Text = page switch
         {
-            "starred" => "Starred messages",
-            "kept" => "Kept messages",
-            "search" => "Search messages",
-            _ => "Media, links and docs",
+            "starred" => Loc.T("profile.starredMessages"),
+            "kept" => Loc.T("profile.keptMessages"),
+            "search" => Loc.T("profile.searchMessages"),
+            _ => Loc.T("profile.mediaLinksDocs"),
         };
         CloseIcon.Kind = "Back";
-        AutomationProperties.SetName(CloseButton, "Back");
+        AutomationProperties.SetName(CloseButton, Loc.T("profile.back"));
         MediaTabs.Visibility = media ? Visibility.Visible : Visibility.Collapsed;
         MediaTab.IsChecked = page == "media";
         DocsTab.IsChecked = page == "docs";
@@ -735,9 +735,9 @@ public sealed partial class ProfileView : UserControl
         _results.Clear();
         SubPage.Visibility = Visibility.Collapsed;
         bool isGroup = _target?.IsGroup == true;
-        TitleText.Text = isGroup ? "Group info" : "Contact info";
+        TitleText.Text = isGroup ? Loc.T("profile.groupInfo") : Loc.T("profile.contactInfo");
         CloseIcon.Kind = _back.Count > 0 ? "Back" : "Close";
-        AutomationProperties.SetName(CloseButton, _back.Count > 0 ? "Back" : "Close");
+        AutomationProperties.SetName(CloseButton, _back.Count > 0 ? Loc.T("profile.back") : Loc.T("common.close"));
     }
 
     /// <summary>Loads the newest messages of the list, or older ones when scrolled to the end.</summary>
@@ -793,18 +793,18 @@ public sealed partial class ProfileView : UserControl
         bool empty = page == "media" ? _tiles.Count == 0 : _results.Count == 0;
         EmptyText.Text = page switch
         {
-            "media" => "No photos or videos",
-            "docs" => "No documents",
-            "links" => "No links",
-            "starred" => "No starred messages. Star a message from its menu to find it here again.",
-            "kept" => "No kept messages",
-            _ => "No messages found",
+            "media" => Loc.T("profile.noMedia"),
+            "docs" => Loc.T("profile.noDocs"),
+            "links" => Loc.T("profile.noLinks"),
+            "starred" => Loc.T("profile.noStarred"),
+            "kept" => Loc.T("profile.noKept"),
+            _ => Loc.T("profile.noResults"),
         };
         EmptyText.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private string SenderOf(MessageData message, Target target) =>
-        message.FromMe ? "You"
+        message.FromMe ? Loc.T("common.you")
         : target.IsGroup && message.SenderName is { Length: > 0 } name ? name.TrimStart('~')
         : DisplayName;
 

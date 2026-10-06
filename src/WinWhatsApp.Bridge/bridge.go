@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"math"
 	"os"
 	"path/filepath"
@@ -622,7 +621,7 @@ func (l *levelFilter) Sub(module string) waLog.Logger {
 	return &levelFilter{Logger: l.Logger.Sub(module)}
 }
 
-var errNotLoggedIn = errors.New("not linked to a phone yet")
+var errNotLoggedIn = userError("notLinked")
 
 func mustJSON(v any) json.RawMessage {
 	data, _ := json.Marshal(v)

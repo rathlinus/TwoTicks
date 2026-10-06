@@ -30,7 +30,7 @@ public sealed class SearchResult(MessageData message, string chatName, string qu
     public string Time { get; } = Formatting.ChatListTime(message.Ts, DateTime.Now);
     public SearchSnippet Text { get; } = SearchSnippet
         .Find(MessagePreview.Describe(message.Kind, message.Text, message.Media?.Name, message.Media?.Seconds ?? 0, message.FromMe).Text, query)
-        .WithPrefix(!withSender ? "" : message.FromMe ? "You: " : message.SenderName is { Length: > 0 } s ? s + ": " : "");
+        .WithPrefix(!withSender ? "" : message.FromMe ? Loc.T("main.senderPrefix", ("name", Loc.T("common.you"))) : message.SenderName is { Length: > 0 } s ? Loc.T("main.senderPrefix", ("name", s)) : "");
 }
 
 /// <summary>
@@ -386,7 +386,7 @@ public sealed partial class MainWindow : Window
         if (MaximizeIcon.Glyph != glyph)
         {
             MaximizeIcon.Glyph = glyph;
-            string name = maximized ? "Restore" : "Maximize";
+            string name = maximized ? Loc.T("main.restore") : Loc.T("main.maximize");
             AutomationProperties.SetName(MaximizeButton, name);
             ToolTipService.SetToolTip(MaximizeButton, name);
         }

@@ -13,41 +13,42 @@ internal sealed partial class SettingsDialog : ContentDialog
     public SettingsDialog(Session session)
     {
         AppSettings settings = session.Settings;
-        Title = "Settings";
-        CloseButtonText = "Done";
+        Title = Loc.T("settings.title");
+        CloseButtonText = Loc.T("settings.done");
         DefaultButton = ContentDialogButton.Close;
 
         var panel = new StackPanel { Spacing = 4, Width = 420 };
 
-        panel.Children.Add(Heading("Notifications"));
-        panel.Children.Add(Toggle("Show notifications for new messages", settings.Notifications, v => settings.Notifications = v));
-        panel.Children.Add(Toggle("Show the message text in notifications", settings.NotificationPreview, v => settings.NotificationPreview = v));
-        panel.Children.Add(Toggle("Play a sound", settings.NotificationSound, v => settings.NotificationSound = v));
+        panel.Children.Add(Heading(Loc.T("settings.notifications")));
+        panel.Children.Add(Toggle(Loc.T("settings.showNotifications"), settings.Notifications, v => settings.Notifications = v));
+        panel.Children.Add(Toggle(Loc.T("settings.notificationPreview"), settings.NotificationPreview, v => settings.NotificationPreview = v));
+        panel.Children.Add(Toggle(Loc.T("settings.notificationSound"), settings.NotificationSound, v => settings.NotificationSound = v));
 
-        panel.Children.Add(Heading("App"));
-        panel.Children.Add(Toggle("Keep running in the notification area when the window is closed", settings.CloseToTray, v => settings.CloseToTray = v));
-        panel.Children.Add(Toggle("Start WinWhatsApp when I sign in", Startup.IsEnabled, Startup.SetEnabled));
-        panel.Children.Add(Toggle("Download photos automatically", settings.AutoDownloadImages, v => settings.AutoDownloadImages = v));
+        panel.Children.Add(Heading(Loc.T("settings.app")));
+        panel.Children.Add(Toggle(Loc.T("settings.closeToTray"), settings.CloseToTray, v => settings.CloseToTray = v));
+        panel.Children.Add(Toggle(Loc.T("settings.startAtSignIn"), Startup.IsEnabled, Startup.SetEnabled));
+        panel.Children.Add(Toggle(Loc.T("settings.autoDownloadImages"), settings.AutoDownloadImages, v => settings.AutoDownloadImages = v));
 
-        var theme = new RadioButtons { Header = "Theme", MaxColumns = 3, Margin = new Thickness(0, 8, 0, 0) };
+        panel.Children.Add(LanguagePicker(settings));
+
+        var theme = new RadioButtons { Header = Loc.T("settings.theme"), MaxColumns = 3, Margin = new Thickness(0, 8, 0, 0) };
         string[] themes = ["System", "Light", "Dark"];
-        foreach (string name in themes)
-        {
-            theme.Items.Add(name);
-        }
+        theme.Items.Add(Loc.T("settings.themeSystem"));
+        theme.Items.Add(Loc.T("settings.themeLight"));
+        theme.Items.Add(Loc.T("settings.themeDark"));
         // By position: SelectedItem compares the boxed strings by reference, and the
         // one from the settings file is never the same object, so nothing was selected.
         theme.SelectedIndex = Math.Max(0, Array.IndexOf(themes, settings.Theme));
         theme.SelectionChanged += (_, _) =>
         {
-            settings.Theme = theme.SelectedItem as string ?? "System";
+            settings.Theme = themes[Math.Max(0, theme.SelectedIndex)];
             App.Current.Window.ApplyTheme();
             // The dialog is not inside the window's content, so it follows by itself.
             RequestedTheme = App.Current.Window.Content is FrameworkElement root ? root.ActualTheme : ElementTheme.Default;
         };
         panel.Children.Add(theme);
 
-        var icon = new RadioButtons { Header = "App icon", MaxColumns = 2, Margin = new Thickness(0, 8, 0, 0) };
+        var icon = new RadioButtons { Header = Loc.T("settings.appIcon"), MaxColumns = 2, Margin = new Thickness(0, 8, 0, 0) };
         icon.Items.Add("WinWhatsApp");
         icon.Items.Add("WhatsApp");
         icon.SelectedIndex = settings.WhatsAppIcon ? 1 : 0;
@@ -58,37 +59,37 @@ internal sealed partial class SettingsDialog : ContentDialog
         };
         panel.Children.Add(icon);
 
-        panel.Children.Add(Heading("Calls"));
-        panel.Children.Add(DevicePicker("Microphone", DeviceClass.AudioCapture, settings.Microphone, name =>
+        panel.Children.Add(Heading(Loc.T("settings.calls")));
+        panel.Children.Add(DevicePicker(Loc.T("settings.microphone"), DeviceClass.AudioCapture, settings.Microphone, name =>
         {
             settings.Microphone = name;
             session.Calls.ApplyDevices();
         }));
-        panel.Children.Add(DevicePicker("Speaker", DeviceClass.AudioRender, settings.Speaker, name =>
+        panel.Children.Add(DevicePicker(Loc.T("settings.speaker"), DeviceClass.AudioRender, settings.Speaker, name =>
         {
             settings.Speaker = name;
             session.Calls.ApplyDevices();
         }));
 
-        panel.Children.Add(Heading("Account"));
-        string who = session.Me is { } me ? $"{me.Name}  (+{me.Jid.Split('@')[0]})" : "Not linked";
+        panel.Children.Add(Heading(Loc.T("settings.account")));
+        string who = session.Me is { } me ? $"{me.Name}  (+{me.Jid.Split('@')[0]})" : Loc.T("settings.notLinked");
         panel.Children.Add(new TextBlock { Text = who, Margin = new Thickness(0, 0, 0, 8) });
 
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        var dataButton = new Button { Content = "Open data folder" };
+        var dataButton = new Button { Content = Loc.T("settings.openDataFolder") };
         dataButton.Click += (_, _) => Process.Start("explorer.exe", $"\"{AppPaths.DataFolder}\"");
         buttons.Children.Add(dataButton);
 
-        var logout = new Button { Content = "Log out", IsEnabled = session.Me is not null };
+        var logout = new Button { Content = Loc.T("settings.logOut"), IsEnabled = session.Me is not null };
         logout.Click += async (_, _) =>
         {
             Hide();
             var confirm = new ContentDialog
             {
-                Title = "Log out?",
-                Content = "This unlinks the PC from your phone and deletes the messages and files stored on it. They stay on your phone.",
-                PrimaryButtonText = "Log out",
-                CloseButtonText = "Cancel",
+                Title = Loc.T("settings.logOutTitle"),
+                Content = Loc.T("settings.logOutText"),
+                PrimaryButtonText = Loc.T("settings.logOut"),
+                CloseButtonText = Loc.T("common.cancel"),
                 DefaultButton = ContentDialogButton.Close,
                 XamlRoot = XamlRoot,
                 RequestedTheme = ActualTheme,
@@ -101,27 +102,23 @@ internal sealed partial class SettingsDialog : ContentDialog
         buttons.Children.Add(logout);
         panel.Children.Add(buttons);
 
-        panel.Children.Add(Heading("Updates"));
+        panel.Children.Add(Heading(Loc.T("settings.updates")));
         AddUpdates(panel, App.Current.Updater, settings);
 
-        panel.Children.Add(Heading("About"));
+        panel.Children.Add(Heading(Loc.T("settings.about")));
         panel.Children.Add(new TextBlock { Text = $"WinWhatsApp {typeof(SettingsDialog).Assembly.GetName().Version?.ToString(3)}" });
-        panel.Children.Add(Paragraph(
-            "A native WhatsApp app for Windows. It links to your phone the way WhatsApp Web does: the phone keeps your account, and this PC is one of its linked devices."));
+        panel.Children.Add(Paragraph(Loc.T("settings.aboutText")));
         panel.Children.Add(new HyperlinkButton
         {
-            Content = "Source code and releases on GitHub",
+            Content = Loc.T("settings.sourceCode"),
             NavigateUri = new Uri("https://github.com/rathlinus/WinWhatsApp"),
             Margin = new Thickness(-12, 0, 0, 0),
         });
 
-        panel.Children.Add(Heading("Disclaimer"));
-        panel.Children.Add(Paragraph(
-            "WinWhatsApp is not made by, affiliated with or endorsed by WhatsApp or Meta. The name WhatsApp, its logo, emoji, icons and wallpapers belong to them."));
-        panel.Children.Add(Paragraph(
-            "WhatsApp has no public API for personal accounts. Using a client WhatsApp did not make is against its terms of service, and WhatsApp can ban accounts for it. Bans of accounts that only chat normally are rare, but you use WinWhatsApp at your own risk."));
-        panel.Children.Add(Paragraph(
-            "WinWhatsApp talks to WhatsApp with whatsmeow, under the Mozilla Public License 2.0. Its font is Roboto, by Google, under the Apache License 2.0."));
+        panel.Children.Add(Heading(Loc.T("settings.disclaimer")));
+        panel.Children.Add(Paragraph(Loc.T("settings.disclaimerAffiliation")));
+        panel.Children.Add(Paragraph(Loc.T("settings.disclaimerRisk")));
+        panel.Children.Add(Paragraph(Loc.T("settings.disclaimerLicenses")));
 
         Content = new ScrollViewer { Content = panel, MaxHeight = 560 };
     }
@@ -129,13 +126,13 @@ internal sealed partial class SettingsDialog : ContentDialog
     /// <summary>The switches for updates, what the updater is doing and a button for the next step.</summary>
     private void AddUpdates(StackPanel panel, Updater updater, AppSettings settings)
     {
-        panel.Children.Add(Toggle("Check for updates automatically", settings.CheckForUpdates, v => settings.CheckForUpdates = v));
-        CheckBox install = Toggle("Install updates automatically", settings.InstallUpdates, v => settings.InstallUpdates = v);
+        panel.Children.Add(Toggle(Loc.T("settings.checkForUpdates"), settings.CheckForUpdates, v => settings.CheckForUpdates = v));
+        CheckBox install = Toggle(Loc.T("settings.installUpdates"), settings.InstallUpdates, v => settings.InstallUpdates = v);
         install.IsEnabled = Updater.CanInstall;
         panel.Children.Add(install);
         if (!Updater.CanInstall)
         {
-            panel.Children.Add(Paragraph("This copy was not installed with the setup program, so it cannot update itself. New versions are on GitHub."));
+            panel.Children.Add(Paragraph(Loc.T("settings.cannotUpdate")));
         }
 
         var status = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 4) };
@@ -160,9 +157,9 @@ internal sealed partial class SettingsDialog : ContentDialog
             status.Visibility = status.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
             button.Content = updater.State switch
             {
-                UpdateState.Available or UpdateState.Ready when Updater.CanInstall => "Install and restart",
-                UpdateState.Available or UpdateState.Ready => "Download",
-                _ => "Check for updates",
+                UpdateState.Available or UpdateState.Ready when Updater.CanInstall => Loc.T("settings.installAndRestart"),
+                UpdateState.Available or UpdateState.Ready => Loc.T("settings.download"),
+                _ => Loc.T("settings.checkNow"),
             };
             button.IsEnabled = updater.State is not (UpdateState.Checking or UpdateState.Downloading);
         }
@@ -191,15 +188,47 @@ internal sealed partial class SettingsDialog : ContentDialog
     };
 
     /// <summary>
+    /// The languages the app has, by their own names, after the one that follows
+    /// Windows. The app reads its text at start, so a change asks to restart.
+    /// </summary>
+    private static StackPanel LanguagePicker(AppSettings settings)
+    {
+        var box = new ComboBox { Header = Loc.T("settings.language"), MinWidth = 300, Margin = new Thickness(0, 8, 0, 0) };
+        box.Items.Add(Loc.T("settings.languageWindows"));
+        foreach (AppLanguage language in Loc.Languages)
+        {
+            box.Items.Add(language.Name);
+        }
+        box.SelectedIndex = 1 + Loc.Languages.ToList().FindIndex(l => l.Code == settings.Language);
+
+        var restart = new Button { Content = Loc.T("settings.restart"), Visibility = Visibility.Collapsed, Margin = new Thickness(0, 4, 0, 0) };
+        restart.Click += (_, _) =>
+        {
+            SettingsStore.Save(settings);
+            App.Current.Restart();
+        };
+        box.SelectionChanged += (_, _) =>
+        {
+            settings.Language = box.SelectedIndex > 0 ? Loc.Languages[box.SelectedIndex - 1].Code : null;
+            restart.Visibility = Visibility.Visible;
+        };
+
+        var panel = new StackPanel();
+        panel.Children.Add(box);
+        panel.Children.Add(restart);
+        return panel;
+    }
+
+    /// <summary>
     /// A list of the microphones or speakers Windows has, by name, with the
     /// Windows default first. A device picked earlier that is not connected now
     /// stays in the list, so the choice is not lost.
     /// </summary>
     private static ComboBox DevicePicker(string header, DeviceClass kind, string? current, Action<string?> set)
     {
-        const string Default = "Windows default";
+        string windowsDefault = Loc.T("settings.windowsDefault");
         var box = new ComboBox { Header = header, MinWidth = 300, Margin = new Thickness(0, 4, 0, 4) };
-        box.Items.Add(Default);
+        box.Items.Add(windowsDefault);
         if (current is not null)
         {
             box.Items.Add(current);

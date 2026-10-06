@@ -3,8 +3,8 @@
     x:Class="WinWhatsApp.App.Calls.CallWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:c="using:WinWhatsApp.App.Controls"
-    Title="WinWhatsApp call">
+    xmlns:app="using:WinWhatsApp.App"
+    xmlns:c="using:WinWhatsApp.App.Controls">
 
     <!-- Dark in both themes, as WhatsApp's call screen is. -->
     <Grid x:Name="Root" Background="#0B141A" RequestedTheme="Dark">
@@ -52,24 +52,24 @@
         </Grid.RowDefinitions>
 
         <StackPanel VerticalAlignment="Center" Spacing="10">
-            <TextBlock HorizontalAlignment="Center" FontSize="13" Foreground="#8696A0" Text="End-to-end encrypted" />
+            <TextBlock HorizontalAlignment="Center" FontSize="13" Foreground="#8696A0" Text="{app:L Key=calls.encrypted}" />
             <c:Avatar x:Name="Picture" Margin="0,18,0,8" HorizontalAlignment="Center" Size="120" />
             <c:EmojiLabel x:Name="NameText" HorizontalAlignment="Center" FontSize="24" Foreground="#E9EDEF" />
             <TextBlock x:Name="StatusText" HorizontalAlignment="Center" FontSize="15" Foreground="#8696A0" />
         </StackPanel>
 
         <StackPanel Grid.Row="1" Margin="0,0,0,36" HorizontalAlignment="Center" Orientation="Horizontal" Spacing="40">
-            <Button x:Name="MuteButton" AutomationProperties.Name="Mute" Background="#233138" Click="OnMuteClick" Style="{StaticResource CallButtonStyle}" ToolTipService.ToolTip="Mute">
+            <Button x:Name="MuteButton" AutomationProperties.Name="{app:L Key=calls.mute}" Background="#233138" Click="OnMuteClick" Style="{StaticResource CallButtonStyle}" ToolTipService.ToolTip="{app:L Key=calls.mute}">
                 <c:WaIcon x:Name="MuteIcon" Kind="Mic" Size="28" />
             </Button>
-            <Button x:Name="DeclineButton" AutomationProperties.Name="Decline" Background="#EA0038" Click="OnHangUpClick" Style="{StaticResource CallButtonStyle}" ToolTipService.ToolTip="Decline">
+            <Button x:Name="DeclineButton" AutomationProperties.Name="{app:L Key=calls.decline}" Background="#EA0038" Click="OnHangUpClick" Style="{StaticResource CallButtonStyle}" ToolTipService.ToolTip="{app:L Key=calls.decline}">
                 <c:WaIcon Kind="Call" Size="28" RenderTransformOrigin="0.5,0.5">
                     <c:WaIcon.RenderTransform>
                         <RotateTransform Angle="135" />
                     </c:WaIcon.RenderTransform>
                 </c:WaIcon>
             </Button>
-            <Button x:Name="AnswerButton" AutomationProperties.Name="Answer" Background="#25D366" Click="OnAnswerClick" Style="{StaticResource CallButtonStyle}" ToolTipService.ToolTip="Answer">
+            <Button x:Name="AnswerButton" AutomationProperties.Name="{app:L Key=calls.answer}" Background="#25D366" Click="OnAnswerClick" Style="{StaticResource CallButtonStyle}" ToolTipService.ToolTip="{app:L Key=calls.answer}">
                 <c:WaIcon Kind="Call" Size="28" />
             </Button>
         </StackPanel>

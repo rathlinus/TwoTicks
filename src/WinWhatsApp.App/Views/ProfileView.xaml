@@ -20,7 +20,7 @@
                 <c:EmojiLabel Text="{x:Bind Name}" Grid.Column="1" VerticalAlignment="Center" FontSize="16" Foreground="{ThemeResource TextPrimaryBrush}" />
                 <Border Grid.Column="2" Padding="7,2" VerticalAlignment="Center" Background="{ThemeResource FilterChipSelectedBrush}" CornerRadius="6"
                         Visibility="{x:Bind AdminVisibility}">
-                    <TextBlock FontSize="12" Foreground="{ThemeResource FilterChipSelectedTextBrush}" Text="Group admin" />
+                    <TextBlock FontSize="12" Foreground="{ThemeResource FilterChipSelectedTextBrush}" Text="{app:L Key=profile.groupAdmin}" />
                 </Border>
             </Grid>
         </DataTemplate>
@@ -90,7 +90,7 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <Button x:Name="CloseButton" VerticalAlignment="Center" AutomationProperties.Name="Close" Click="OnCloseClick" Style="{StaticResource IconButtonStyle}">
+            <Button x:Name="CloseButton" VerticalAlignment="Center" AutomationProperties.Name="{app:L Key=common.close}" Click="OnCloseClick" Style="{StaticResource IconButtonStyle}">
                 <c:WaIcon x:Name="CloseIcon" Kind="Close" Size="22" />
             </Button>
             <TextBlock x:Name="TitleText" Grid.Column="1" VerticalAlignment="Center" FontSize="16" FontWeight="Medium" Foreground="{ThemeResource TextPrimaryBrush}" />
@@ -109,7 +109,7 @@
             <ListView.Header>
                 <StackPanel>
                     <StackPanel Padding="24,28,24,22">
-                        <c:PlainButton x:Name="PictureButton" HorizontalAlignment="Center" AutomationProperties.Name="View photo" Click="OnPictureClick" CornerRadius="100">
+                        <c:PlainButton x:Name="PictureButton" HorizontalAlignment="Center" AutomationProperties.Name="{app:L Key=profile.viewPhoto}" Click="OnPictureClick" CornerRadius="100">
                             <c:Avatar x:Name="BigAvatar" Size="200" />
                         </c:PlainButton>
                         <RichTextBlock x:Name="NameText" Margin="0,16,0,0" FontSize="22" Foreground="{ThemeResource TextPrimaryBrush}" IsTextSelectionEnabled="True"
@@ -120,16 +120,16 @@
                         <!-- Message and search, as round buttons with their name under them. -->
                         <StackPanel x:Name="ActionBar" Margin="0,20,0,0" HorizontalAlignment="Center" Orientation="Horizontal" Spacing="20">
                             <StackPanel x:Name="MessageAction" Spacing="6">
-                                <Button Click="OnMessageClick" AutomationProperties.Name="Message" Style="{StaticResource ActionButtonStyle}">
+                                <Button Click="OnMessageClick" AutomationProperties.Name="{app:L Key=profile.message}" Style="{StaticResource ActionButtonStyle}">
                                     <c:WaIcon Kind="Chat" Size="24" />
                                 </Button>
-                                <TextBlock HorizontalAlignment="Center" FontSize="13" Foreground="{ThemeResource TextPrimaryBrush}" Text="Message" />
+                                <TextBlock HorizontalAlignment="Center" FontSize="13" Foreground="{ThemeResource TextPrimaryBrush}" Text="{app:L Key=profile.message}" />
                             </StackPanel>
                             <StackPanel x:Name="SearchAction" Spacing="6">
-                                <Button Click="OnSearchClick" AutomationProperties.Name="Search" Style="{StaticResource ActionButtonStyle}">
+                                <Button Click="OnSearchClick" AutomationProperties.Name="{app:L Key=profile.search}" Style="{StaticResource ActionButtonStyle}">
                                     <c:WaIcon Kind="Search" Size="24" />
                                 </Button>
-                                <TextBlock HorizontalAlignment="Center" FontSize="13" Foreground="{ThemeResource TextPrimaryBrush}" Text="Search" />
+                                <TextBlock HorizontalAlignment="Center" FontSize="13" Foreground="{ThemeResource TextPrimaryBrush}" Text="{app:L Key=profile.search}" />
                             </StackPanel>
                         </StackPanel>
                     </StackPanel>
@@ -151,7 +151,7 @@
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <c:WaIcon VerticalAlignment="Center" Kind="Media" Size="24" Foreground="{ThemeResource IconBrush}" />
-                                <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="16" Foreground="{ThemeResource TextPrimaryBrush}" Text="Media, links and docs" />
+                                <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="16" Foreground="{ThemeResource TextPrimaryBrush}" Text="{app:L Key=profile.mediaLinksDocs}" />
                                 <TextBlock x:Name="MediaCount" Grid.Column="2" VerticalAlignment="Center" FontSize="14" Foreground="{ThemeResource TextSecondaryBrush}" />
                                 <c:WaIcon Grid.Column="3" Margin="-12,0,0,0" VerticalAlignment="Center" Kind="ChevronRight" Size="20" Foreground="{ThemeResource TextSecondaryBrush}" />
                             </Grid>
@@ -170,13 +170,13 @@
                         <Button Click="OnStarredClick" Style="{StaticResource InfoRowStyle}">
                             <StackPanel Orientation="Horizontal" Spacing="20">
                                 <c:WaIcon VerticalAlignment="Center" Kind="Star" Size="24" Foreground="{ThemeResource IconBrush}" />
-                                <TextBlock VerticalAlignment="Center" FontSize="16" Foreground="{ThemeResource TextPrimaryBrush}" Text="Starred messages" />
+                                <TextBlock VerticalAlignment="Center" FontSize="16" Foreground="{ThemeResource TextPrimaryBrush}" Text="{app:L Key=profile.starredMessages}" />
                             </StackPanel>
                         </Button>
                         <Button x:Name="KeptRow" Click="OnKeptClick" Style="{StaticResource InfoRowStyle}">
                             <StackPanel Orientation="Horizontal" Spacing="20">
                                 <c:WaIcon VerticalAlignment="Center" Kind="Keep" Size="24" Foreground="{ThemeResource IconBrush}" />
-                                <TextBlock VerticalAlignment="Center" FontSize="16" Foreground="{ThemeResource TextPrimaryBrush}" Text="Kept messages" />
+                                <TextBlock VerticalAlignment="Center" FontSize="16" Foreground="{ThemeResource TextPrimaryBrush}" Text="{app:L Key=profile.keptMessages}" />
                             </StackPanel>
                         </Button>
                         <Button x:Name="MuteRow" Click="OnMuteClick" Style="{StaticResource InfoRowStyle}">
@@ -188,7 +188,7 @@
                                 </Grid.ColumnDefinitions>
                                 <c:WaIcon VerticalAlignment="Center" Kind="Notifications" Size="24" Foreground="{ThemeResource IconBrush}" />
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                    <TextBlock FontSize="16" Foreground="{ThemeResource TextPrimaryBrush}" Text="Mute notifications" />
+                                    <TextBlock FontSize="16" Foreground="{ThemeResource TextPrimaryBrush}" Text="{app:L Key=profile.muteNotifications}" />
                                     <TextBlock x:Name="MuteUntilText" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" />
                                 </StackPanel>
                                 <!-- Shows the state; the row decides what a click does. -->
@@ -200,7 +200,7 @@
                             <StackPanel Orientation="Horizontal" Spacing="20">
                                 <c:WaIcon VerticalAlignment="Center" Kind="Disappearing" Size="24" Foreground="{ThemeResource IconBrush}" />
                                 <StackPanel VerticalAlignment="Center">
-                                    <TextBlock FontSize="16" Foreground="{ThemeResource TextPrimaryBrush}" Text="Disappearing messages" />
+                                    <TextBlock FontSize="16" Foreground="{ThemeResource TextPrimaryBrush}" Text="{app:L Key=profile.disappearingMessages}" />
                                     <TextBlock x:Name="DisappearingText" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" />
                                 </StackPanel>
                             </StackPanel>
@@ -212,9 +212,9 @@
                             </Grid.ColumnDefinitions>
                             <c:WaIcon VerticalAlignment="Center" Kind="LockOutline" Size="24" Foreground="{ThemeResource IconBrush}" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                <TextBlock FontSize="16" Foreground="{ThemeResource TextPrimaryBrush}" Text="Encryption" />
+                                <TextBlock FontSize="16" Foreground="{ThemeResource TextPrimaryBrush}" Text="{app:L Key=profile.encryption}" />
                                 <TextBlock FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap"
-                                           Text="Messages are end-to-end encrypted. Compare the security code on your phone to verify it." />
+                                           Text="{app:L Key=profile.encryptionText}" />
                             </StackPanel>
                         </Grid>
                     </StackPanel>
@@ -255,7 +255,7 @@
                     <Button x:Name="ClearRow" Click="OnClearClick" Style="{StaticResource InfoRowStyle}">
                         <StackPanel Orientation="Horizontal" Spacing="20">
                             <c:WaIcon VerticalAlignment="Center" Kind="ClearChat" Size="24" Foreground="{ThemeResource FailedBrush}" />
-                            <TextBlock VerticalAlignment="Center" FontSize="16" Foreground="{ThemeResource FailedBrush}" Text="Clear chat" />
+                            <TextBlock VerticalAlignment="Center" FontSize="16" Foreground="{ThemeResource FailedBrush}" Text="{app:L Key=profile.clearChat}" />
                         </StackPanel>
                     </Button>
                     <Button x:Name="BlockRow" Click="OnBlockClick" Style="{StaticResource InfoRowStyle}">
@@ -267,13 +267,13 @@
                     <Button x:Name="ExitRow" Click="OnExitClick" Style="{StaticResource InfoRowStyle}">
                         <StackPanel Orientation="Horizontal" Spacing="20">
                             <c:WaIcon VerticalAlignment="Center" Kind="Logout" Size="24" Foreground="{ThemeResource FailedBrush}" />
-                            <TextBlock VerticalAlignment="Center" FontSize="16" Foreground="{ThemeResource FailedBrush}" Text="Exit group" />
+                            <TextBlock VerticalAlignment="Center" FontSize="16" Foreground="{ThemeResource FailedBrush}" Text="{app:L Key=profile.exitGroup}" />
                         </StackPanel>
                     </Button>
                     <Button x:Name="DeleteRow" Click="OnDeleteClick" Style="{StaticResource InfoRowStyle}">
                         <StackPanel Orientation="Horizontal" Spacing="20">
                             <c:WaIcon VerticalAlignment="Center" Kind="Delete" Size="24" Foreground="{ThemeResource FailedBrush}" />
-                            <TextBlock VerticalAlignment="Center" FontSize="16" Foreground="{ThemeResource FailedBrush}" Text="Delete chat" />
+                            <TextBlock VerticalAlignment="Center" FontSize="16" Foreground="{ThemeResource FailedBrush}" Text="{app:L Key=profile.deleteChat}" />
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -288,11 +288,11 @@
             </Grid.RowDefinitions>
 
             <StackPanel x:Name="MediaTabs" Padding="16,12,16,8" Orientation="Horizontal" Spacing="8">
-                <ToggleButton x:Name="MediaTab" Click="OnTabClick" Content="Media" Style="{StaticResource FilterChipStyle}" Tag="media" />
-                <ToggleButton x:Name="DocsTab" Click="OnTabClick" Content="Docs" Style="{StaticResource FilterChipStyle}" Tag="docs" />
-                <ToggleButton x:Name="LinksTab" Click="OnTabClick" Content="Links" Style="{StaticResource FilterChipStyle}" Tag="links" />
+                <ToggleButton x:Name="MediaTab" Click="OnTabClick" Content="{app:L Key=profile.tabMedia}" Style="{StaticResource FilterChipStyle}" Tag="media" />
+                <ToggleButton x:Name="DocsTab" Click="OnTabClick" Content="{app:L Key=profile.tabDocs}" Style="{StaticResource FilterChipStyle}" Tag="docs" />
+                <ToggleButton x:Name="LinksTab" Click="OnTabClick" Content="{app:L Key=profile.tabLinks}" Style="{StaticResource FilterChipStyle}" Tag="links" />
             </StackPanel>
-            <TextBox x:Name="SearchBox" Margin="16,12,16,8" AutomationProperties.Name="Search in this chat" PlaceholderText="Search…" TextChanged="OnSearchTextChanged" Visibility="Collapsed" />
+            <TextBox x:Name="SearchBox" Margin="16,12,16,8" AutomationProperties.Name="{app:L Key=profile.searchInChat}" PlaceholderText="{app:L Key=profile.searchPlaceholder}" TextChanged="OnSearchTextChanged" Visibility="Collapsed" />
 
             <GridView
                 x:Name="MediaGrid"

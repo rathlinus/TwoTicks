@@ -1,0 +1,37 @@
+{
+  "time.today": "Today",
+  "time.yesterday": "Yesterday",
+  "time.lastSeenToday": "last seen today at {time}",
+  "time.lastSeenYesterday": "last seen yesterday at {time}",
+  "time.lastSeenOn": "last seen {date} at {time}",
+  "time.off": "Off",
+  "time.days.one": "{count} day",
+  "time.days.other": "{count} days",
+  "time.hours.one": "{count} hour",
+  "time.hours.other": "{count} hours",
+
+  "preview.photo": "Photo",
+  "preview.video": "Video",
+  "preview.gif": "GIF",
+  "preview.voice": "Voice message",
+  "preview.audio": "Audio",
+  "preview.document": "Document",
+  "preview.sticker": "Sticker",
+  "preview.location": "Location",
+  "preview.contact": "Contact",
+  "preview.poll": "Poll",
+  "preview.youDeleted": "You deleted this message",
+  "preview.deleted": "This message was deleted",
+  "preview.viewOnce": "View once message",
+  "preview.waiting": "Waiting for this message",
+  "preview.unsupported": "Unsupported message",
+
+  "helper.didNotStart": "The WhatsApp helper did not start.",
+  "helper.stopped": "The WhatsApp helper stopped.",
+  "helper.notRunning": "The WhatsApp helper is not running.",
+  "helper.restarting": "The WhatsApp helper stopped unexpectedly and is being restarted.",
+  "helper.unknownError": "Unknown error",
+
+  "update.wrongSize": "The download has {size} bytes instead of {expected}.",
+  "update.wrongHash": "The download does not match the hash GitHub lists for it."
+}

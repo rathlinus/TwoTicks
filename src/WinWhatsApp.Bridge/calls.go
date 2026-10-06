@@ -433,7 +433,7 @@ func (b *Bridge) sendCall(ctx context.Context, peerText, payload string) (map[st
 		}, nil
 	case <-time.After(20 * time.Second):
 		in.CancelResponse(id, wait)
-		return nil, errors.New("no answer from WhatsApp")
+		return nil, userError("noAnswerFromServer")
 	case <-ctx.Done():
 		in.CancelResponse(id, wait)
 		return nil, ctx.Err()
@@ -449,7 +449,7 @@ func (b *Bridge) prepareCall(ctx context.Context, chat string) (map[string]any, 
 	}
 	pn = pn.ToNonAD()
 	if pn.Server != types.DefaultUserServer && pn.Server != types.HiddenUserServer {
-		return nil, errors.New("only people can be called")
+		return nil, userError("callPeopleOnly")
 	}
 	peer := pn
 	if pn.Server == types.DefaultUserServer {
@@ -478,7 +478,7 @@ func (b *Bridge) prepareCall(ctx context.Context, chat string) (map[string]any, 
 		list = append(list, legacyJID(d))
 	}
 	if len(list) == 0 {
-		return nil, errors.New("this person has no devices that take calls")
+		return nil, userError("noCallDevices")
 	}
 	return map[string]any{
 		"peer":    legacyJID(peer),

@@ -1,0 +1,37 @@
+{
+  "time.today": "Heute",
+  "time.yesterday": "Gestern",
+  "time.lastSeenToday": "zuletzt online heute um {time}",
+  "time.lastSeenYesterday": "zuletzt online gestern um {time}",
+  "time.lastSeenOn": "zuletzt online am {date} um {time}",
+  "time.off": "Aus",
+  "time.days.one": "{count} Tag",
+  "time.days.other": "{count} Tage",
+  "time.hours.one": "{count} Stunde",
+  "time.hours.other": "{count} Stunden",
+
+  "preview.photo": "Foto",
+  "preview.video": "Video",
+  "preview.gif": "GIF",
+  "preview.voice": "Sprachnachricht",
+  "preview.audio": "Audio",
+  "preview.document": "Dokument",
+  "preview.sticker": "Sticker",
+  "preview.location": "Standort",
+  "preview.contact": "Kontakt",
+  "preview.poll": "Umfrage",
+  "preview.youDeleted": "Du hast diese Nachricht gelöscht",
+  "preview.deleted": "Diese Nachricht wurde gelöscht",
+  "preview.viewOnce": "Einmalansicht",
+  "preview.waiting": "Warten auf diese Nachricht",
+  "preview.unsupported": "Nicht unterstützte Nachricht",
+
+  "helper.didNotStart": "Der WhatsApp-Helfer ist nicht gestartet.",
+  "helper.stopped": "Der WhatsApp-Helfer wurde beendet.",
+  "helper.notRunning": "Der WhatsApp-Helfer läuft nicht.",
+  "helper.restarting": "Der WhatsApp-Helfer wurde unerwartet beendet und wird neu gestartet.",
+  "helper.unknownError": "Unbekannter Fehler",
+
+  "update.wrongSize": "Der Download hat {size} Byte statt {expected}.",
+  "update.wrongHash": "Der Download passt nicht zur Prüfsumme, die GitHub dafür angibt."
+}

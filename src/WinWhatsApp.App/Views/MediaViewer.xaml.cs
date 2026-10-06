@@ -193,7 +193,7 @@ public sealed partial class MediaViewer : UserControl
             {
                 if (_current == item)
                 {
-                    FailureText.Text = $"Download failed: {e.Message}";
+                    FailureText.Text = Loc.T("media.downloadFailed", ("error", e.Message));
                     Failure.Visibility = Visibility.Visible;
                 }
                 return;
@@ -232,7 +232,7 @@ public sealed partial class MediaViewer : UserControl
     {
         if (item.Message is { } message)
         {
-            string sender = message.FromMe ? "You" : !string.IsNullOrEmpty(message.SenderName) ? message.SenderName : _chatName;
+            string sender = message.FromMe ? Loc.T("common.you") : !string.IsNullOrEmpty(message.SenderName) ? message.SenderName : _chatName;
             EmojiText.SetText(Title, sender);
             Subtitle.Text = Formatting.ToLocal(message.Ts).ToString("g");
             bool hasCaption = !string.IsNullOrWhiteSpace(message.Text);
@@ -242,7 +242,7 @@ public sealed partial class MediaViewer : UserControl
         else
         {
             EmojiText.SetText(Title, _pictureName ?? "");
-            Subtitle.Text = "Profile photo";
+            Subtitle.Text = Loc.T("media.profilePhoto");
             CaptionBox.Visibility = Visibility.Collapsed;
         }
         ShowInChatButton.Visibility = item.Message is null ? Visibility.Collapsed : Visibility.Visible;
@@ -528,7 +528,7 @@ public sealed partial class MediaViewer : UserControl
             : string.Concat((_pictureName ?? "").Split(System.IO.Path.GetInvalidFileNameChars())).Trim();
         if (name.Length == 0)
         {
-            name = "Profile photo";
+            name = Loc.T("media.profilePhoto");
         }
         var picker = new Windows.Storage.Pickers.FileSavePicker { SuggestedFileName = name };
         WinRT.Interop.InitializeWithWindow.Initialize(picker, App.Current.WindowHandle);

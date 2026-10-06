@@ -1,4 +1,4 @@
-; The WinWhatsApp setup program, compiled by scripts\release.ps1 with Inno Setup:
+﻿; The WinWhatsApp setup program, compiled by scripts\release.ps1 with Inno Setup:
 ;
 ;   ISCC /DAppVersion=1.2.0 /DSourceDir=<artifacts\app> /DOutputDir=<artifacts\release> WinWhatsApp.iss
 ;
@@ -50,19 +50,34 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0.22000
 Compression=lzma2/max
+; Setup speaks the language Windows shows, and asks only when it has none of it.
+ShowLanguageDialog=auto
 SolidCompression=yes
 
 [Languages]
 Name: "en"; MessagesFile: "compiler:Default.isl"
+Name: "de"; MessagesFile: "compiler:Languages\German.isl"
 
 [Messages]
-WelcomeLabel2=This installs [name/ver] on your computer.%n%nWinWhatsApp links to WhatsApp on your phone the way WhatsApp Web does.
-FinishedHeadingLabel=WinWhatsApp is installed
-FinishedLabelNoIcons=Open WinWhatsApp and scan the code with WhatsApp on your phone.%n%nTo remove WinWhatsApp later, open Settings, go to Apps, then Installed apps.
-FinishedLabel=Open WinWhatsApp and scan the code with WhatsApp on your phone.%n%nTo remove WinWhatsApp later, open Settings, go to Apps, then Installed apps.
+en.WelcomeLabel2=This installs [name/ver] on your computer.%n%nWinWhatsApp links to WhatsApp on your phone the way WhatsApp Web does.
+en.FinishedHeadingLabel=WinWhatsApp is installed
+en.FinishedLabelNoIcons=Open WinWhatsApp and scan the code with WhatsApp on your phone.%n%nTo remove WinWhatsApp later, open Settings, go to Apps, then Installed apps.
+en.FinishedLabel=Open WinWhatsApp and scan the code with WhatsApp on your phone.%n%nTo remove WinWhatsApp later, open Settings, go to Apps, then Installed apps.
+de.WelcomeLabel2=Hiermit wird [name/ver] auf deinem Computer installiert.%n%nWinWhatsApp verknüpft sich mit WhatsApp auf deinem Telefon wie WhatsApp Web.
+de.FinishedHeadingLabel=WinWhatsApp ist installiert
+de.FinishedLabelNoIcons=Öffne WinWhatsApp und scanne den Code mit WhatsApp auf deinem Telefon.%n%nUm WinWhatsApp später zu entfernen, öffne die Einstellungen und gehe zu Apps und dann Installierte Apps.
+de.FinishedLabel=Öffne WinWhatsApp und scanne den Code mit WhatsApp auf deinem Telefon.%n%nUm WinWhatsApp später zu entfernen, öffne die Einstellungen und gehe zu Apps und dann Installierte Apps.
+
+[CustomMessages]
+en.AutostartTask=Start WinWhatsApp when I sign in, in the notification area
+en.StartApp=Start WinWhatsApp
+en.DeleteData=Also delete your messages and downloaded files from this PC? They stay on your phone.
+de.AutostartTask=WinWhatsApp bei der Anmeldung im Infobereich starten
+de.StartApp=WinWhatsApp starten
+de.DeleteData=Auch deine Nachrichten und heruntergeladenen Dateien von diesem PC löschen? Auf deinem Telefon bleiben sie erhalten.
 
 [Tasks]
-Name: "autostart"; Description: "Start WinWhatsApp when I sign in, in the notification area"
+Name: "autostart"; Description: "{cm:AutostartTask}"
 
 [InstallDelete]
 ; The files of the Windows App SDK differ from version to version; leftovers of
@@ -84,7 +99,7 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 Root: HKCU; Subkey: "Software\Classes\AppUserModelId\WinWhatsApp"; Flags: uninsdeletekey dontcreatekey
 
 [Run]
-Filename: "{app}\WinWhatsApp.exe"; Description: "Start WinWhatsApp"; Flags: postinstall nowait skipifsilent
+Filename: "{app}\WinWhatsApp.exe"; Description: "{cm:StartApp}"; Flags: postinstall nowait skipifsilent
 ; The app updates itself by running setup with /VERYSILENT and /RELAUNCH=window or
 ; /RELAUNCH=background, and quitting. Setup then starts the new version the same way.
 Filename: "{app}\WinWhatsApp.exe"; Parameters: "{code:RelaunchParameters}"; Flags: nowait; Check: Relaunching
@@ -118,7 +133,7 @@ begin
     DataDir := ExpandConstant('{localappdata}\WinWhatsApp');
     if DirExists(DataDir) and not UninstallSilent then
     begin
-      if MsgBox('Also delete your messages and downloaded files from this PC? They stay on your phone.', mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then
+      if MsgBox(CustomMessage('DeleteData'), mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then
         DelTree(DataDir, True, True, True);
     end;
   end;

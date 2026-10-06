@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using WinWhatsApp.Core;
 
 namespace WinWhatsApp.App.Controls;
 
@@ -9,16 +10,16 @@ public sealed partial class EmojiPicker : UserControl
     private const int RecentCount = 36;
 
     // WhatsApp's categories, with the icon of each tab.
-    private static readonly (string Key, string Icon, string Name)[] s_categories =
+    private static (string Key, string Icon, string Name)[] Categories =>
     [
-        ("SMILEYS_PEOPLE", "EmojiPeople", "Smileys and people"),
-        ("ANIMALS_NATURE", "EmojiNature", "Animals and nature"),
-        ("FOOD_DRINK", "EmojiFood", "Food and drink"),
-        ("ACTIVITY", "EmojiActivity", "Activity"),
-        ("TRAVEL_PLACES", "EmojiTravel", "Travel and places"),
-        ("OBJECTS", "EmojiObjects", "Objects"),
-        ("SYMBOLS", "EmojiSymbols", "Symbols"),
-        ("FLAGS", "EmojiFlags", "Flags"),
+        ("SMILEYS_PEOPLE", "EmojiPeople", Loc.T("conversation.emojiSmileys")),
+        ("ANIMALS_NATURE", "EmojiNature", Loc.T("conversation.emojiAnimals")),
+        ("FOOD_DRINK", "EmojiFood", Loc.T("conversation.emojiFood")),
+        ("ACTIVITY", "EmojiActivity", Loc.T("conversation.emojiActivity")),
+        ("TRAVEL_PLACES", "EmojiTravel", Loc.T("conversation.emojiTravel")),
+        ("OBJECTS", "EmojiObjects", Loc.T("conversation.emojiObjects")),
+        ("SYMBOLS", "EmojiSymbols", Loc.T("conversation.emojiSymbols")),
+        ("FLAGS", "EmojiFlags", Loc.T("conversation.emojiFlags")),
     ];
 
     private readonly List<ToggleButton> _tabs = [];
@@ -27,8 +28,8 @@ public sealed partial class EmojiPicker : UserControl
     public EmojiPicker()
     {
         InitializeComponent();
-        AddTab("Recent", "EmojiRecent", "Recently used");
-        foreach ((string key, string icon, string name) in s_categories)
+        AddTab("Recent", "EmojiRecent", Loc.T("conversation.emojiRecent"));
+        foreach ((string key, string icon, string name) in Categories)
         {
             AddTab(key, icon, name);
         }

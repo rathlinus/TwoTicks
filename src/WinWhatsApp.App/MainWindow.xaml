@@ -131,22 +131,22 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <Button x:Name="BackButton" Margin="-12,0,4,0" AutomationProperties.Name="Back to chats" Click="OnBackFromArchiveClick" Style="{StaticResource IconButtonStyle}" Visibility="Collapsed">
+                    <Button x:Name="BackButton" Margin="-12,0,4,0" AutomationProperties.Name="{app:L Key=main.backToChats}" Click="OnBackFromArchiveClick" Style="{StaticResource IconButtonStyle}" Visibility="Collapsed">
                         <c:WaIcon Kind="Back" Size="22" />
                     </Button>
                     <TextBlock x:Name="PaneTitle" Grid.Column="1" VerticalAlignment="Center" FontSize="22" FontWeight="SemiBold" Foreground="{ThemeResource AccentGreenBrush}" Text="WinWhatsApp" />
-                    <TextBlock x:Name="ArchiveTitle" Grid.Column="1" VerticalAlignment="Center" FontSize="20" FontWeight="SemiBold" Foreground="{ThemeResource TextPrimaryBrush}" Text="Archived" Visibility="Collapsed" />
-                    <Button Grid.Column="2" AutomationProperties.Name="New chat" Click="OnNewChatClick" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="New chat (Ctrl+N)">
+                    <TextBlock x:Name="ArchiveTitle" Grid.Column="1" VerticalAlignment="Center" FontSize="20" FontWeight="SemiBold" Foreground="{ThemeResource TextPrimaryBrush}" Text="{app:L Key=main.archived}" Visibility="Collapsed" />
+                    <Button Grid.Column="2" AutomationProperties.Name="{app:L Key=main.newChat}" Click="OnNewChatClick" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="{app:L Key=main.newChatTooltip}">
                         <c:WaIcon Kind="NewChat" Size="22" />
                     </Button>
-                    <Button x:Name="MenuButton" Grid.Column="3" AutomationProperties.Name="Menu" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="Menu">
+                    <Button x:Name="MenuButton" Grid.Column="3" AutomationProperties.Name="{app:L Key=main.menu}" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="{app:L Key=main.menu}">
                         <c:WaIcon Kind="MoreVert" Size="22" />
                         <Button.Flyout>
                             <MenuFlyout x:Name="MainMenu" Placement="BottomEdgeAlignedRight">
-                                <MenuFlyoutItem x:Name="SettingsItem" Click="OnSettingsClick" Text="Settings" />
-                                <MenuFlyoutItem x:Name="MarkAllReadItem" Click="OnMarkAllReadClick" Text="Mark all chats as read" />
+                                <MenuFlyoutItem x:Name="SettingsItem" Click="OnSettingsClick" Text="{app:L Key=main.settings}" />
+                                <MenuFlyoutItem x:Name="MarkAllReadItem" Click="OnMarkAllReadClick" Text="{app:L Key=main.markAllRead}" />
                                 <MenuFlyoutSeparator />
-                                <MenuFlyoutItem x:Name="QuitItem" Click="OnQuitClick" Text="Quit WinWhatsApp" />
+                                <MenuFlyoutItem x:Name="QuitItem" Click="OnQuitClick" Text="{app:L Key=main.quit}" />
                             </MenuFlyout>
                         </Button.Flyout>
                     </Button>
@@ -154,7 +154,7 @@
 
                 <InfoBar x:Name="ConnectionBar" Grid.Row="1" Margin="12,0,12,8" IsClosable="False" IsOpen="False" Severity="Informational">
                     <InfoBar.ActionButton>
-                        <Button x:Name="UseHereButton" Click="OnUseHereClick" Content="Use here" Visibility="Collapsed" />
+                        <Button x:Name="UseHereButton" Click="OnUseHereClick" Content="{app:L Key=main.useHere}" Visibility="Collapsed" />
                     </InfoBar.ActionButton>
                 </InfoBar>
 
@@ -173,14 +173,14 @@
                         <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="Transparent" />
                     </Grid.Resources>
                     <c:WaIcon VerticalAlignment="Center" Kind="Search" Size="20" Foreground="{ThemeResource MetaTextBrush}" />
-                    <TextBox x:Name="SearchBox" Grid.Column="1" VerticalAlignment="Center" BorderThickness="0" FontSize="15" PlaceholderText="Search or start a new chat"
+                    <TextBox x:Name="SearchBox" Grid.Column="1" VerticalAlignment="Center" BorderThickness="0" FontSize="15" PlaceholderText="{app:L Key=main.searchPlaceholder}"
                              TextChanged="OnSearchTextChanged" />
                 </Grid>
 
                 <StackPanel x:Name="Filters" Grid.Row="3" Margin="14,0,14,8" Orientation="Horizontal" Spacing="8">
-                    <ToggleButton x:Name="AllFilter" Click="OnFilterClick" Content="All" IsChecked="True" Style="{StaticResource FilterChipStyle}" Tag="All" />
-                    <ToggleButton x:Name="UnreadFilter" Click="OnFilterClick" Content="Unread" Style="{StaticResource FilterChipStyle}" Tag="Unread" />
-                    <ToggleButton x:Name="GroupsFilter" Click="OnFilterClick" Content="Groups" Style="{StaticResource FilterChipStyle}" Tag="Groups" />
+                    <ToggleButton x:Name="AllFilter" Click="OnFilterClick" Content="{app:L Key=main.filterAll}" IsChecked="True" Style="{StaticResource FilterChipStyle}" Tag="All" />
+                    <ToggleButton x:Name="UnreadFilter" Click="OnFilterClick" Content="{app:L Key=main.filterUnread}" Style="{StaticResource FilterChipStyle}" Tag="Unread" />
+                    <ToggleButton x:Name="GroupsFilter" Click="OnFilterClick" Content="{app:L Key=main.filterGroups}" Style="{StaticResource FilterChipStyle}" Tag="Groups" />
                 </StackPanel>
 
                 <Button x:Name="ArchivedButton" Grid.Row="4" Height="52" Padding="16,0,12,0" Click="OnArchivedClick" Style="{StaticResource ChatRowButtonStyle}" Visibility="Collapsed">
@@ -191,7 +191,7 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <c:WaIcon Margin="10,0,0,0" Kind="Archive" Size="20" Foreground="{ThemeResource AccentGreenBrush}" />
-                        <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="16" Foreground="{ThemeResource TextPrimaryBrush}" Text="Archived" />
+                        <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="16" Foreground="{ThemeResource TextPrimaryBrush}" Text="{app:L Key=main.archived}" />
                         <TextBlock x:Name="ArchivedCount" Grid.Column="2" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource UnreadTextBrush}" />
                     </Grid>
                 </Button>
@@ -235,13 +235,13 @@
                 <Grid x:Name="SearchPanel" Grid.Row="3" Grid.RowSpan="3" Background="{ThemeResource SurfaceBrush}" Visibility="Collapsed">
                     <ScrollViewer>
                         <StackPanel>
-                            <TextBlock x:Name="ChatsHeading" Margin="22,8,16,4" FontSize="15" Foreground="{ThemeResource AccentGreenBrush}" Text="Chats" />
+                            <TextBlock x:Name="ChatsHeading" Margin="22,8,16,4" FontSize="15" Foreground="{ThemeResource AccentGreenBrush}" Text="{app:L Key=main.chats}" />
                             <ListView x:Name="SearchChats" IsItemClickEnabled="True" ItemClick="OnSearchChatClick" ItemContainerStyle="{StaticResource ChatContainerStyle}"
                                       ItemTemplate="{StaticResource ChatTemplate}" SelectionMode="None" />
-                            <TextBlock x:Name="MessagesHeading" Margin="22,12,16,4" FontSize="15" Foreground="{ThemeResource AccentGreenBrush}" Text="Messages" />
+                            <TextBlock x:Name="MessagesHeading" Margin="22,12,16,4" FontSize="15" Foreground="{ThemeResource AccentGreenBrush}" Text="{app:L Key=main.messages}" />
                             <ListView x:Name="SearchMessages" IsItemClickEnabled="True" ItemClick="OnSearchMessageClick" ItemContainerStyle="{StaticResource ChatContainerStyle}"
                                       ItemTemplate="{StaticResource SearchResultTemplate}" SelectionMode="None" />
-                            <TextBlock x:Name="NoResults" Margin="16,24" HorizontalAlignment="Center" Foreground="{ThemeResource TextSecondaryBrush}" Text="No chats or messages found" Visibility="Collapsed" />
+                            <TextBlock x:Name="NoResults" Margin="16,24" HorizontalAlignment="Center" Foreground="{ThemeResource TextSecondaryBrush}" Text="{app:L Key=main.noResults}" Visibility="Collapsed" />
                         </StackPanel>
                     </ScrollViewer>
                 </Grid>
@@ -262,11 +262,11 @@
                         <Image Width="88" Height="88" Source="Assets/Logo.png" />
                         <TextBlock HorizontalAlignment="Center" FontSize="30" FontWeight="Light" Foreground="{ThemeResource TextPrimaryBrush}" Text="WinWhatsApp" />
                         <TextBlock HorizontalAlignment="Center" FontSize="14" Foreground="{ThemeResource TextSecondaryBrush}" LineHeight="20" TextAlignment="Center" TextWrapping="Wrap"
-                                   Text="Send and receive messages without keeping your phone online. Open WhatsApp on your phone now and then to keep this PC linked." />
+                                   Text="{app:L Key=main.welcome}" />
                     </StackPanel>
                     <StackPanel Margin="0,0,0,36" HorizontalAlignment="Center" VerticalAlignment="Bottom" Orientation="Horizontal" Spacing="6">
                         <c:WaIcon VerticalAlignment="Center" Kind="Lock" Size="14" Foreground="{ThemeResource TextSecondaryBrush}" />
-                        <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" Text="Your personal messages are end-to-end encrypted" />
+                        <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" Text="{app:L Key=main.encrypted}" />
                     </StackPanel>
                 </Grid>
                 <v:ConversationView x:Name="ConversationPane" Visibility="Collapsed" />
@@ -281,13 +281,13 @@
 
         <!-- Minimize, maximize and close, drawn here so they are as tall as the headers. -->
         <StackPanel x:Name="CaptionButtons" HorizontalAlignment="Right" VerticalAlignment="Top" Orientation="Horizontal">
-            <Button x:Name="MinimizeButton" AutomationProperties.Name="Minimize" Click="OnMinimizeClick" Style="{StaticResource CaptionButtonStyle}" ToolTipService.ToolTip="Minimize">
+            <Button x:Name="MinimizeButton" AutomationProperties.Name="{app:L Key=main.minimize}" Click="OnMinimizeClick" Style="{StaticResource CaptionButtonStyle}" ToolTipService.ToolTip="{app:L Key=main.minimize}">
                 <FontIcon FontSize="10" Glyph="&#xE921;" />
             </Button>
-            <Button x:Name="MaximizeButton" AutomationProperties.Name="Maximize" Click="OnMaximizeClick" Style="{StaticResource CaptionButtonStyle}" ToolTipService.ToolTip="Maximize">
+            <Button x:Name="MaximizeButton" AutomationProperties.Name="{app:L Key=main.maximize}" Click="OnMaximizeClick" Style="{StaticResource CaptionButtonStyle}" ToolTipService.ToolTip="{app:L Key=main.maximize}">
                 <FontIcon x:Name="MaximizeIcon" FontSize="10" Glyph="&#xE922;" />
             </Button>
-            <Button x:Name="CloseButton" AutomationProperties.Name="Close" Click="OnCloseClick" Style="{StaticResource CloseCaptionButtonStyle}" ToolTipService.ToolTip="Close">
+            <Button x:Name="CloseButton" AutomationProperties.Name="{app:L Key=common.close}" Click="OnCloseClick" Style="{StaticResource CloseCaptionButtonStyle}" ToolTipService.ToolTip="{app:L Key=common.close}">
                 <FontIcon FontSize="10" Glyph="&#xE8BB;" />
             </Button>
         </StackPanel>

@@ -51,12 +51,15 @@ internal sealed class BridgeConnection : IDisposable
         };
         info.ArgumentList.Add("--data");
         info.ArgumentList.Add(dataFolder);
+        // For the text it writes itself, such as "Missed voice call".
+        info.ArgumentList.Add("--lang");
+        info.ArgumentList.Add(Loc.Language);
         if (debug)
         {
             info.ArgumentList.Add("--debug");
         }
 
-        var process = Process.Start(info) ?? throw new BridgeException("The WhatsApp helper did not start.");
+        var process = Process.Start(info) ?? throw new BridgeException(Loc.T("helper.didNotStart"));
         var connection = new BridgeConnection(process);
         _ = Task.Run(connection.ReadLoopAsync);
         // Anything the helper prints to standard error is a crash report; the log
@@ -87,7 +90,7 @@ internal sealed class BridgeConnection : IDisposable
         _exited = true;
         foreach (var pending in _pending.Values)
         {
-            pending.TrySetException(new BridgeException("The WhatsApp helper stopped."));
+            pending.TrySetException(new BridgeException(Loc.T("helper.stopped")));
         }
         _pending.Clear();
         Exited?.Invoke();
@@ -121,7 +124,7 @@ internal sealed class BridgeConnection : IDisposable
             }
             if (root.TryGetProperty("error", out JsonElement error) && error.ValueKind == JsonValueKind.String)
             {
-                pending.TrySetException(new BridgeException(error.GetString() ?? "Unknown error"));
+                pending.TrySetException(new BridgeException(error.GetString() ?? Loc.T("helper.unknownError")));
             }
             else
             {
@@ -134,7 +137,7 @@ internal sealed class BridgeConnection : IDisposable
     {
         if (_exited)
         {
-            throw new BridgeException("The WhatsApp helper is not running.");
+            throw new BridgeException(Loc.T("helper.notRunning"));
         }
 
         long id = Interlocked.Increment(ref _nextId);
@@ -157,7 +160,7 @@ internal sealed class BridgeConnection : IDisposable
         catch (IOException)
         {
             _pending.TryRemove(id, out _);
-            throw new BridgeException("The WhatsApp helper is not running.");
+            throw new BridgeException(Loc.T("helper.notRunning"));
         }
         finally
         {

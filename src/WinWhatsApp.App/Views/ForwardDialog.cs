@@ -23,9 +23,9 @@ internal sealed partial class ForwardDialog : ContentDialog
     public ForwardDialog(Session session)
     {
         _session = session;
-        Title = "Forward message to";
-        PrimaryButtonText = "Forward";
-        CloseButtonText = "Cancel";
+        Title = Loc.T("chats.forwardTitle");
+        PrimaryButtonText = Loc.T("chats.forward");
+        CloseButtonText = Loc.T("common.cancel");
         DefaultButton = ContentDialogButton.Primary;
         IsPrimaryButtonEnabled = false;
 
@@ -36,7 +36,7 @@ internal sealed partial class ForwardDialog : ContentDialog
             .Select(c => new Target(c.Jid, c.Name, null, c.IsGroup, c.Avatar))
             .ToList();
 
-        _search = new TextBox { PlaceholderText = "Search chats and contacts" };
+        _search = new TextBox { PlaceholderText = Loc.T("chats.forwardSearch") };
         _search.TextChanged += (_, _) => Fill();
         _list = new ListView { Height = 360, SelectionMode = ListViewSelectionMode.Multiple };
         _list.SelectionChanged += OnSelectionChanged;
@@ -145,7 +145,7 @@ internal sealed partial class ForwardDialog : ContentDialog
         {
             0 => "",
             1 => _targets.First(t => _chosen.Contains(t.Jid)).Name,
-            _ => $"{_chosen.Count} chats",
+            _ => Loc.Plural("chats.chatCount", _chosen.Count),
         };
     }
 }

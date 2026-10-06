@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -127,7 +126,7 @@ func (b *Bridge) sendText(ctx context.Context, p sendParams) (*Message, error) {
 		return nil, err
 	}
 	if strings.TrimSpace(p.Text) == "" {
-		return nil, errors.New("nothing to send")
+		return nil, userError("nothingToSend")
 	}
 	m := b.newOutgoing(chat, "text", p.Text)
 	ci, quote := b.replyContext(ctx, chat, p.ReplyTo)
@@ -162,7 +161,7 @@ func (b *Bridge) sendMedia(ctx context.Context, p sendMediaParams) (*Message, er
 		return nil, err
 	}
 	if info.IsDir() {
-		return nil, errors.New("folders cannot be sent")
+		return nil, userError("cannotSendFolder")
 	}
 	mimeType := mimeFor(p.Path)
 	name := filepath.Base(p.Path)
@@ -300,7 +299,7 @@ func (b *Bridge) dispatch(ctx context.Context, chat types.JID, m *Message, build
 	}
 	stored, err := b.loadMessage(ctx, m.Chat, m.ID)
 	if err != nil || stored == nil {
-		return nil, errors.New("failed to store the message")
+		return nil, userError("storeFailed")
 	}
 	b.decorateMessages(ctx, []*Message{stored})
 	b.emitChat(m.Chat)
@@ -337,11 +336,11 @@ func (b *Bridge) retry(ctx context.Context, chatText, id string) error {
 	}
 	m, err := b.loadMessage(ctx, chatText, id)
 	if err != nil || m == nil || !m.FromMe {
-		return errors.New("message not found")
+		return userError("messageNotFound")
 	}
 	raw, err := b.loadRaw(ctx, chatText, id)
 	if err != nil || len(raw) == 0 {
-		return errors.New("this message can't be sent again; send it anew")
+		return userError("cannotResend")
 	}
 	var msg waE2E.Message
 	if err := proto.Unmarshal(raw, &msg); err != nil {
@@ -362,7 +361,7 @@ func (b *Bridge) target(ctx context.Context, chatText, id string) (types.JID, ty
 	}
 	m, err := b.loadMessage(ctx, chatText, id)
 	if err != nil || m == nil {
-		return chat, chat, chat, nil, errors.New("message not found")
+		return chat, chat, chat, nil, userError("messageNotFound")
 	}
 	keyChat := chat
 	if parsed, err := types.ParseJID(m.rawChat); err == nil && !parsed.IsEmpty() {
@@ -396,10 +395,10 @@ func (b *Bridge) edit(ctx context.Context, chatText, id, text string) error {
 		return err
 	}
 	if !m.FromMe || m.Kind != "text" {
-		return errors.New("only your own text messages can be edited")
+		return userError("editOwnTextOnly")
 	}
 	if time.Since(time.Unix(m.TS, 0)) > whatsmeow.EditWindow {
-		return errors.New("messages can only be edited for 20 minutes after sending")
+		return userError("editTooLate")
 	}
 	content := &waE2E.Message{Conversation: proto.String(text)}
 	if _, err := b.cli.SendMessage(ctx, chat, b.cli.BuildEdit(keyChat, types.MessageID(id), content)); err != nil {
@@ -415,7 +414,7 @@ func (b *Bridge) revokeOwn(ctx context.Context, chatText, id string) error {
 		return err
 	}
 	if !m.FromMe && chat.Server != types.GroupServer {
-		return errors.New("only your own messages can be deleted for everyone")
+		return userError("revokeOwnOnly")
 	}
 	if _, err := b.cli.SendMessage(ctx, chat, b.cli.BuildRevoke(keyChat, sender, types.MessageID(id))); err != nil {
 		return err
@@ -432,7 +431,7 @@ func (b *Bridge) pin(ctx context.Context, chatText, id string, pinned bool, seco
 		return err
 	}
 	if !canAddOn(m) {
-		return errors.New("this message can't be pinned")
+		return userError("cannotPin")
 	}
 	pinType := waE2E.PinInChatMessage_UNPIN_FOR_ALL
 	if pinned {
@@ -465,10 +464,10 @@ func (b *Bridge) keep(ctx context.Context, chatText, id string, kept bool) error
 		return err
 	}
 	if !canAddOn(m) {
-		return errors.New("this message can't be kept")
+		return userError("cannotKeep")
 	}
 	if !kept && !m.FromMe {
-		return errors.New("only who sent a message can stop keeping it")
+		return userError("unkeepSenderOnly")
 	}
 	keepType := waE2E.KeepType_UNDO_KEEP_FOR_ALL
 	if kept {
@@ -519,15 +518,15 @@ func canAddOn(m *Message) bool {
 func (b *Bridge) forward(ctx context.Context, chatText, id string, to []string) ([]*Message, error) {
 	source, err := b.loadMessage(ctx, chatText, id)
 	if err != nil || source == nil {
-		return nil, errors.New("message not found")
+		return nil, userError("messageNotFound")
 	}
 	switch source.Kind {
 	case "revoked", "system", "pending", "viewonce", "unsupported", "poll":
-		return nil, errors.New("this message can't be forwarded")
+		return nil, userError("cannotForward")
 	}
 	raw, err := b.loadRaw(ctx, chatText, id)
 	if err != nil || len(raw) == 0 {
-		return nil, errors.New("this message can't be forwarded")
+		return nil, userError("cannotForward")
 	}
 	var original waE2E.Message
 	if err := proto.Unmarshal(raw, &original); err != nil {

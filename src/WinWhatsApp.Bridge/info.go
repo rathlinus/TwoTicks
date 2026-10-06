@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"sort"
 	"strings"
 	"sync"
@@ -171,7 +170,7 @@ func (b *Bridge) setDisappearing(ctx context.Context, jid types.JID, seconds int
 func (b *Bridge) clearChat(ctx context.Context, chat string) error {
 	jid, key, ts, _ := b.lastKey(ctx, chat)
 	if jid.IsEmpty() {
-		return errors.New("no such chat")
+		return userError("noSuchChat")
 	}
 	span := &waSyncAction.SyncActionMessageRange{LastMessageTimestamp: proto.Int64(ts.Unix())}
 	if key != nil {
@@ -197,7 +196,7 @@ func (b *Bridge) clearChat(ctx context.Context, chat string) error {
 func (b *Bridge) deleteChatEverywhere(ctx context.Context, chat string) error {
 	jid, key, ts, _ := b.lastKey(ctx, chat)
 	if jid.IsEmpty() {
-		return errors.New("no such chat")
+		return userError("noSuchChat")
 	}
 	if err := b.cli.SendAppState(ctx, appstate.BuildDeleteChat(jid, ts, key, false)); err != nil {
 		return err

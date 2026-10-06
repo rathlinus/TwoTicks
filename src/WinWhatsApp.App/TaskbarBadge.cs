@@ -2,6 +2,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
 using System.Runtime.InteropServices;
+using WinWhatsApp.Core;
 
 namespace WinWhatsApp.App;
 
@@ -32,7 +33,7 @@ internal sealed class TaskbarBadge : IDisposable
             _taskbar ??= CreateTaskbar();
             nint previous = _icon;
             _icon = count > 0 ? Draw(count) : 0;
-            _taskbar?.SetOverlayIcon(_window, _icon, count > 0 ? $"{count} unread chats" : null);
+            _taskbar?.SetOverlayIcon(_window, _icon, count > 0 ? Loc.Plural("notify.badge", count) : null);
             if (previous != 0)
             {
                 Native.DestroyIcon(previous);

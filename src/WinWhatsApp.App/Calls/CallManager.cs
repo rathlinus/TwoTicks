@@ -115,7 +115,7 @@ public sealed class CallManager : Observable
             _callId = signal.CallId;
             Show(signal.Chat ?? "", signal.Name ?? signal.Chat?.Split('@')[0] ?? "");
             Phase = CallPhase.Incoming;
-            Status = "Incoming voice call";
+            Status = Loc.T("calls.incomingVoiceCall");
             PlaySound("whatsapp_windows_ringtone_02.m4a", loop: true);
             _notifier.ShowIncomingCall(Name, _chatOf(_chat ?? "")?.AvatarPath);
             ShowWindow(activate: false);
@@ -155,7 +155,7 @@ public sealed class CallManager : Observable
         Log.Info($"Calling {chat}, call {_callId}");
         Show(chat, name);
         Phase = CallPhase.Outgoing;
-        Status = "Calling…";
+        Status = Loc.T("calls.calling");
         ShowWindow(activate: true);
         string callId = _callId;
         try
@@ -193,7 +193,7 @@ public sealed class CallManager : Observable
         StopSound();
         _notifier.ClearIncomingCall();
         Phase = CallPhase.Connecting;
-        Status = "Connecting…";
+        Status = Loc.T("calls.connecting");
         Send(new JsonObject { ["type"] = "accept" });
     }
 
@@ -204,7 +204,7 @@ public sealed class CallManager : Observable
             return;
         }
         Send(new JsonObject { ["type"] = "reject" });
-        End("Declined");
+        End(Loc.T("calls.declined"));
     }
 
     /// <summary>Ends the call, or declines it while it rings.</summary>
@@ -224,7 +224,7 @@ public sealed class CallManager : Observable
                 {
                     _waiting.Clear();
                 }
-                End("Call ended");
+                End(Loc.T("calls.ended"));
                 break;
         }
     }
@@ -296,13 +296,19 @@ public sealed class CallManager : Observable
             if (run == _engineRun && !_ready)
             {
                 Log.Error("The calling engine did not start in time");
-                EngineFailed("The call could not be set up.");
+                EngineFailed(Loc.T("calls.setupFailed"));
             }
         }
         catch (Exception e) when (run == _engineRun)
         {
             Log.Error("Failed to start the calling engine", e);
-            EngineFailed(e is HttpRequestException ? "The calling engine could not be downloaded. Check the connection." : e.Message);
+            EngineFailed(e switch
+            {
+                HttpRequestException => Loc.T("calls.downloadFailed"),
+                InvalidDataException => Loc.T("calls.engineOutdated"),
+                BridgeException => e.Message,
+                _ => Loc.T("calls.setupFailed"),
+            });
         }
     }
 
@@ -339,12 +345,12 @@ public sealed class CallManager : Observable
                 break;
             case "micFailed":
                 Log.Error("No microphone for the call: " + message.GetProperty("message").GetString());
-                Status = "The microphone could not be used";
+                Status = Loc.T("calls.micFailed");
                 break;
             case "failed":
                 string text = message.TryGetProperty("message", out JsonElement m) ? m.GetString() ?? "" : "";
                 Log.Error("The calling engine failed: " + text);
-                EngineFailed("The call failed.");
+                EngineFailed(Loc.T("calls.failed"));
                 break;
             case "error":
                 Log.Error($"The calling engine could not {message.GetProperty("request").GetString()}: {message.GetProperty("message").GetString()}");
@@ -388,10 +394,10 @@ public sealed class CallManager : Observable
         switch (state)
         {
             case StateCalling or StatePreCalling:
-                Status = "Calling…";
+                Status = Loc.T("calls.calling");
                 break;
             case StatePreacceptReceived:
-                Status = "Ringing…";
+                Status = Loc.T("calls.ringing");
                 break;
             case StateReceivedCall:
                 break;
@@ -400,7 +406,7 @@ public sealed class CallManager : Observable
                 {
                     StopSound();
                     Phase = CallPhase.Connecting;
-                    Status = "Connecting…";
+                    Status = Loc.T("calls.connecting");
                 }
                 break;
             case StateActive or StateConnectedLonely:
@@ -416,12 +422,12 @@ public sealed class CallManager : Observable
                 }
                 break;
             case StateActiveElsewhere:
-                End("Answered on another device");
+                End(Loc.T("calls.answeredElsewhere"));
                 break;
             case StateNone or StateEnding:
                 if (_phase is not (CallPhase.Idle or CallPhase.Ended))
                 {
-                    End(_wasActive ? "Call ended" : _phase == CallPhase.Incoming ? "Missed call" : "Not answered");
+                    End(_wasActive ? Loc.T("calls.ended") : _phase == CallPhase.Incoming ? Loc.T("calls.missed") : Loc.T("calls.notAnswered"));
                 }
                 break;
         }

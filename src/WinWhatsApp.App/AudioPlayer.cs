@@ -96,7 +96,7 @@ internal static class AudioPlayer
             s_ui?.TryEnqueue(() =>
             {
                 Stop();
-                App.Current.Session?.ShowError("This recording can't be played. Windows may be missing the Web Media Extensions from the Microsoft Store.");
+                App.Current.Session?.ShowError(Loc.T("session.cantPlay"));
             });
         };
         return s_player;
