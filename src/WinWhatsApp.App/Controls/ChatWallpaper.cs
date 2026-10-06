@@ -53,6 +53,8 @@ public sealed partial class ChatWallpaper : Canvas
             SetLeft(Children[i], i % columns * TileWidth);
             SetTop(Children[i], i / columns * TileHeight);
         }
+        // A canvas draws its children past its edges; keep the tiles inside.
+        Clip = new Microsoft.UI.Xaml.Media.RectangleGeometry { Rect = new(0, 0, ActualWidth, ActualHeight) };
         Restyle();
     }
 

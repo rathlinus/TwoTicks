@@ -270,9 +270,11 @@
             </Button>
         </Grid>
 
-        <!-- The messages, newest at the bottom, on WhatsApp's wallpaper. -->
+        <!-- WhatsApp's wallpaper, behind the messages and the composer below them. -->
+        <c:ChatWallpaper Grid.Row="1" Grid.RowSpan="4" />
+
+        <!-- The messages, newest at the bottom. -->
         <Grid Grid.Row="1">
-            <c:ChatWallpaper />
             <ListView
                 x:Name="MessageList"
                 Padding="0,0,0,14"
@@ -321,7 +323,7 @@
         </Grid>
 
         <!-- Replying to or editing a message. -->
-        <Grid x:Name="ReplyBar" Grid.Row="2" Padding="16,8,10,0" ColumnSpacing="8" Background="{ThemeResource ComposerTrayBrush}" Visibility="Collapsed">
+        <Grid x:Name="ReplyBar" Grid.Row="2" Padding="16,8,10,0" ColumnSpacing="8" Visibility="Collapsed">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
@@ -344,7 +346,7 @@
         </Grid>
 
         <!-- The preview of the first link in the text, which goes along with it. -->
-        <Grid x:Name="LinkBar" Grid.Row="3" Padding="12,8,12,0" Background="{ThemeResource ComposerTrayBrush}" Visibility="Collapsed">
+        <Grid x:Name="LinkBar" Grid.Row="3" Padding="12,8,12,0" Visibility="Collapsed">
             <Grid MinHeight="60" Background="{ThemeResource ComposerBrush}" CornerRadius="10">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -370,7 +372,7 @@
         </Grid>
 
         <!-- Writing, in WhatsApp's field: attach and emoji inside it, send beside it. -->
-        <Grid x:Name="Composer" Grid.Row="4" Padding="12,8,12,10" ColumnSpacing="8" Background="{ThemeResource ComposerTrayBrush}">
+        <Grid x:Name="Composer" Grid.Row="4" Padding="12,8,12,10" ColumnSpacing="8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
@@ -441,7 +443,7 @@
             </Button>
         </Grid>
 
-        <Border x:Name="ReadOnlyNotice" Grid.Row="4" Padding="16" Background="{ThemeResource ComposerTrayBrush}" Visibility="Collapsed">
+        <Border x:Name="ReadOnlyNotice" Grid.Row="4" Padding="16" Visibility="Collapsed">
             <TextBlock HorizontalAlignment="Center" Foreground="{ThemeResource TextSecondaryBrush}" Text="Only admins can send messages to this group." />
         </Border>
 

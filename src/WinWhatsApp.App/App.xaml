@@ -20,7 +20,6 @@
                     <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF" />
                     <SolidColorBrush x:Key="SurfaceEmphasizedBrush" Color="#F7F5F3" />
                     <SolidColorBrush x:Key="ComposerBrush" Color="#FFFFFF" />
-                    <SolidColorBrush x:Key="ComposerTrayBrush" Color="#F7F5F3" />
                     <SolidColorBrush x:Key="IncomingBubbleBrush" Color="#FFFFFF" />
                     <SolidColorBrush x:Key="OutgoingBubbleBrush" Color="#D9FDD3" />
                     <SolidColorBrush x:Key="BubbleBorderBrush" Color="#12000000" />
@@ -57,7 +56,6 @@
                     <SolidColorBrush x:Key="SurfaceBrush" Color="#161717" />
                     <SolidColorBrush x:Key="SurfaceEmphasizedBrush" Color="#1D1F1F" />
                     <SolidColorBrush x:Key="ComposerBrush" Color="#242626" />
-                    <SolidColorBrush x:Key="ComposerTrayBrush" Color="#161717" />
                     <SolidColorBrush x:Key="IncomingBubbleBrush" Color="#242626" />
                     <SolidColorBrush x:Key="OutgoingBubbleBrush" Color="#144D37" />
                     <SolidColorBrush x:Key="BubbleBorderBrush" Color="#00000000" />
