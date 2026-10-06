@@ -30,6 +30,11 @@ internal sealed class VoipEngine : IDisposable
     private nint _window;
     private CoreWebView2Environment? _environment;
     private CoreWebView2Controller? _controller;
+
+    // Held for as long as the page lives: when the garbage collector takes the
+    // last reference, WebView2 destroys the object its events are wired to and
+    // crashes on the next message from the page.
+    private CoreWebView2? _web;
     private PageServer? _server;
     private TaskCompletionSource? _loaded;
     private string? _wasmFile;
@@ -65,7 +70,7 @@ internal sealed class VoipEngine : IDisposable
 
     public void Post(JsonObject message)
     {
-        _controller?.CoreWebView2?.PostWebMessageAsJson(message.ToJsonString());
+        _web?.PostWebMessageAsJson(message.ToJsonString());
     }
 
     private async Task OpenPageAsync()
@@ -89,7 +94,7 @@ internal sealed class VoipEngine : IDisposable
         _controller = await _environment.CreateCoreWebView2ControllerAsync(CoreWebView2ControllerWindowReference.CreateFromWindowHandle((ulong)_window));
         _controller.IsVisible = true;
 
-        CoreWebView2 web = _controller.CoreWebView2;
+        CoreWebView2 web = _web = _controller.CoreWebView2;
         web.Settings.AreDevToolsEnabled = Environment.GetEnvironmentVariable("WINWHATSAPP_DEBUG") == "1";
         web.Settings.AreDefaultContextMenusEnabled = false;
         web.Settings.IsStatusBarEnabled = false;
@@ -223,6 +228,11 @@ internal sealed class VoipEngine : IDisposable
         _loaded = null;
         if (_controller is not null)
         {
+            if (_web is not null)
+            {
+                _web.WebMessageReceived -= OnMessage;
+                _web = null;
+            }
             _controller.Close();
             _controller = null;
         }
