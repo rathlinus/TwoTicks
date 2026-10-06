@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="WinWhatsApp.App.Views.MediaViewer"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:c="using:WinWhatsApp.App.Controls"
+    xmlns:v="using:WinWhatsApp.App.Views"
+    IsTabStop="True"
+    KeyDown="OnKeyDown"
+    RequestedTheme="Dark"
+    UseSystemFocusVisuals="False">
+
+    <UserControl.Resources>
+        <!-- A photo or video in the strip along the bottom. -->
+        <DataTemplate x:Key="ThumbTemplate" x:DataType="v:ViewerItem">
+            <Grid Width="54" Height="54" Background="#33FFFFFF" BorderBrush="{ThemeResource AccentGreenBrush}"
+                  BorderThickness="{x:Bind CurrentBorder, Mode=OneWay}" CornerRadius="6" Opacity="{x:Bind CurrentOpacity, Mode=OneWay}">
+                <Image Source="{x:Bind Thumb}" Stretch="UniformToFill" />
+                <Border Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#80000000" CornerRadius="11"
+                        Visibility="{x:Bind VideoVisibility}">
+                    <c:WaIcon HorizontalAlignment="Center" VerticalAlignment="Center" Kind="Play" Size="14" Foreground="White" />
+                </Border>
+            </Grid>
+        </DataTemplate>
+
+        <Style x:Key="ArrowButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+            <Setter Property="Width" Value="44" />
+            <Setter Property="Height" Value="44" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="22" />
+            <Setter Property="Background" Value="#99202020" />
+            <Setter Property="BorderBrush" Value="#33FFFFFF" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Background="#F2101010">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Who sent it and when, and what can be done with it. -->
+        <Grid x:Name="HeaderBar" Padding="16,8" ColumnSpacing="4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center">
+                <RichTextBlock x:Name="Title" FontWeight="SemiBold" Foreground="White" IsTextSelectionEnabled="False" MaxLines="1" TextTrimming="CharacterEllipsis" />
+                <TextBlock x:Name="Subtitle" FontSize="12" Foreground="#B0FFFFFF" />
+            </StackPanel>
+
+            <StackPanel x:Name="ZoomTools" Grid.Column="1" Margin="0,0,12,0" Orientation="Horizontal" Spacing="2">
+                <Button x:Name="ZoomOutButton" AutomationProperties.Name="Zoom out" Click="OnZoomOutClick" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="Zoom out (-)">
+                    <FontIcon FontSize="18" Glyph="&#xE71F;" />
+                </Button>
+                <Button x:Name="ZoomLevel" MinWidth="60" Height="40" Padding="8,0" AutomationProperties.Name="Fit to window" Background="Transparent" BorderBrush="Transparent"
+                        Click="OnZoomLevelClick" CornerRadius="20" ToolTipService.ToolTip="Fit to window (0)">
+                    <TextBlock x:Name="ZoomText" FontSize="13" Foreground="#E0FFFFFF" />
+                </Button>
+                <Button x:Name="ZoomInButton" AutomationProperties.Name="Zoom in" Click="OnZoomInClick" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="Zoom in (+)">
+                    <FontIcon FontSize="18" Glyph="&#xE8A3;" />
+                </Button>
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2">
+                <Button x:Name="ShowInChatButton" AutomationProperties.Name="Show in chat" Click="OnShowInChatClick" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="Show in chat">
+                    <c:WaIcon Kind="Chat" Size="22" Foreground="White" />
+                </Button>
+                <Button AutomationProperties.Name="Save as" Click="OnSaveClick" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="Save as (Ctrl+S)">
+                    <c:WaIcon Kind="Download" Size="22" Foreground="White" />
+                </Button>
+                <Button AutomationProperties.Name="Open in another app" Click="OnOpenClick" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="Open in another app">
+                    <c:WaIcon Kind="OpenInNew" Size="22" Foreground="White" />
+                </Button>
+                <Button AutomationProperties.Name="Close" Click="OnCloseClick" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="Close (Esc)">
+                    <c:WaIcon Kind="Close" Size="22" Foreground="White" />
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- The photo or video, with arrows to the ones before and after it. -->
+        <Grid Grid.Row="1">
+            <c:ZoomImage x:Name="Photo" EmptyTapped="OnPhotoEmptyTapped" Swiped="OnPhotoSwiped" ZoomChanged="OnPhotoZoomChanged" />
+            <MediaPlayerElement x:Name="Video" Margin="24" AreTransportControlsEnabled="True" AutoPlay="True" Visibility="Collapsed" />
+            <ProgressRing x:Name="Spinner" Width="48" Height="48" Foreground="White" IsActive="False" IsHitTestVisible="False" />
+            <StackPanel x:Name="Failure" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" Visibility="Collapsed">
+                <TextBlock x:Name="FailureText" MaxWidth="420" Foreground="White" TextAlignment="Center" TextWrapping="Wrap" />
+                <Button HorizontalAlignment="Center" Click="OnRetryClick" Content="Try again" />
+            </StackPanel>
+
+            <Border x:Name="CaptionBox" MaxWidth="720" Margin="24,0,24,20" Padding="14,8" HorizontalAlignment="Center" VerticalAlignment="Bottom" Background="#B0000000"
+                    CornerRadius="8" IsHitTestVisible="True" Visibility="Collapsed">
+                <ScrollViewer MaxHeight="120" VerticalScrollBarVisibility="Auto">
+                    <RichTextBlock x:Name="Caption" FontSize="14.5" Foreground="White" IsTextSelectionEnabled="True" TextAlignment="Center" TextWrapping="Wrap" />
+                </ScrollViewer>
+            </Border>
+
+            <Button x:Name="PreviousButton" Margin="16,0,0,0" HorizontalAlignment="Left" AutomationProperties.Name="Previous" Click="OnPreviousClick"
+                    Style="{StaticResource ArrowButtonStyle}" ToolTipService.ToolTip="Previous (Left arrow)" Visibility="Collapsed">
+                <c:WaIcon Kind="ChevronDown" Size="26" Foreground="White" RenderTransformOrigin="0.5,0.5">
+                    <c:WaIcon.RenderTransform>
+                        <RotateTransform Angle="90" />
+                    </c:WaIcon.RenderTransform>
+                </c:WaIcon>
+            </Button>
+            <Button x:Name="NextButton" Margin="0,0,16,0" HorizontalAlignment="Right" AutomationProperties.Name="Next" Click="OnNextClick"
+                    Style="{StaticResource ArrowButtonStyle}" ToolTipService.ToolTip="Next (Right arrow)" Visibility="Collapsed">
+                <c:WaIcon Kind="ChevronDown" Size="26" Foreground="White" RenderTransformOrigin="0.5,0.5">
+                    <c:WaIcon.RenderTransform>
+                        <RotateTransform Angle="-90" />
+                    </c:WaIcon.RenderTransform>
+                </c:WaIcon>
+            </Button>
+        </Grid>
+
+        <!-- Every photo and video of the chat, oldest on the left. -->
+        <ListView x:Name="Strip" Grid.Row="2" Height="72" Margin="16,0,16,8" HorizontalAlignment="Center" IsItemClickEnabled="True" ItemClick="OnStripItemClick"
+                  ItemTemplate="{StaticResource ThumbTemplate}" ScrollViewer.HorizontalScrollBarVisibility="Hidden" ScrollViewer.HorizontalScrollMode="Enabled"
+                  ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollMode="Disabled" SelectionMode="None" Visibility="Collapsed">
+            <ListView.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <ItemsStackPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+            </ListView.ItemsPanel>
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
+                    <Setter Property="Margin" Value="2,0" />
+                    <Setter Property="Padding" Value="0" />
+                    <Setter Property="MinWidth" Value="0" />
+                    <Setter Property="MinHeight" Value="0" />
+                    <Setter Property="VerticalContentAlignment" Value="Center" />
+                </Style>
+            </ListView.ItemContainerStyle>
+        </ListView>
+    </Grid>
+</UserControl>

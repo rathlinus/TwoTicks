@@ -87,6 +87,22 @@ public sealed partial class ConversationView : UserControl
 
     public Session Session => App.Current.Session;
 
+    /// <summary>The header, which moves the window like a title bar.</summary>
+    public FrameworkElement TitleArea => HeaderBar;
+
+    /// <summary>Room on the right of the header for the window's minimize, maximize and close.</summary>
+    public double CaptionInset
+    {
+        set
+        {
+            var padding = new Thickness(16, 0, 10 + value, 0);
+            if (HeaderBar.Padding != padding)
+            {
+                HeaderBar.Padding = padding;
+            }
+        }
+    }
+
     /// <summary>Puts the cursor in the message box.</summary>
     public void FocusComposer() => MessageBox.Focus(FocusState.Programmatic);
 
@@ -773,11 +789,7 @@ public sealed partial class ConversationView : UserControl
             OpenUrl(item.MapUrl);
             return;
         }
-        string? path = await Session.DownloadAsync(item);
-        if (path is not null)
-        {
-            App.Current.Window.ShowMedia(item, path);
-        }
+        App.Current.Window.ShowMedia(item);
     }
 
     private async void OnDocumentTapped(object sender, TappedRoutedEventArgs e)

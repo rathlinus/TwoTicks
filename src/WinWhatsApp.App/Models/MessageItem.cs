@@ -263,6 +263,15 @@ public sealed class MessageItem : Observable
     public bool TimeOverVisual => (HasVisual || IsSticker) && !HasText;
 
     public Visibility TimeInTextVisibility => TimeOverVisual ? Visibility.Collapsed : Visibility.Visible;
+
+    /// <summary>
+    /// The text and time below a photo, gone when the time is over it, so the
+    /// bubble has no gap under the picture.
+    /// </summary>
+    public Visibility BodyVisibility => TimeOverVisual && !IsNotice ? Visibility.Collapsed : Visibility.Visible;
+
+    /// <summary>A photo sits in the bubble with the same small border on every side.</summary>
+    public Thickness BubblePadding => HasVisual ? new Thickness(3) : new Thickness(4, 3, 4, 4);
     public Visibility TimeOverVisualVisibility => TimeOverVisual ? Visibility.Visible : Visibility.Collapsed;
 
     public ImageSource? Visual { get => _visual; private set => Set(ref _visual, value); }

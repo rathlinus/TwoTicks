@@ -35,6 +35,22 @@ public sealed partial class ProfileView : UserControl
 
     public bool IsOpen => Visibility == Visibility.Visible;
 
+    /// <summary>The header, which moves the window like a title bar.</summary>
+    public FrameworkElement TitleArea => HeaderBar;
+
+    /// <summary>Room on the right of the header for the window's minimize, maximize and close.</summary>
+    public double CaptionInset
+    {
+        set
+        {
+            var padding = new Thickness(10, 0, 16 + value, 0);
+            if (HeaderBar.Padding != padding)
+            {
+                HeaderBar.Padding = padding;
+            }
+        }
+    }
+
     /// <summary>The chat that was open when the info was opened from it.</summary>
     public string? ChatJid { get; private set; }
 

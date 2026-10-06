@@ -206,9 +206,14 @@ public sealed class WhatsAppClient : IDisposable
 
     public Task<ChatData> GetChatAsync(string chat) => CallAsync("chat", new JsonObject { ["chat"] = chat }, BridgeJson.Default.ChatData);
 
-    public Task<MessagesPage> GetMessagesAsync(string chat, Cursor? before = null, Cursor? after = null, string? around = null, int limit = 60)
+    /// <param name="media">Only photos and videos, as the viewer steps through them.</param>
+    public Task<MessagesPage> GetMessagesAsync(string chat, Cursor? before = null, Cursor? after = null, string? around = null, int limit = 60, bool media = false)
     {
         var parameters = new JsonObject { ["chat"] = chat, ["limit"] = limit };
+        if (media)
+        {
+            parameters["media"] = true;
+        }
         if (before is not null)
         {
             parameters["before"] = new JsonObject { ["ts"] = before.Ts, ["seq"] = before.Seq };

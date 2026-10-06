@@ -98,15 +98,9 @@
             <KeyboardAccelerator Key="Escape" Invoked="OnEscapeInvoked" />
         </Grid.KeyboardAccelerators>
 
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
-
-        <!-- The icon is set by MainWindow.SetIcon, from the setting. -->
-        <TitleBar x:Name="AppTitleBar" Title="WinWhatsApp" Background="{ThemeResource SurfaceEmphasizedBrush}" />
-
-        <Grid x:Name="MainArea" Grid.Row="1">
+        <!-- No title bar: the headers of the chat list and the chat move the window, and
+             minimize, maximize and close sit in the top right corner, as in WhatsApp. -->
+        <Grid x:Name="MainArea">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition x:Name="ChatColumn" Width="380" MinWidth="280" MaxWidth="640" />
                 <ColumnDefinition Width="*" />
@@ -130,7 +124,7 @@
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
-                <Grid Padding="20,10,10,8" ColumnSpacing="2">
+                <Grid x:Name="PaneHeader" Padding="20,10,10,8" ColumnSpacing="2">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
@@ -256,43 +250,12 @@
             </Grid>
         </Grid>
 
-        <v:LoginView x:Name="LoginPane" Grid.Row="1" Visibility="Collapsed" />
+        <v:LoginView x:Name="LoginPane" Visibility="Collapsed" />
 
-        <!-- A photo or video, over everything. -->
-        <Grid x:Name="Viewer" Grid.Row="1" Background="#F0101010" Visibility="Collapsed">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
-            <Grid Padding="16,8" ColumnSpacing="8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <StackPanel VerticalAlignment="Center">
-                    <RichTextBlock x:Name="ViewerTitle" FontWeight="SemiBold" Foreground="White" IsTextSelectionEnabled="False" />
-                    <TextBlock x:Name="ViewerSubtitle" FontSize="12" Foreground="#B0FFFFFF" />
-                </StackPanel>
-                <Button Grid.Column="1" AutomationProperties.Name="Save as" Click="OnViewerSaveClick" Foreground="White" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="Save as">
-                    <c:WaIcon Kind="Download" Size="22" Foreground="White" />
-                </Button>
-                <Button Grid.Column="2" AutomationProperties.Name="Open in another app" Click="OnViewerOpenClick" Foreground="White" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="Open in another app">
-                    <c:WaIcon Kind="OpenInNew" Size="22" Foreground="White" />
-                </Button>
-                <Button Grid.Column="3" AutomationProperties.Name="Close" Click="OnViewerCloseClick" Foreground="White" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="Close (Esc)">
-                    <c:WaIcon Kind="Close" Size="22" Foreground="White" />
-                </Button>
-            </Grid>
-            <ScrollViewer x:Name="ViewerScroll" Grid.Row="1" HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Enabled" MaxZoomFactor="8" MinZoomFactor="1"
-                          VerticalScrollBarVisibility="Auto" VerticalScrollMode="Enabled" ZoomMode="Enabled" Tapped="OnViewerBackgroundTapped">
-                <Image x:Name="ViewerImage" Stretch="Uniform" />
-            </ScrollViewer>
-            <MediaPlayerElement x:Name="ViewerVideo" Grid.Row="1" Margin="24" AreTransportControlsEnabled="True" AutoPlay="True" Visibility="Collapsed" />
-        </Grid>
+        <!-- Photos and videos, over everything. -->
+        <v:MediaViewer x:Name="Viewer" Visibility="Collapsed" />
 
-        <InfoBar x:Name="ErrorBar" Grid.Row="1" MaxWidth="560" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Bottom"
+        <InfoBar x:Name="ErrorBar" MaxWidth="560" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Bottom"
                  Closed="OnErrorClosed" IsOpen="False" Severity="Error" />
     </Grid>
 </Window>

@@ -34,7 +34,7 @@
                     <Border Background="{ThemeResource OutgoingBubbleBrush}" BorderBrush="{ThemeResource BubbleBorderBrush}" BorderThickness="0,0,0,1"
                             CornerRadius="{x:Bind BubbleCorners, Mode=OneWay}" Visibility="{x:Bind OutgoingVisibility}" />
 
-                    <StackPanel Padding="4,3,4,4" Spacing="3">
+                    <StackPanel Padding="{x:Bind BubblePadding, Mode=OneWay}" Spacing="3">
                         <c:PlainButton x:Name="Sender" x:Load="{x:Bind HasSender, Mode=OneWay}" Margin="6,2,6,0" HorizontalAlignment="Left" Click="OnSenderClick">
                             <c:EmojiLabel Text="{x:Bind SenderName}" FontSize="13" FontWeight="SemiBold" Foreground="{x:Bind SenderBrush}" />
                         </c:PlainButton>
@@ -141,7 +141,7 @@
                             </StackPanel>
                         </HyperlinkButton>
 
-                        <c:MessageBodyPanel>
+                        <c:MessageBodyPanel Visibility="{x:Bind BodyVisibility, Mode=OneWay}">
                             <RichTextBlock Margin="6,1,6,3" c:ParagraphSelection.IsEnabled="True" c:RichText.Spans="{x:Bind Spans, Mode=OneWay}"
                                            ContextFlyout="{x:Null}" FontSize="14.5" Foreground="{ThemeResource TextPrimaryBrush}" IsTextSelectionEnabled="True"
                                            TextWrapping="Wrap" Visibility="{x:Bind TextVisibility, Mode=OneWay}" />
@@ -240,13 +240,14 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- The header: who the chat is with, and what they are doing. A click opens their info. -->
-        <Grid Height="60" Padding="16,0,10,0" ColumnSpacing="14" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource DividerBrush}" BorderThickness="0,0,0,1">
+        <!-- The header: who the chat is with, and what they are doing. A click opens their info.
+             It is also the window's title bar: the empty part beside the name moves the window. -->
+        <Grid x:Name="HeaderBar" Height="60" Padding="16,0,10,0" ColumnSpacing="14" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource DividerBrush}" BorderThickness="0,0,0,1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <c:PlainButton x:Name="HeaderButton" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center"
+            <c:PlainButton x:Name="HeaderButton" HorizontalAlignment="Left" VerticalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center"
                            Click="OnHeaderClick">
                 <Grid ColumnSpacing="14">
                     <Grid.ColumnDefinitions>

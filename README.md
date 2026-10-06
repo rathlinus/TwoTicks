@@ -12,6 +12,7 @@ WinWhatsApp is a WinUI 3 app. It opens in about half a second and uses around 18
 - Your chats and recent history, synced from the phone when you link
 - Text with WhatsApp's formatting, links, mentions and replies
 - Photos, videos, GIFs, stickers, documents, voice messages and locations
+- A viewer for photos and videos that zooms and goes through every photo and video of the chat
 - Send text with link previews, and photos, videos and files with a caption each: pick them, paste them or drop them on the chat
 - Reactions, editing your messages, deleting for everyone or for you
 - Read receipts, typing and online status, unread counts

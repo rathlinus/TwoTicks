@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using Microsoft.UI;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Input;
 using Microsoft.UI.Windowing;
@@ -7,6 +8,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Foundation;
 using Windows.Graphics;
@@ -46,14 +48,14 @@ public sealed partial class MainWindow : Window
     private double _dragStartX;
     private double _dragStartWidth;
     private RectInt32 _normalBounds;
-    private string? _viewerPath;
-    private string? _viewerSaveName;
+    private bool _titleBarPending;
+    private RectInt32[] _captionRects = [];
+    private RectInt32[] _passthroughRects = [];
 
     public MainWindow()
     {
         InitializeComponent();
-        ExtendsContentIntoTitleBar = true;
-        SetTitleBar(AppTitleBar);
+        ExtendTitleBar();
         SetIcon(AppIcon.Folder(Session.Settings.WhatsAppIcon));
         AppWindow.Closing += OnClosing;
         AppWindow.Changed += OnWindowChanged;
@@ -124,7 +126,7 @@ public sealed partial class MainWindow : Window
         {
             // Keeps running in the notification area, so messages keep arriving.
             args.Cancel = true;
-            CloseViewer();
+            Viewer.Close();
             AudioPlayer.Stop();
             AppWindow.Hide();
             Session.SetWindowActive(false);
@@ -197,12 +199,151 @@ public sealed partial class MainWindow : Window
         SettingsStore.Save(Session.Settings);
     }
 
-    /// <summary>The icon in the title bar, the taskbar and Alt+Tab, from the folder with AppIcon.ico.</summary>
-    public void SetIcon(string assets)
+    /// <summary>The icon on the taskbar and in Alt+Tab, from the folder with AppIcon.ico.</summary>
+    public void SetIcon(string assets) => AppWindow.SetIcon(Path.Combine(assets, "AppIcon.ico"));
+
+    // ---- The title bar ----
+
+    /// <summary>
+    /// Lets the app draw up to the top of the window. Only minimize, maximize and
+    /// close stay, over the top right corner; the headers move the window.
+    /// </summary>
+    private void ExtendTitleBar()
     {
-        string icon = Path.Combine(assets, "AppIcon.ico");
-        AppWindow.SetIcon(icon);
-        AppTitleBar.IconSource = new ImageIconSource { ImageSource = new BitmapImage(new Uri(icon)) };
+        AppWindowTitleBar titleBar = AppWindow.TitleBar;
+        titleBar.ExtendsContentIntoTitleBar = true;
+        titleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
+        titleBar.ButtonBackgroundColor = Colors.Transparent;
+        titleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
+        Root.LayoutUpdated += (_, _) => QueueTitleBarUpdate();
+        AppWindow.Changed += (_, _) => QueueTitleBarUpdate();
+    }
+
+    /// <summary>Updates the title bar once after the layout settles, not on every pass.</summary>
+    private void QueueTitleBarUpdate()
+    {
+        if (!_titleBarPending)
+        {
+            _titleBarPending = true;
+            DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, UpdateTitleBar);
+        }
+    }
+
+    /// <summary>
+    /// Makes the headers on top move the window, as a title bar does, while their
+    /// buttons stay buttons, and keeps the buttons on the right clear of the window's own.
+    /// </summary>
+    private void UpdateTitleBar()
+    {
+        _titleBarPending = false;
+        if (Content?.XamlRoot is not { } root)
+        {
+            return;
+        }
+        double scale = root.RasterizationScale;
+        int rightInset = AppWindow.TitleBar.RightInset;
+        double inset = (rightInset > 0 ? rightInset : 138 * scale) / scale;
+        double strip = AppWindow.TitleBar.Height > 0 ? AppWindow.TitleBar.Height / scale : 48;
+
+        bool viewer = Viewer.IsOpen;
+        bool login = LoginPane.Visibility == Visibility.Visible;
+        bool chat = ConversationPane.Visibility == Visibility.Visible;
+        ConversationPane.CaptionInset = ProfilePane.IsOpen ? 0 : inset;
+        ProfilePane.CaptionInset = inset;
+        // When the chat beside the list is narrower than the window's buttons.
+        SetPadding(PaneHeader, new Thickness(20, 10, 10 + Math.Max(0, inset - ChatArea.ActualWidth), 8));
+        Viewer.CaptionInset = inset;
+
+        var caption = new List<RectInt32>();
+        var passthrough = new List<RectInt32>();
+        void Add(FrameworkElement area, double height)
+        {
+            if (area.ActualWidth <= 0 || area.ActualHeight <= 0 || !IsShown(area))
+            {
+                return;
+            }
+            caption.Add(ToWindow(area, Math.Min(height, area.ActualHeight)));
+            // The buttons in a header stay clickable.
+            foreach (ButtonBase button in Descendants<ButtonBase>(area))
+            {
+                if (button.ActualWidth > 0 && IsShown(button))
+                {
+                    passthrough.Add(ToWindow(button, button.ActualHeight));
+                }
+            }
+        }
+        RectInt32 ToWindow(FrameworkElement element, double height)
+        {
+            Rect bounds = element.TransformToVisual(null).TransformBounds(new Rect(0, 0, element.ActualWidth, height));
+            return new RectInt32(
+                (int)Math.Round(bounds.X * scale), (int)Math.Round(bounds.Y * scale),
+                (int)Math.Round(bounds.Width * scale), (int)Math.Round(bounds.Height * scale));
+        }
+
+        if (viewer)
+        {
+            Add(Viewer.TitleArea, double.MaxValue);
+        }
+        else if (login)
+        {
+            Add(LoginPane, strip);
+        }
+        else
+        {
+            Add(PaneHeader, PaneHeader.ActualHeight);
+            Add(chat ? ConversationPane.TitleArea : EmptyState, chat ? double.MaxValue : strip);
+            if (ProfilePane.IsOpen)
+            {
+                Add(ProfilePane.TitleArea, double.MaxValue);
+            }
+        }
+
+        if (!caption.SequenceEqual(_captionRects) || !passthrough.SequenceEqual(_passthroughRects))
+        {
+            _captionRects = [.. caption];
+            _passthroughRects = [.. passthrough];
+            InputNonClientPointerSource source = InputNonClientPointerSource.GetForWindowId(AppWindow.Id);
+            source.SetRegionRects(NonClientRegionKind.Caption, _captionRects);
+            source.SetRegionRects(NonClientRegionKind.Passthrough, _passthroughRects);
+        }
+    }
+
+    private static void SetPadding(Grid grid, Thickness padding)
+    {
+        if (grid.Padding != padding)
+        {
+            grid.Padding = padding;
+        }
+    }
+
+    private static bool IsShown(UIElement element)
+    {
+        for (DependencyObject? e = element; e is not null; e = VisualTreeHelper.GetParent(e))
+        {
+            if (e is UIElement { Visibility: Visibility.Collapsed })
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static IEnumerable<T> Descendants<T>(DependencyObject parent) where T : DependencyObject
+    {
+        int count = VisualTreeHelper.GetChildrenCount(parent);
+        for (int i = 0; i < count; i++)
+        {
+            DependencyObject child = VisualTreeHelper.GetChild(parent, i);
+            if (child is T match)
+            {
+                yield return match;
+                continue;
+            }
+            foreach (T inner in Descendants<T>(child))
+            {
+                yield return inner;
+            }
+        }
     }
 
     public void ApplyTheme()
@@ -522,10 +663,10 @@ public sealed partial class MainWindow : Window
 
     private void OnEscapeInvoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
-        if (Viewer.Visibility == Visibility.Visible)
+        if (Viewer.IsOpen)
         {
             args.Handled = true;
-            CloseViewer();
+            Viewer.Close();
         }
         else if (ConversationPane.CloseMediaPreview())
         {
@@ -620,94 +761,18 @@ public sealed partial class MainWindow : Window
 
     // ---- Viewing photos and videos ----
 
-    public void ShowMedia(MessageItem item, string path)
-    {
-        _viewerPath = path;
-        _viewerSaveName = $"WhatsApp {Formatting.ToLocal(item.Ts):yyyy-MM-dd HH.mm.ss}";
-        EmojiText.SetText(ViewerTitle, item.FromMe ? "You" : !string.IsNullOrEmpty(item.SenderName) ? item.SenderName : Session.Current?.Chat.Name ?? "");
-        ViewerSubtitle.Text = Formatting.ToLocal(item.Ts).ToString("g");
-
-        bool video = item.IsPlayable;
-        ViewerScroll.Visibility = video ? Visibility.Collapsed : Visibility.Visible;
-        ViewerVideo.Visibility = video ? Visibility.Visible : Visibility.Collapsed;
-        if (video)
-        {
-            ViewerImage.Source = null;
-            ViewerVideo.Source = Windows.Media.Core.MediaSource.CreateFromUri(new Uri(path));
-            if (ViewerVideo.MediaPlayer is { } player)
-            {
-                player.IsLoopingEnabled = item.Kind == "gif";
-            }
-        }
-        else
-        {
-            ViewerImage.Source = Images.FromFile(path);
-            ViewerScroll.ChangeView(0, 0, 1, true);
-        }
-        Viewer.Visibility = Visibility.Visible;
-        Viewer.Focus(FocusState.Programmatic);
-    }
+    /// <summary>Opens the photo or video of a message in the viewer.</summary>
+    public void ShowMedia(MessageItem item) => Viewer.ShowMessage(item);
 
     /// <summary>Shows a profile photo at full size.</summary>
-    public void ShowPicture(string path, string name)
-    {
-        _viewerPath = path;
-        _viewerSaveName = string.Concat(name.Split(Path.GetInvalidFileNameChars())).Trim();
-        if (_viewerSaveName.Length == 0)
-        {
-            _viewerSaveName = "Profile photo";
-        }
-        EmojiText.SetText(ViewerTitle, name);
-        ViewerSubtitle.Text = "Profile photo";
-        ViewerScroll.Visibility = Visibility.Visible;
-        ViewerVideo.Visibility = Visibility.Collapsed;
-        ViewerImage.Source = Images.FromFile(path);
-        ViewerScroll.ChangeView(0, 0, 1, true);
-        Viewer.Visibility = Visibility.Visible;
-        Viewer.Focus(FocusState.Programmatic);
-    }
+    public void ShowPicture(string path, string name) => Viewer.ShowPicture(path, name);
 
-    private void CloseViewer()
+    /// <summary>Scrolls the chat to a message, opening the chat or its older messages first when needed.</summary>
+    public async Task ShowInChatAsync(string chat, string id)
     {
-        Viewer.Visibility = Visibility.Collapsed;
-        ViewerVideo.MediaPlayer?.Pause();
-        ViewerVideo.Source = null;
-        ViewerImage.Source = null;
-        _viewerPath = null;
-    }
-
-    private void OnViewerCloseClick(object sender, RoutedEventArgs e) => CloseViewer();
-
-    private void OnViewerBackgroundTapped(object sender, TappedRoutedEventArgs e)
-    {
-        if (e.OriginalSource is not Image)
+        if (Session.Current?.Jid != chat || !ConversationPane.ShowMessage(id))
         {
-            CloseViewer();
-        }
-    }
-
-    private void OnViewerOpenClick(object sender, RoutedEventArgs e)
-    {
-        if (_viewerPath is not null)
-        {
-            ConversationView.OpenFile(_viewerPath);
-        }
-    }
-
-    private async void OnViewerSaveClick(object sender, RoutedEventArgs e)
-    {
-        if (_viewerPath is null)
-        {
-            return;
-        }
-        var picker = new Windows.Storage.Pickers.FileSavePicker { SuggestedFileName = _viewerSaveName ?? Path.GetFileNameWithoutExtension(_viewerPath) };
-        WinRT.Interop.InitializeWithWindow.Initialize(picker, App.Current.WindowHandle);
-        string extension = Path.GetExtension(_viewerPath);
-        picker.FileTypeChoices.Add(extension.TrimStart('.').ToUpperInvariant(), [extension]);
-        Windows.Storage.StorageFile? target = await picker.PickSaveFileAsync();
-        if (target is not null)
-        {
-            File.Copy(_viewerPath, target.Path, overwrite: true);
+            await OpenChatAsync(chat, id);
         }
     }
 }

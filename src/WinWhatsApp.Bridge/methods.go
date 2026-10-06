@@ -34,6 +34,8 @@ type messagesParams struct {
 	After  *cursor `json:"after"`
 	Around string  `json:"around"`
 	Limit  int     `json:"limit"`
+	// Only photos and videos, for stepping through them in the viewer.
+	Media bool `json:"media"`
 }
 
 type messagesResult struct {
@@ -518,7 +520,10 @@ func (b *Bridge) messages(ctx context.Context, p messagesParams) (*messagesResul
 	if limit <= 0 || limit > 500 {
 		limit = 60
 	}
-	const sel = `SELECT ` + messageColumns + ` FROM messages m WHERE m.chat = ? `
+	sel := `SELECT ` + messageColumns + ` FROM messages m WHERE m.chat = ? `
+	if p.Media {
+		sel += `AND m.kind IN ('image', 'video', 'gif') `
+	}
 	var list []*Message
 	var err error
 	result := &messagesResult{}

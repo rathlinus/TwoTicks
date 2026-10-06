@@ -783,6 +783,27 @@ public sealed class Session : Observable
         }
     }
 
+    /// <summary>Downloads the file of a message that need not be loaded in the chat, as the viewer does.</summary>
+    public async Task<string> DownloadAsync(MessageData message)
+    {
+        if (message.Media is { Path: { Length: > 0 } known } && File.Exists(known))
+        {
+            return known;
+        }
+        string path = await Client.DownloadAsync(message.Chat, message.Id);
+        if (message.Media is { } media)
+        {
+            media.Path = path;
+        }
+        // The bubble of the message gets the photo too, when the chat shows it.
+        if (_current?.Jid == message.Chat && _current.Find(message.Id) is { Data.Media: { } shown } item)
+        {
+            shown.Path = path;
+            item.Update(item.Data);
+        }
+        return path;
+    }
+
     /// <summary>Tells the chat that the user types, at most every few seconds, and that they stopped after a pause.</summary>
     public void NotifyTyping()
     {
