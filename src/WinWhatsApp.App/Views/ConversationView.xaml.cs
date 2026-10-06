@@ -1028,6 +1028,11 @@ public sealed partial class ConversationView : UserControl
                 }
                 menu.Items.Add(pin);
             }
+            // Keeping is for disappearing messages; only who sent one can let it go again.
+            if (item.IsKept ? item.FromMe : _shown?.Chat.Data.Ephemeral > 0)
+            {
+                Add(item.IsKept ? "Unkeep" : "Keep", item.IsKept ? "Unkeep" : "Keep", () => _ = Session.KeepAsync(item, !item.IsKept));
+            }
         }
         if (item.CanEdit)
         {

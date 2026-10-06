@@ -177,6 +177,10 @@ func (b *Bridge) onMessage(evt *events.Message, live bool) {
 			info.Timestamp.Unix(), seconds)
 		return
 	}
+	if keep := msg.GetKeepInChatMessage(); keep != nil {
+		b.applyKeep(chat.String(), keep.GetKey().GetID(), keep.GetKeepType() == waE2E.KeepType_KEEP_FOR_ALL)
+		return
+	}
 
 	m := b.convert(ctx, evt)
 	if m == nil {
@@ -440,6 +444,15 @@ func (b *Bridge) applyPin(chat, id, sender string, pinned bool, ts, seconds int6
 	}
 	b.reloadAndEmit(chat, id)
 	b.out.event("pins", map[string]string{"chat": chat})
+}
+
+// applyKeep keeps a disappearing message in the chat, or lets it go again.
+func (b *Bridge) applyKeep(chat, id string, kept bool) {
+	if _, err := b.w.ExecContext(b.ctx, `UPDATE messages SET kept = ? WHERE chat = ? AND id = ?`, kept, chat, id); err != nil {
+		b.log.Errorf("Failed to keep message %s: %v", id, err)
+		return
+	}
+	b.reloadAndEmit(chat, id)
 }
 
 func (b *Bridge) onReceipt(evt *events.Receipt) {
@@ -759,6 +772,7 @@ func (b *Bridge) convertHistory(ctx context.Context, chat types.JID, web *waWeb.
 	if m == nil {
 		return nil
 	}
+	m.Kept = web.GetKeepInChat().GetKeepType() == waE2E.KeepType_KEEP_FOR_ALL
 	if evt.Info.ID != web.GetKey().GetID() {
 		// ParseWebMessage turns an edit into the edited message under the
 		// original ID; it replaces the text of the original when that is stored.

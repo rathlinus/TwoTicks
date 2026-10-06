@@ -790,6 +790,7 @@ public sealed class Session : Observable
     public async Task DeleteForMeAsync(MessageItem item) => await Try(() => Client.DeleteForMeAsync(item.Chat, item.Id));
     public async Task RetryAsync(MessageItem item) => await Try(() => Client.RetryAsync(item.Chat, item.Id));
     public async Task PinAsync(string chat, string id, bool pin, long seconds = 0) => await Try(() => Client.PinMessageAsync(chat, id, pin, seconds));
+    public async Task KeepAsync(MessageItem item, bool keep) => await Try(() => Client.KeepAsync(item.Chat, item.Id, keep));
 
     public async Task ForwardAsync(MessageItem item, IReadOnlyList<string> to)
     {

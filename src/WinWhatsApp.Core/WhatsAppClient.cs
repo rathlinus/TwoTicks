@@ -290,6 +290,9 @@ public sealed class WhatsAppClient : IDisposable
     /// <summary>The pinned messages of a chat, the newest pin first.</summary>
     public Task<List<MessageData>> GetPinsAsync(string chat) => CallAsync("pins", new JsonObject { ["chat"] = chat }, BridgeJson.Default.ListMessageData);
 
+    public Task KeepAsync(string chat, string id, bool keep) =>
+        CallAsync("keep", new JsonObject { ["chat"] = chat, ["id"] = id, ["keep"] = keep });
+
     /// <summary>Sends a copy of a message to other chats; returns the copies.</summary>
     public Task<List<MessageData>> ForwardAsync(string chat, string id, IEnumerable<string> to) =>
         CallAsync("forward", new JsonObject { ["chat"] = chat, ["id"] = id, ["to"] = new JsonArray(to.Select(t => (JsonNode)t).ToArray()) },

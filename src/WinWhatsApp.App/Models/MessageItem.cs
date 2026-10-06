@@ -235,6 +235,7 @@ public sealed class MessageItem : Observable
     public bool IsFailed => FromMe && _data.Status == MessageStatus.Failed;
     public Visibility EditedVisibility => _data.Edited ? Visibility.Visible : Visibility.Collapsed;
     public Visibility PinnedVisibility => _data.Pinned ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility KeptVisibility => _data.Kept ? Visibility.Visible : Visibility.Collapsed;
 
     // ---- Reply ----
 
@@ -536,5 +537,6 @@ public sealed class MessageItem : Observable
 
     public bool CanForward => CanAddOn && _data.Kind != "poll";
     public bool IsPinned => _data.Pinned;
+    public bool IsKept => _data.Kept;
     public bool HasMedia => _data.Kind is "image" or "video" or "gif" or "voice" or "audio" or "document" or "sticker";
 }

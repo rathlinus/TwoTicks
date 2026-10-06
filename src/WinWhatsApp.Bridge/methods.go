@@ -269,6 +269,18 @@ func (b *Bridge) methods() map[string]handler {
 			return list, nil
 		},
 
+		"keep": func(ctx context.Context, raw json.RawMessage) (any, error) {
+			p, err := params[struct {
+				Chat string `json:"chat"`
+				ID   string `json:"id"`
+				Keep bool   `json:"keep"`
+			}](raw)
+			if err != nil {
+				return nil, err
+			}
+			return true, b.keep(ctx, p.Chat, p.ID, p.Keep)
+		},
+
 		"forward": func(ctx context.Context, raw json.RawMessage) (any, error) {
 			p, err := params[struct {
 				Chat string   `json:"chat"`

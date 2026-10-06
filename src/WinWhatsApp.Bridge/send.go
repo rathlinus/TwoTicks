@@ -456,6 +456,35 @@ func (b *Bridge) pin(ctx context.Context, chatText, id string, pinned bool, seco
 	return nil
 }
 
+// keep keeps a disappearing message in the chat for everyone, or lets it go
+// again, which only its sender may.
+func (b *Bridge) keep(ctx context.Context, chatText, id string, kept bool) error {
+	chat, keyChat, sender, m, err := b.target(ctx, chatText, id)
+	if err != nil {
+		return err
+	}
+	if !canAddOn(m) {
+		return errors.New("this message can't be kept")
+	}
+	if !kept && !m.FromMe {
+		return errors.New("only who sent a message can stop keeping it")
+	}
+	keepType := waE2E.KeepType_UNDO_KEEP_FOR_ALL
+	if kept {
+		keepType = waE2E.KeepType_KEEP_FOR_ALL
+	}
+	msg := &waE2E.Message{KeepInChatMessage: &waE2E.KeepInChatMessage{
+		Key:         b.cli.BuildMessageKey(keyChat, sender, types.MessageID(id)),
+		KeepType:    keepType.Enum(),
+		TimestampMS: proto.Int64(time.Now().UnixMilli()),
+	}}
+	if _, err := b.cli.SendMessage(ctx, chat, msg); err != nil {
+		return err
+	}
+	b.applyKeep(chatText, id, kept)
+	return nil
+}
+
 // canAddOn reports whether a message can be pinned or kept: one that is there
 // to see, and sent.
 func canAddOn(m *Message) bool {
