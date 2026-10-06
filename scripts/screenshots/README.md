@@ -21,6 +21,8 @@ scripts\screenshots\Take-Screenshots.ps1
 
 It needs Go, and Python with Pillow (`pip install pillow`) for the WebP files. It copies the app to `artifacts\demo\app` with its own data folder, so your own WinWhatsApp keeps running beside it. Leave the mouse alone while it runs: opening a photo is a real click, at a position that holds for the window size it sets (1400 × 900) at 100 % display scaling.
 
+For the notification it moves the window to the bottom right corner of the main screen and has the stand-in send a new message, the `incoming` one in `demo.json`. Windows draws notifications in its own theme, not the app's, so the script switches Windows to light and to dark for that shot and back to what it was afterwards. Do not disturb has to be off.
+
 The stand-in moves every time in `demo.json` forward to now, so the chats always look recent. `WINWHATSAPP_DEMO_QR=1` makes it show the linking screen.
 
 ## Change the chats

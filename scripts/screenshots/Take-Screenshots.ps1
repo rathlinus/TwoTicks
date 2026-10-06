@@ -11,7 +11,8 @@
     It never touches your own WinWhatsApp or its data, and runs beside it.
     Build the app first with scripts\build.ps1. Needs Go, and Python with
     Pillow for the WebP files. Keep your hands off the mouse while it runs:
-    opening a photo is a real click.
+    opening a photo is a real click. For the notification it switches Windows
+    to the light and the dark theme and back, and needs Do not disturb off.
 #>
 [CmdletBinding()]
 param()
@@ -67,6 +68,19 @@ foreach ($theme in 'Light', 'Dark') {
 
     Set-Field 'Search or start a new chat' 'pizza'; Start-Sleep 1
     Save-Window "$Shots\$t-search.png" | Out-Null
+
+    # A notification over the corner of the window. Notifications follow the
+    # theme of Windows rather than the app's, so Windows switches for a moment.
+    $windowsTheme = Set-WindowsTheme $theme
+    try {
+        Start-Demo -Theme $theme
+        Select-Chat 'Mia'; Start-Sleep 2
+        Move-DemoWindow
+        Save-Notification "$Shots\$t-notification.png" | Out-Null
+    }
+    finally {
+        Set-WindowsTheme $windowsTheme | Out-Null
+    }
 
     Start-Demo -Theme $theme -Link
     Save-Window "$Shots\$t-link.png" | Out-Null

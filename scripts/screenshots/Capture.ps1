@@ -9,14 +9,17 @@
         Select-Chat 'Hiking crew'       # opens a chat
         Invoke-Element 'HeaderButton'   # clicks a button by its name or automation id
         Save-Window artifacts\demo\shots\info.png
+        Move-DemoWindow; Save-Notification artifacts\demo\shots\notification.png
         Stop-Demo
 
     Take-Screenshots.ps1 uses these to take all of the README's screenshots.
 #>
 
 Add-Type -AssemblyName System.Drawing, UIAutomationClient, UIAutomationTypes
-Add-Type @'
+Add-Type -ReferencedAssemblies System.Drawing @'
 using System;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 public static class DemoWin {
     [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
@@ -27,6 +30,34 @@ public static class DemoWin {
     [DllImport("user32.dll")] public static extern bool SetProcessDpiAwarenessContext(IntPtr context);
     [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
     [DllImport("user32.dll")] public static extern void mouse_event(uint flags, int x, int y, uint data, UIntPtr extra);
+    [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
+    [DllImport("user32.dll")] public static extern bool SystemParametersInfo(uint action, uint param, out RECT rect, uint winIni);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    public static extern IntPtr SendMessageTimeout(IntPtr hwnd, uint msg, IntPtr wParam, string lParam, uint flags, uint timeout, out IntPtr result);
+
+    // The smallest rectangle around the pixels that differ between two pictures of the same size.
+    public static Rectangle Changed(Bitmap a, Bitmap b, int threshold) {
+        var rect = new Rectangle(0, 0, a.Width, a.Height);
+        BitmapData da = a.LockBits(rect, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+        BitmapData db = b.LockBits(rect, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+        var pa = new byte[da.Stride * a.Height];
+        var pb = new byte[db.Stride * b.Height];
+        Marshal.Copy(da.Scan0, pa, 0, pa.Length);
+        Marshal.Copy(db.Scan0, pb, 0, pb.Length);
+        a.UnlockBits(da);
+        b.UnlockBits(db);
+        int left = a.Width, top = a.Height, right = -1, bottom = -1;
+        for (int y = 0; y < a.Height; y++) {
+            for (int x = 0; x < a.Width; x++) {
+                int i = y * da.Stride + x * 4;
+                if (Math.Abs(pa[i] - pb[i]) + Math.Abs(pa[i + 1] - pb[i + 1]) + Math.Abs(pa[i + 2] - pb[i + 2]) > threshold) {
+                    left = Math.Min(left, x); right = Math.Max(right, x);
+                    top = Math.Min(top, y); bottom = Math.Max(bottom, y);
+                }
+            }
+        }
+        return right < 0 ? Rectangle.Empty : Rectangle.FromLTRB(left, top, right + 1, bottom + 1);
+    }
 }
 '@
 # Real pixels, as DWM reports them, rather than sizes scaled for 100 %.
@@ -160,11 +191,84 @@ function Select-Chat([string]$Name) {
     Start-Sleep -Seconds 1
 }
 
-# Saves the window, without the shadow around it, as a PNG. Works while
-# other windows cover it.
-function Save-Window([string]$Path) {
+# Moves the window to the bottom right corner of the main screen, where
+# Windows shows notifications.
+function Move-DemoWindow {
+    $hwnd = Get-DemoHandle
+    $area = New-Object DemoWin+RECT
+    [DemoWin]::SystemParametersInfo(0x30, 0, [ref]$area, 0) | Out-Null   # SPI_GETWORKAREA
+    $w = New-Object DemoWin+RECT
+    [DemoWin]::GetWindowRect($hwnd, [ref]$w) | Out-Null
+    $r = New-Object DemoWin+RECT
+    [DemoWin]::DwmGetWindowAttribute($hwnd, 9, [ref]$r, 16) | Out-Null
+    # The window's rectangle has an invisible border around what shows.
+    [DemoWin]::SetWindowPos($hwnd, [IntPtr]::Zero, ($w.Left + $area.Right - $r.Right), ($w.Top + $area.Bottom - $r.Bottom), 0, 0, 0x15) | Out-Null   # NOSIZE, NOZORDER, NOACTIVATE
+    Start-Sleep -Milliseconds 500
+}
+
+# Switches Windows, not the app, to the light or the dark theme: notifications
+# follow the theme of Windows. Returns the theme it had before.
+function Set-WindowsTheme([ValidateSet('Light', 'Dark')][string]$Theme) {
+    $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
+    $before = if ((Get-ItemProperty $key).SystemUsesLightTheme -eq 0) { 'Dark' } else { 'Light' }
+    Set-ItemProperty $key SystemUsesLightTheme ([int]($Theme -eq 'Light'))
+    $result = [IntPtr]::Zero
+    [DemoWin]::SendMessageTimeout([IntPtr]0xffff, 0x1A, [IntPtr]::Zero, 'ImmersiveColorSet', 2, 5000, [ref]$result) | Out-Null   # WM_SETTINGCHANGE to every window
+    Start-Sleep -Seconds 2
+    $before
+}
+
+# A part of the screen, in pixels.
+function Copy-Screen([System.Drawing.Rectangle]$Rect) {
+    $bitmap = New-Object System.Drawing.Bitmap $Rect.Width, $Rect.Height, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+    $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+    $graphics.CopyFromScreen($Rect.Location, [System.Drawing.Point]::Empty, $Rect.Size)
+    $graphics.Dispose()
+    $bitmap
+}
+
+# Has the demo helper send the incoming message of demo.json, waits for its
+# notification and saves the window with the notification over its corner.
+# Move the window to where notifications show first, with Move-DemoWindow.
+function Save-Notification([string]$Path) {
     $hwnd = Show-DemoWindow
     Start-Sleep -Milliseconds 500
+    $r = New-Object DemoWin+RECT
+    [DemoWin]::DwmGetWindowAttribute($hwnd, 9, [ref]$r, 16) | Out-Null
+    # The corner the notification shows over. Nothing else in it moves.
+    $corner = New-Object System.Drawing.Rectangle ($r.Right - 640), ($r.Bottom - 480), 640, 480
+    $before = Copy-Screen $corner
+    New-Item -ItemType File -Force (Join-Path $script:Root 'artifacts\demo\data\demo-incoming') | Out-Null
+    $box = [System.Drawing.Rectangle]::Empty
+    for ($i = 0; $i -lt 20 -and $box.IsEmpty; $i++) {
+        Start-Sleep -Milliseconds 250
+        $after = Copy-Screen $corner
+        $box = [DemoWin]::Changed($before, $after, 24)
+    }
+    if ($box.IsEmpty) { throw 'No notification showed. Is Do not disturb on?' }
+    Start-Sleep -Milliseconds 1500                     # until it has slid in
+    $after = Copy-Screen $corner
+    $box = [DemoWin]::Changed($before, $after, 24)
+    $box.Inflate(32, 32)                               # with its shadow
+    $box.Intersect((New-Object System.Drawing.Rectangle 0, 0, $corner.Width, $corner.Height))
+
+    $window = Get-WindowBitmap $hwnd
+    $graphics = [System.Drawing.Graphics]::FromImage($window)
+    $at = New-Object System.Drawing.Rectangle ($window.Width - $corner.Width + $box.X), ($window.Height - $corner.Height + $box.Y), $box.Width, $box.Height
+    $graphics.DrawImage($after, $at, $box, [System.Drawing.GraphicsUnit]::Pixel)
+    $graphics.Dispose()
+    $full = Save-Bitmap $window $Path
+    $window.Dispose(); $before.Dispose(); $after.Dispose()
+
+    # Takes it off the screen and out of the notification centre. Only the demo
+    # chat's: your own WinWhatsApp shows its notifications under the same name.
+    $history = [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime]::History
+    $history.RemoveGroup('120363000000000001@g.us', 'WinWhatsApp')
+    $full
+}
+
+# The window, without the shadow around it. Works while other windows cover it.
+function Get-WindowBitmap([IntPtr]$hwnd) {
     $w = New-Object DemoWin+RECT
     [DemoWin]::GetWindowRect($hwnd, [ref]$w) | Out-Null
     $r = New-Object DemoWin+RECT
@@ -177,10 +281,24 @@ function Save-Window([string]$Path) {
     $graphics.Dispose()
     $visible = New-Object System.Drawing.Rectangle ($r.Left - $w.Left), ($r.Top - $w.Top), ($r.Right - $r.Left), ($r.Bottom - $r.Top)
     $bitmap = $whole.Clone($visible, $whole.PixelFormat)
+    $whole.Dispose()
+    $bitmap
+}
+
+function Save-Bitmap([System.Drawing.Bitmap]$Bitmap, [string]$Path) {
     $full = if ([System.IO.Path]::IsPathRooted($Path)) { $Path } else { Join-Path $script:Root $Path }
     New-Item -ItemType Directory -Force (Split-Path $full) | Out-Null
-    $bitmap.Save($full, [System.Drawing.Imaging.ImageFormat]::Png)
+    $Bitmap.Save($full, [System.Drawing.Imaging.ImageFormat]::Png)
+    $full
+}
+
+# Saves the window, without the shadow around it, as a PNG. Works while
+# other windows cover it.
+function Save-Window([string]$Path) {
+    $hwnd = Show-DemoWindow
+    Start-Sleep -Milliseconds 500
+    $bitmap = Get-WindowBitmap $hwnd
+    $full = Save-Bitmap $bitmap $Path
     $bitmap.Dispose()
-    $whole.Dispose()
     $full
 }
