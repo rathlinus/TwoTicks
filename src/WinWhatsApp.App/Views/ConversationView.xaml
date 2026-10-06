@@ -98,24 +98,39 @@
                             </Grid>
                         </Grid>
 
-                        <Grid x:Name="AudioBox" x:Load="{x:Bind HasAudio, Mode=OneWay}" Width="300" Padding="2,4,8,0" ColumnSpacing="10">
+                        <!-- A voice message as WhatsApp shows it: play, the waveform, and who recorded it. -->
+                        <Grid x:Name="AudioBox" x:Load="{x:Bind HasAudio, Mode=OneWay}" Width="330" Padding="2,6,6,2" ColumnSpacing="10">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
                             <Button Width="40" Height="40" Padding="0" Click="OnPlayClick" CornerRadius="20" Style="{StaticResource IconButtonStyle}" AutomationProperties.Name="Play">
                                 <Grid>
                                     <c:WaIcon Kind="{x:Bind PlayGlyph, Mode=OneWay}" Size="30" Foreground="{ThemeResource MetaTextBrush}" />
                                     <ProgressRing Width="36" Height="36" IsActive="{x:Bind IsBusy, Mode=OneWay}" />
                                 </Grid>
                             </Button>
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="7">
-                                <ProgressBar MinHeight="4" Background="{ThemeResource QuoteBackgroundBrush}" Foreground="{ThemeResource AccentGreenBrush}" Maximum="100"
-                                             Tapped="OnAudioSeek" Value="{x:Bind Progress, Mode=OneWay}" />
-                                <TextBlock Style="{StaticResource MetaTextStyle}" Text="{x:Bind AudioTime, Mode=OneWay}" />
+                            <c:Waveform Grid.Column="1" VerticalAlignment="Center" Accent="{x:Bind WaveAccent, Mode=OneWay}" Progress="{x:Bind Progress, Mode=OneWay}"
+                                        Samples="{x:Bind Waveform, Mode=OneWay}" Tapped="OnAudioSeek" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" Margin="2,0,0,0" Style="{StaticResource MetaTextStyle}" Text="{x:Bind AudioTime, Mode=OneWay}" />
+                            <StackPanel Grid.Row="1" Grid.Column="1" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="3">
+                                <TextBlock Style="{StaticResource MetaTextStyle}" Text="{x:Bind TimeText}" />
+                                <c:Ticks x:Name="AudioTicks" x:Load="{x:Bind FromMe}" Status="{x:Bind Status, Mode=OneWay}" />
                             </StackPanel>
-                            <c:WaIcon Grid.Column="2" VerticalAlignment="Center" Kind="{x:Bind AudioGlyph}" Size="22" Foreground="{ThemeResource AccentGreenBrush}" />
+                            <Grid Grid.RowSpan="2" Grid.Column="2" Width="52" Height="52" VerticalAlignment="Center" Visibility="{x:Bind VoiceVisibility}">
+                                <c:Avatar Size="52" Source="{x:Bind SenderAvatar, Mode=OneWay}" />
+                                <c:WaIcon Margin="-6,0,0,-4" HorizontalAlignment="Left" VerticalAlignment="Bottom" Kind="{x:Bind AudioGlyph}" Size="20"
+                                          Foreground="{ThemeResource AccentGreenBrush}" Visibility="{x:Bind UnplayedMicVisibility, Mode=OneWay}" />
+                                <c:WaIcon Margin="-6,0,0,-4" HorizontalAlignment="Left" VerticalAlignment="Bottom" Kind="{x:Bind AudioGlyph}" Size="20"
+                                          Foreground="{ThemeResource ReadTicksBrush}" Visibility="{x:Bind PlayedMicVisibility, Mode=OneWay}" />
+                            </Grid>
+                            <c:WaIcon Grid.RowSpan="2" Grid.Column="2" VerticalAlignment="Center" Kind="{x:Bind AudioGlyph}" Size="22" Foreground="{ThemeResource AccentGreenBrush}"
+                                      Visibility="{x:Bind AudioFileVisibility}" />
                         </Grid>
 
                         <Grid x:Name="LinkBox" x:Load="{x:Bind HasLink, Mode=OneWay}" MaxWidth="440" ColumnSpacing="10" CornerRadius="7"

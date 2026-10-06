@@ -398,6 +398,11 @@ public sealed partial class ConversationView : UserControl
             return;
         }
         item.Realize();
+        if (item.IsVoice && !item.SenderAvatarRequested)
+        {
+            item.SenderAvatarRequested = true;
+            _ = LoadSenderAvatarAsync(item);
+        }
 
         // Videos from history sync have no preview at all; small ones are fetched to show a frame.
         bool smallVideoWithoutPreview = item.IsPlayable && item.Data.Media is { Thumb: null, Size: > 0 and < 8_000_000 };
@@ -413,7 +418,25 @@ public sealed partial class ConversationView : UserControl
         }
     }
 
-    private async Task AutoDownloadAsync(MessageItem item)
+    /// <summary>The picture beside a voice message: of who sent it, or one's own.</summary>
+    private async Task LoadSenderAvatarAsync(MessageItem item)
+    {
+        string? jid = item.FromMe ? Session.Me?.Jid : item.Data.Sender;
+        if (string.IsNullOrEmpty(jid))
+        {
+            return;
+        }
+        try
+        {
+            item.SenderAvatar = Images.Avatar(await Session.Client.GetAvatarAsync(jid));
+        }
+        catch (BridgeException)
+        {
+            item.SenderAvatarRequested = false;
+        }
+    }
+
+        private async Task AutoDownloadAsync(MessageItem item)
     {
         try
         {

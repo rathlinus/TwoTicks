@@ -262,13 +262,16 @@ public sealed class MessageItem : Observable
     /// <summary>A photo or video without a caption has its time over the picture.</summary>
     public bool TimeOverVisual => (HasVisual || IsSticker) && !HasText;
 
-    public Visibility TimeInTextVisibility => TimeOverVisual ? Visibility.Collapsed : Visibility.Visible;
+    public Visibility TimeInTextVisibility => TimeOverVisual || TimeInAudio ? Visibility.Collapsed : Visibility.Visible;
+
+    /// <summary>A voice message has the time on the line of its length, as in WhatsApp.</summary>
+    private bool TimeInAudio => HasAudio && !HasText;
 
     /// <summary>
     /// The text and time below a photo, gone when the time is over it, so the
     /// bubble has no gap under the picture.
     /// </summary>
-    public Visibility BodyVisibility => TimeOverVisual && !IsNotice ? Visibility.Collapsed : Visibility.Visible;
+    public Visibility BodyVisibility => (TimeOverVisual || TimeInAudio) && !IsNotice ? Visibility.Collapsed : Visibility.Visible;
 
     /// <summary>A photo sits in the bubble with the same small border on every side.</summary>
     public Thickness BubblePadding => HasVisual ? new Thickness(3) : new Thickness(4, 3, 4, 4);
@@ -441,6 +444,25 @@ public sealed class MessageItem : Observable
 
     /// <summary>How far the recording has played, from 0 to 100.</summary>
     public double Progress { get => _progress; set => Set(ref _progress, value); }
+
+    /// <summary>WhatsApp's loudness values of a voice message, for its waveform.</summary>
+    public byte[]? Waveform => _data.Media?.Waveform;
+
+    /// <summary>The picture of who recorded a voice message, shown beside it as in WhatsApp.</summary>
+    public ImageSource? SenderAvatar { get => _senderAvatar; set => Set(ref _senderAvatar, value); }
+    private ImageSource? _senderAvatar;
+
+    /// <summary>Whether the picture beside a voice message was asked for already.</summary>
+    public bool SenderAvatarRequested { get; set; }
+
+    public Visibility VoiceVisibility => IsVoice ? Visibility.Visible : Visibility.Collapsed;
+
+    // Green until the voice message was listened to, blue after, as WhatsApp colours it.
+    private bool IsPlayed => _data.Status >= MessageStatus.Played;
+    public string WaveAccent => IsPlayed ? "ReadTicksBrush" : "AccentGreenBrush";
+    public Visibility PlayedMicVisibility => IsVoice && IsPlayed ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility UnplayedMicVisibility => IsVoice && !IsPlayed ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility AudioFileVisibility => IsVoice ? Visibility.Collapsed : Visibility.Visible;
 
     /// <summary>The length, or the position while it plays.</summary>
     public string AudioTime

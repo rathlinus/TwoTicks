@@ -30,6 +30,7 @@
                     <SolidColorBrush x:Key="IconBrush" Color="#CC000000" />
                     <SolidColorBrush x:Key="DividerBrush" Color="#1A000000" />
                     <SolidColorBrush x:Key="ReadTicksBrush" Color="#007BFC" />
+                    <SolidColorBrush x:Key="WaveformBrush" Color="#4D000000" />
                     <SolidColorBrush x:Key="UnreadBadgeBrush" Color="#1DAA61" />
                     <SolidColorBrush x:Key="UnreadBadgeTextBrush" Color="#FFFFFF" />
                     <SolidColorBrush x:Key="UnreadTextBrush" Color="#1DAA61" />
@@ -67,6 +68,7 @@
                     <SolidColorBrush x:Key="IconBrush" Color="#D9FFFFFF" />
                     <SolidColorBrush x:Key="DividerBrush" Color="#1AFFFFFF" />
                     <SolidColorBrush x:Key="ReadTicksBrush" Color="#53BDEB" />
+                    <SolidColorBrush x:Key="WaveformBrush" Color="#66FFFFFF" />
                     <SolidColorBrush x:Key="UnreadBadgeBrush" Color="#21C063" />
                     <SolidColorBrush x:Key="UnreadBadgeTextBrush" Color="#0A0A0A" />
                     <SolidColorBrush x:Key="UnreadTextBrush" Color="#21C063" />

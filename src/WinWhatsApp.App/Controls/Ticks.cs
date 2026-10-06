@@ -56,7 +56,7 @@ public sealed partial class Ticks : UserControl
     private static readonly Dictionary<(string, ElementTheme), Brush?> s_brushes = [];
 
     /// <summary>A brush of the app's light or dark colours, as ThemeResource would pick it.</summary>
-    private static Brush? ThemeBrush(string key, ElementTheme theme)
+    internal static Brush? ThemeBrush(string key, ElementTheme theme)
     {
         if (!s_brushes.TryGetValue((key, theme), out Brush? brush))
         {
