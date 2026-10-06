@@ -4,13 +4,14 @@ namespace WinWhatsApp.App;
 
 /// <summary>
 /// The icon in the notification area. A click opens the window; the menu has
-/// Open and Quit. The icon gets a red dot while chats are unread.
+/// Open and Quit, and an entry to install a new version when there is one. The icon gets a red dot while chats are unread.
 /// </summary>
 internal sealed unsafe class TrayIcon : IDisposable
 {
     private const uint CallbackMessage = Native.WM_APP + 1;
     private const int OpenCommand = 1;
     private const int QuitCommand = 2;
+    private const int UpdateCommand = 3;
     private const string WindowClass = "WinWhatsApp.TrayIcon";
 
     // Kept in a field: the window procedure must outlive every call Windows makes to it.
@@ -25,6 +26,10 @@ internal sealed unsafe class TrayIcon : IDisposable
 
     public event Action? OpenRequested;
     public event Action? QuitRequested;
+    public event Action? UpdateRequested;
+
+    /// <summary>The version the menu offers to install; null for none.</summary>
+    public string? UpdateVersion { get; set; }
 
     /// <param name="assets">The folder with Tray.ico and TrayUnread.ico; see <see cref="AppIcon"/>.</param>
     public TrayIcon(string assets)
@@ -147,6 +152,10 @@ internal sealed unsafe class TrayIcon : IDisposable
     {
         nint menu = Native.CreatePopupMenu();
         Native.AppendMenu(menu, Native.MF_STRING, OpenCommand, "Open WinWhatsApp");
+        if (UpdateVersion is not null)
+        {
+            Native.AppendMenu(menu, Native.MF_STRING, UpdateCommand, $"Install WinWhatsApp {UpdateVersion} and restart");
+        }
         Native.AppendMenu(menu, Native.MF_SEPARATOR, 0, null);
         Native.AppendMenu(menu, Native.MF_STRING, QuitCommand, "Quit");
         Native.GetCursorPos(out Native.POINT point);
@@ -161,6 +170,9 @@ internal sealed unsafe class TrayIcon : IDisposable
                 break;
             case QuitCommand:
                 QuitRequested?.Invoke();
+                break;
+            case UpdateCommand:
+                UpdateRequested?.Invoke();
                 break;
         }
     }

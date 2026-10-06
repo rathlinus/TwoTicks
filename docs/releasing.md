@@ -18,6 +18,8 @@ The tag has to have the form `v<major>.<minor>.<patch>`. Pushing it starts the R
 
 GitHub generates the release notes from the changes since the previous tag. Neither file is signed, so Windows SmartScreen can warn about the download.
 
+Installed copies pick the release up by themselves; see below.
+
 ## Try a release before tagging
 
 ```powershell
@@ -41,5 +43,7 @@ Then build, check that linking and messaging still work, and release.
 ## The setup program
 
 `packaging\WinWhatsApp.iss` is an Inno Setup script. Setup installs for the current user only and needs no administrator: it copies the app to `%LOCALAPPDATA%\Programs\WinWhatsApp`, adds a Start menu entry and, if ticked, an entry that starts WinWhatsApp at sign-in in the notification area. It closes a running WinWhatsApp before replacing its files.
+
+The app updates itself with the same setup program. It asks GitHub's API for the latest release a minute after start and every six hours, and takes the asset whose name ends in `-Setup.exe`, so keep that name. Drafts and prereleases are skipped. The download is checked against the size and SHA-256 digest GitHub lists for the asset. The app then runs it with `/VERYSILENT /RELAUNCH=window` or `/RELAUNCH=background` and quits; setup closes what is left of it, installs, and starts the new version the same way. Only a copy in the folder setup recorded in its uninstall entry updates itself, so the zip and development builds never replace themselves.
 
 The uninstaller, under Settings, Apps, stops WinWhatsApp and removes what it registered. It asks whether to delete the messages, files and the link to the phone in `%LOCALAPPDATA%\WinWhatsApp`; by default they stay, so a reinstall picks up where it left off.

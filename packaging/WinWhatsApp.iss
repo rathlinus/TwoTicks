@@ -85,12 +85,28 @@ Root: HKCU; Subkey: "Software\Classes\AppUserModelId\WinWhatsApp"; Flags: uninsd
 
 [Run]
 Filename: "{app}\WinWhatsApp.exe"; Description: "Start WinWhatsApp"; Flags: postinstall nowait skipifsilent
+; The app updates itself by running setup with /VERYSILENT and /RELAUNCH=window or
+; /RELAUNCH=background, and quitting. Setup then starts the new version the same way.
+Filename: "{app}\WinWhatsApp.exe"; Parameters: "{code:RelaunchParameters}"; Flags: nowait; Check: Relaunching
 
 [UninstallRun]
 Filename: "{sys}\taskkill.exe"; Parameters: "/IM WinWhatsApp.exe /F"; Flags: runhidden waituntilterminated; RunOnceId: "StopWinWhatsApp"
 Filename: "{sys}\taskkill.exe"; Parameters: "/IM WinWhatsApp.Bridge.exe /F"; Flags: runhidden waituntilterminated; RunOnceId: "StopBridge"
 
 [Code]
+function Relaunching: Boolean;
+begin
+  Result := WizardSilent and ((ExpandConstant('{param:relaunch|no}') = 'window') or (ExpandConstant('{param:relaunch|no}') = 'background'));
+end;
+
+function RelaunchParameters(Param: String): String;
+begin
+  if ExpandConstant('{param:relaunch|no}') = 'background' then
+    Result := '--background'
+  else
+    Result := '';
+end;
+
 // Messages, media and the link to the phone are not part of the program. They
 // go only when asked, so reinstalling keeps them.
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);

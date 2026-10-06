@@ -30,6 +30,7 @@ public partial class App : Application
 
     public Session Session { get; private set; } = null!;
     public MainWindow Window { get; private set; } = null!;
+    internal Updater Updater { get; private set; } = null!;
     public nint WindowHandle => WindowHandleOf(Window);
 
     public nint WindowHandleOf(Window window) => WinRT.Interop.WindowNative.GetWindowHandle(window);
@@ -73,6 +74,7 @@ public partial class App : Application
         });
         _notifier.CallDeclined += () => _ui.TryEnqueue(() => Session.Calls.Decline());
         _notifier.CallOpened += () => _ui.TryEnqueue(() => Session.Calls.ShowWindow());
+        _notifier.UpdateRequested += () => _ui.TryEnqueue(() => _ = Updater.InstallNowAsync());
         _notifier.Register(AppIcon.Folder(settings.WhatsAppIcon));
 
         // The helper starts first: it is ready with the chats by the time the
@@ -84,6 +86,7 @@ public partial class App : Application
         _tray = new TrayIcon(AppIcon.Folder(settings.WhatsAppIcon));
         _tray.OpenRequested += ShowWindow;
         _tray.QuitRequested += Quit;
+        _tray.UpdateRequested += () => _ = Updater.InstallNowAsync();
         _badge = new TaskbarBadge(WindowHandle);
         Session.UnreadChanged += unread =>
         {
@@ -95,6 +98,18 @@ public partial class App : Application
         // A second start of the app, or a click on a notification while it runs,
         // arrives here from Program.
         AppInstance.GetCurrent().Activated += (_, e) => _ui.TryEnqueue(() => OnActivated(e));
+
+        Updater = new Updater(_ui, settings, _notifier);
+        Updater.Changed += () =>
+        {
+            if (_tray is not null)
+            {
+                _tray.UpdateVersion = Updater.CanInstall && Updater.State is UpdateState.Available or UpdateState.Ready
+                    ? Updater.Update?.Version.ToString()
+                    : null;
+            }
+        };
+        Updater.Start();
 
         Startup.Refresh();
         // A new install writes the Start menu entry again, with the logo.
@@ -137,6 +152,7 @@ public partial class App : Application
         }
         _quitting = true;
         Log.Info("Quitting");
+        Updater.InstallOnQuit();
         AudioPlayer.Stop();
         Session.Calls.Shutdown();
         _tray?.Dispose();

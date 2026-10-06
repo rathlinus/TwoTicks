@@ -56,6 +56,15 @@ public sealed class AppSettings
     /// <summary>The speakers or headphones for calls, by name; null for the Windows default.</summary>
     public string? Speaker { get; set; }
 
+    /// <summary>Looks for new versions on GitHub at start and every few hours.</summary>
+    public bool CheckForUpdates { get; set; } = true;
+
+    /// <summary>Downloads a new version and installs it while the window is closed, or when the app quits.</summary>
+    public bool InstallUpdates { get; set; } = true;
+
+    /// <summary>The newest version a notification already told about, so it does not come again.</summary>
+    public string? AnnouncedUpdate { get; set; }
+
     /// <summary>The emoji picked last, newest first.</summary>
     public List<string> RecentEmoji { get; set; } = [];
 }

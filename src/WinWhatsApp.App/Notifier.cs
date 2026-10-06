@@ -44,6 +44,9 @@ internal sealed class Notifier
     /// <summary>The notification of a call was clicked. Raised on a background thread.</summary>
     public event Action? CallOpened;
 
+    /// <summary>Install or Download was pressed in the notification of a new version. Raised on a background thread.</summary>
+    public event Action? UpdateRequested;
+
     /// <param name="assets">The folder with AppIcon.png; see <see cref="AppIcon"/>.</param>
     public void Register(string assets)
     {
@@ -148,6 +151,26 @@ internal sealed class Notifier
         }
     }
 
+    /// <summary>Tells about a new version.</summary>
+    /// <param name="canInstall">Whether this copy installs it itself; otherwise the button opens the download page.</param>
+    public void ShowUpdate(string version, bool canInstall)
+    {
+        string text = canInstall
+            ? "Install it now; WinWhatsApp restarts with it."
+            : "Download it from GitHub.";
+        string xml =
+            "<toast launch=\"action=open\" activationType=\"foreground\">" +
+            "<visual><binding template=\"ToastGeneric\">" +
+            $"<text>WinWhatsApp {Escape(version)} is available</text><text>{text}</text>" +
+            "</binding></visual>" +
+            "<actions>" +
+            $"<action content=\"{(canInstall ? "Install and restart" : "Download")}\" arguments=\"action=update\" activationType=\"foreground\"/>" +
+            "<action content=\"Later\" arguments=\"action=dismiss\" activationType=\"foreground\"/>" +
+            "</actions>" +
+            "</toast>";
+        Show(xml, "updates");
+    }
+
     private const string IncomingCallGroup = "calls";
     private const string IncomingCallTag = "incoming";
 
@@ -227,6 +250,9 @@ internal sealed class Notifier
                 break;
             case "showCall":
                 CallOpened?.Invoke();
+                break;
+            case "update":
+                UpdateRequested?.Invoke();
                 break;
             default:
                 Opened?.Invoke(chat);

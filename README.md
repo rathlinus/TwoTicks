@@ -112,6 +112,10 @@ Setup is not signed, so Windows SmartScreen may stop it with "Windows protected 
 
 The release also has `WinWhatsApp-<version>-x64.zip` for running without installing: unpack it anywhere and start `WinWhatsApp.exe`.
 
+## Updates
+
+The installed app looks for new versions on GitHub and installs them by itself while its window is closed, or when you quit it. It then starts again where it was, in the notification area or with the window open. Settings, Updates turns this off or installs a new version right away. A copy from the zip only tells you about new versions; download them from the releases page.
+
 ## Link your phone
 
 Open WinWhatsApp, then on your phone open WhatsApp, go to Linked devices, tap Link a device and scan the code. If you can't scan, choose **Link with phone number instead** and type the code WinWhatsApp shows into your phone.

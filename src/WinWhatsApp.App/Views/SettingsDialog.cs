@@ -101,13 +101,16 @@ internal sealed partial class SettingsDialog : ContentDialog
         buttons.Children.Add(logout);
         panel.Children.Add(buttons);
 
+        panel.Children.Add(Heading("Updates"));
+        AddUpdates(panel, App.Current.Updater, settings);
+
         panel.Children.Add(Heading("About"));
         panel.Children.Add(new TextBlock { Text = $"WinWhatsApp {typeof(SettingsDialog).Assembly.GetName().Version?.ToString(3)}" });
         panel.Children.Add(Paragraph(
             "A native WhatsApp app for Windows. It links to your phone the way WhatsApp Web does: the phone keeps your account, and this PC is one of its linked devices."));
         panel.Children.Add(new HyperlinkButton
         {
-            Content = "Source code and updates on GitHub",
+            Content = "Source code and releases on GitHub",
             NavigateUri = new Uri("https://github.com/rathlinus/WinWhatsApp"),
             Margin = new Thickness(-12, 0, 0, 0),
         });
@@ -121,6 +124,54 @@ internal sealed partial class SettingsDialog : ContentDialog
             "WinWhatsApp talks to WhatsApp with whatsmeow, under the Mozilla Public License 2.0. Its font is Roboto, by Google, under the Apache License 2.0."));
 
         Content = new ScrollViewer { Content = panel, MaxHeight = 560 };
+    }
+
+    /// <summary>The switches for updates, what the updater is doing and a button for the next step.</summary>
+    private void AddUpdates(StackPanel panel, Updater updater, AppSettings settings)
+    {
+        panel.Children.Add(Toggle("Check for updates automatically", settings.CheckForUpdates, v => settings.CheckForUpdates = v));
+        CheckBox install = Toggle("Install updates automatically", settings.InstallUpdates, v => settings.InstallUpdates = v);
+        install.IsEnabled = Updater.CanInstall;
+        panel.Children.Add(install);
+        if (!Updater.CanInstall)
+        {
+            panel.Children.Add(Paragraph("This copy was not installed with the setup program, so it cannot update itself. New versions are on GitHub."));
+        }
+
+        var status = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 4) };
+        var button = new Button();
+        button.Click += async (_, _) =>
+        {
+            switch (updater.State)
+            {
+                // The dialog shows the download; the app quits once setup starts.
+                case UpdateState.Available or UpdateState.Ready:
+                    await updater.InstallNowAsync();
+                    break;
+                default:
+                    await updater.CheckAsync(manual: true);
+                    break;
+            }
+        };
+
+        void Refresh()
+        {
+            status.Text = updater.Describe();
+            status.Visibility = status.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+            button.Content = updater.State switch
+            {
+                UpdateState.Available or UpdateState.Ready when Updater.CanInstall => "Install and restart",
+                UpdateState.Available or UpdateState.Ready => "Download",
+                _ => "Check for updates",
+            };
+            button.IsEnabled = updater.State is not (UpdateState.Checking or UpdateState.Downloading);
+        }
+        Refresh();
+        updater.Changed += Refresh;
+        Closed += (_, _) => updater.Changed -= Refresh;
+
+        panel.Children.Add(status);
+        panel.Children.Add(button);
     }
 
     private static TextBlock Heading(string text) => new()
