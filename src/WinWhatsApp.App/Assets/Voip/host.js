@@ -387,11 +387,17 @@ function stopPlayback() {
   freeHeap(playback.buffer);
 }
 
-function run(name, promise) {
-  Promise.resolve(promise).catch((e) => {
+// The engine asks to set up the microphone and to start it right after,
+// without waiting; setting up waits for the browser. Each side's steps run
+// in order, one after the other, as in WhatsApp Web.
+const queues = { capture: Promise.resolve(), playback: Promise.resolve() };
+
+function run(queue, name, step) {
+  queues[queue] = queues[queue].then(step).catch((e) => {
     log(1, 'voip: ' + name + ' failed: ' + describe(e));
-    if (name === 'initCapture' || name === 'startCapture') post({ type: 'micFailed', message: String(e && e.message ? e.message : e) });
+    if (queue === 'capture') post({ type: 'micFailed', message: String(e && e.message ? e.message : e) });
   });
+  return queues[queue];
 }
 
 // ---- The engine's callbacks ----
@@ -473,19 +479,19 @@ const callbacks = {
   initCaptureDriverJS: (p) => {
     // 1 is the computer's own sound, for sharing the screen.
     if (p && p.device_type === 1) return;
-    run('initCapture', initCapture(p));
+    run('capture', 'initCapture', () => initCapture(p));
   },
   startCaptureJS: (p) => {
     if (p && p.device_type === 1) return;
-    run('startCapture', startCapture());
+    run('capture', 'startCapture', startCapture);
   },
   stopCaptureJS: (p) => {
     if (p && p.device_type === 1) return;
-    stopCapture();
+    run('capture', 'stopCapture', stopCapture);
   },
-  initPlaybackDriverJS: (p) => initPlayback(p),
-  startPlaybackJS: () => run('startPlayback', startPlayback()),
-  stopPlaybackJS: () => stopPlayback(),
+  initPlaybackDriverJS: (p) => run('playback', 'initPlayback', () => initPlayback(p)),
+  startPlaybackJS: () => run('playback', 'startPlayback', startPlayback),
+  stopPlaybackJS: () => run('playback', 'stopPlayback', stopPlayback),
   // Video is not supported: the engine is told there is no camera.
   startVideoCaptureJS: () => {},
   stopVideoCaptureJS: () => {},
@@ -605,7 +611,7 @@ const handlers = {
   async devices(m) {
     chosen.microphone = m.microphone || null;
     chosen.speaker = m.speaker || null;
-    await applyDevices();
+    await run('capture', 'applyDevices', applyDevices);
   },
 };
 
