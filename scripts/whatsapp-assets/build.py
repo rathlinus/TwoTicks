@@ -79,7 +79,8 @@ ICONS = {
     'EmojiObjects': 'WDSIconIcEmojiObjects', 'EmojiSymbols': 'WDSIconIcEmojiSymbols', 'EmojiFlags': 'WDSIconIcFlag',
     'ZoomIn': 'WDSIconIcZoomIn', 'Visibility': 'WDSIconIcVisibility', 'Keyboard': 'WDSIconIcKeyboard',
     'Forward': 'WDSIconIcFastForward', 'Keep': 'WDSIconIcBookmark', 'Kept': 'WDSIconIcBookmarkFilled',
-    'Unkeep': 'WDSIconWdsIcBookmarkSlash',
+    'Unkeep': 'WDSIconWdsIcBookmarkSlash', 'Star': 'WDSIconIcStarRate', 'StarFilled': 'WDSIconIcStarRateFilled',
+    'LockOutline': 'WDSIconIcLock', 'ClearChat': 'WDSIconIcDoNotDisturbOn', 'ChevronRight': 'WDSIconIcChevronRight',
 }
 
 
