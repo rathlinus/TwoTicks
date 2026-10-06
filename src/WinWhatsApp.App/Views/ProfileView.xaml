@@ -32,7 +32,7 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Grid x:Name="HeaderBar" Height="60" Padding="10,0,16,0" ColumnSpacing="12" BorderBrush="{ThemeResource DividerBrush}" BorderThickness="0,0,0,1">
+        <Grid x:Name="HeaderBar" Height="48" Padding="10,0,16,0" ColumnSpacing="12" BorderBrush="{ThemeResource DividerBrush}" BorderThickness="0,0,0,1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />

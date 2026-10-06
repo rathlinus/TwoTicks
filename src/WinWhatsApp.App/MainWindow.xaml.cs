@@ -266,7 +266,7 @@ public sealed partial class MainWindow : Window
         ConversationPane.CaptionInset = ProfilePane.IsOpen ? 0 : inset;
         ProfilePane.CaptionInset = inset;
         // When the chat beside the list is narrower than the window's buttons.
-        SetPadding(PaneHeader, new Thickness(20, 10, 10 + Math.Max(0, inset - ChatArea.ActualWidth), 8));
+        SetPadding(PaneHeader, new Thickness(20, 0, 10 + Math.Max(0, inset - ChatArea.ActualWidth), 0));
         Viewer.CaptionInset = inset;
 
         var caption = new List<RectInt32>();

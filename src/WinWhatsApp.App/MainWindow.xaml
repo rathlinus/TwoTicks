@@ -124,7 +124,7 @@
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
-                <Grid x:Name="PaneHeader" Padding="20,10,10,8" ColumnSpacing="2">
+                <Grid x:Name="PaneHeader" Height="48" Margin="0,0,0,6" Padding="20,0,10,0" ColumnSpacing="2">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />

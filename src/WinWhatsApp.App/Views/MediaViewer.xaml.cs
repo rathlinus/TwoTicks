@@ -98,7 +98,7 @@ public sealed partial class MediaViewer : UserControl
     {
         set
         {
-            var padding = new Thickness(16, 8, 16 + value, 8);
+            var padding = new Thickness(16, 0, 16 + value, 0);
             if (HeaderBar.Padding != padding)
             {
                 HeaderBar.Padding = padding;
