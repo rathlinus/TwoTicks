@@ -71,6 +71,8 @@ public sealed class MessageData
     /// <summary>Kept in a chat with disappearing messages.</summary>
     public bool Kept { get; set; }
 
+    public bool Starred { get; set; }
+
     /// <summary>Pinned at the top of the chat.</summary>
     public bool Pinned { get; set; }
 
@@ -277,6 +279,30 @@ public sealed class ProfileData
     public string? Phone { get; set; }
     public string? About { get; set; }
     public bool Me { get; set; }
+
+    /// <summary>Whether you blocked the person; only known while connected.</summary>
+    public bool Blocked { get; set; }
+}
+
+/// <summary>What the info of a chat counts, and its newest photos and videos.</summary>
+public sealed class ChatInfoData
+{
+    public int Media { get; set; }
+    public int Docs { get; set; }
+    public int Links { get; set; }
+    public int Starred { get; set; }
+    public int Kept { get; set; }
+    public List<MessageData> Recent { get; set; } = [];
+}
+
+/// <summary>A group that you and a person are both in.</summary>
+public sealed class CommonGroupData
+{
+    public string Jid { get; set; } = "";
+    public string Name { get; set; } = "";
+
+    /// <summary>Some of the members, as one line.</summary>
+    public string Members { get; set; } = "";
 }
 
 public sealed class ErrorData
@@ -318,6 +344,8 @@ public static class MessageStatus
 [JsonSerializable(typeof(CodeData))]
 [JsonSerializable(typeof(GroupData))]
 [JsonSerializable(typeof(ProfileData))]
+[JsonSerializable(typeof(ChatInfoData))]
+[JsonSerializable(typeof(List<CommonGroupData>))]
 [JsonSerializable(typeof(ErrorData))]
 [JsonSerializable(typeof(Cursor))]
 [JsonSerializable(typeof(LinkData))]

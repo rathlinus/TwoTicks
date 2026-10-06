@@ -71,6 +71,8 @@ type profile struct {
 	Phone string `json:"phone,omitempty"`
 	About string `json:"about,omitempty"`
 	Me    bool   `json:"me,omitempty"`
+	// Whether you blocked the person; only known while connected.
+	Blocked bool `json:"blocked,omitempty"`
 }
 
 // profileOf collects the name, number and about text of a person. The about
@@ -93,6 +95,9 @@ func (b *Bridge) profileOf(ctx context.Context, jid types.JID) *profile {
 		}
 		for _, info := range infos {
 			p.About = info.Status
+		}
+		if !p.Me {
+			p.Blocked = b.isBlocked(ctx, jid)
 		}
 	}
 	return p

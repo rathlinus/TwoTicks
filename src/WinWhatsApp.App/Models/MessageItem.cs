@@ -236,6 +236,7 @@ public sealed class MessageItem : Observable
     public Visibility EditedVisibility => _data.Edited ? Visibility.Visible : Visibility.Collapsed;
     public Visibility PinnedVisibility => _data.Pinned ? Visibility.Visible : Visibility.Collapsed;
     public Visibility KeptVisibility => _data.Kept ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility StarredVisibility => _data.Starred ? Visibility.Visible : Visibility.Collapsed;
 
     // ---- Reply ----
 
@@ -540,5 +541,6 @@ public sealed class MessageItem : Observable
     public bool CanForward => CanAddOn && _data.Kind != "poll";
     public bool IsPinned => _data.Pinned;
     public bool IsKept => _data.Kept;
+    public bool IsStarred => _data.Starred;
     public bool HasMedia => _data.Kind is "image" or "video" or "gif" or "voice" or "audio" or "document" or "sticker";
 }

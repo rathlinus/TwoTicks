@@ -67,6 +67,8 @@ type Bridge struct {
 	groupsFetched sync.Once
 	groupFetches  sync.Map
 
+	joined joinedGroups
+
 	mediaRetries sync.Map // message ID -> chan *events.MediaRetry
 	downloads    sync.Map // chat/id -> *download
 	avatarSlots  chan struct{}
@@ -310,6 +312,8 @@ func (b *Bridge) onEvent(rawEvt any) {
 		b.deleteChat(evt.JID, true, evt.Action.GetMessageRange().GetLastMessageTimestamp())
 	case *events.DeleteForMe:
 		b.deleteMessage(evt.ChatJID, evt.MessageID)
+	case *events.Star:
+		b.applyStar(b.canonical(b.ctx, evt.ChatJID).String(), evt.MessageID, evt.Action.GetStarred())
 
 	case *events.Contact, *events.PushName, *events.BusinessName:
 		b.chatsChanged.trigger()
@@ -402,6 +406,7 @@ func (b *Bridge) reloadAndEmit(chat, id string) {
 
 // deleteChat removes the messages of a chat up to the last one the phone had
 // when it was cleared or deleted there; messages that came after stay. A
+// cleared chat keeps its starred messages, as the phone does by default. A
 // deleted chat goes from the list when nothing is left in it.
 func (b *Bridge) deleteChat(jid types.JID, keepChat bool, lastTimestamp int64) {
 	chat := b.canonical(b.ctx, jid).String()
@@ -409,8 +414,12 @@ func (b *Bridge) deleteChat(jid types.JID, keepChat bool, lastTimestamp int64) {
 	if until <= 0 {
 		until = math.MaxInt64
 	}
+	deleteMessages := `DELETE FROM messages WHERE chat = ?1 AND ts <= ?2`
+	if keepChat {
+		deleteMessages += ` AND starred = 0`
+	}
 	stmts := []string{
-		`DELETE FROM messages WHERE chat = ?1 AND ts <= ?2`,
+		deleteMessages,
 		`DELETE FROM reactions WHERE chat = ?1 AND msg_id NOT IN (SELECT id FROM messages WHERE chat = ?1)`,
 		`DELETE FROM receipts WHERE chat = ?1 AND msg_id NOT IN (SELECT id FROM messages WHERE chat = ?1)`,
 		`DELETE FROM pins WHERE chat = ?1 AND msg_id NOT IN (SELECT id FROM messages WHERE chat = ?1)`,

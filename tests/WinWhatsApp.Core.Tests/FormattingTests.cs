@@ -14,6 +14,14 @@ public class FormattingTests
     public void WritesDurations(int seconds, string expected) =>
         Assert.Equal(expected, Formatting.Duration(TimeSpan.FromSeconds(seconds)));
 
+    [Theory]
+    [InlineData(0, "Off")]
+    [InlineData(86400, "24 hours")]
+    [InlineData(604800, "7 days")]
+    [InlineData(7776000, "90 days")]
+    public void WritesDisappearingTimers(long seconds, string expected) =>
+        Assert.Equal(expected, Formatting.Disappearing(seconds));
+
     [Fact]
     public void WritesFileSizes()
     {

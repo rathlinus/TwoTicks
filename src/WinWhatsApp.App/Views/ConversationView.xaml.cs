@@ -1044,6 +1044,10 @@ public sealed partial class ConversationView : UserControl
                 Add(item.IsKept ? "Unkeep" : "Keep", item.IsKept ? "Unkeep" : "Keep", () => _ = Session.KeepAsync(item, !item.IsKept));
             }
         }
+        if (item.CanAddOn)
+        {
+            Add(item.IsStarred ? "Unstar" : "Star", item.IsStarred ? "StarFilled" : "Star", () => _ = Session.StarAsync(item, !item.IsStarred));
+        }
         if (item.CanEdit)
         {
             Add("Edit", "Edit", () => StartEdit(item));

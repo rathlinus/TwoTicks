@@ -68,6 +68,12 @@ public static class Formatting
             : $"{(int)duration.TotalMinutes}:{duration.Seconds:00}";
     }
 
+    /// <summary>How long messages stay in a chat with disappearing messages, such as "90 days", or "Off".</summary>
+    public static string Disappearing(long seconds) =>
+        seconds <= 0 ? "Off"
+        : seconds > 86400 && seconds % 86400 == 0 ? $"{seconds / 86400} days"
+        : $"{Math.Max(1, seconds / 3600)} hours";
+
     public static string FileSize(long bytes)
     {
         string[] units = ["B", "kB", "MB", "GB"];

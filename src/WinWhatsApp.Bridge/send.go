@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"go.mau.fi/whatsmeow"
+	"go.mau.fi/whatsmeow/appstate"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
 	"google.golang.org/protobuf/proto"
@@ -482,6 +483,24 @@ func (b *Bridge) keep(ctx context.Context, chatText, id string, kept bool) error
 		return err
 	}
 	b.applyKeep(chatText, id, kept)
+	return nil
+}
+
+// star stars a message or takes the star away, on every linked device.
+func (b *Bridge) star(ctx context.Context, chatText, id string, starred bool) error {
+	_, keyChat, sender, m, err := b.target(ctx, chatText, id)
+	if err != nil {
+		return err
+	}
+	if m.FromMe {
+		// BuildStar writes "0" for the sender when it is the chat itself,
+		// which is what WhatsApp expects for one's own messages.
+		sender = keyChat
+	}
+	if err := b.cli.SendAppState(ctx, appstate.BuildStar(keyChat, sender, types.MessageID(id), m.FromMe, starred)); err != nil {
+		return err
+	}
+	b.applyStar(chatText, id, starred)
 	return nil
 }
 

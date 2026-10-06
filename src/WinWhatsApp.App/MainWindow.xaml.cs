@@ -21,14 +21,16 @@ using WinWhatsApp.Core;
 namespace WinWhatsApp.App;
 
 /// <summary>A message found by the search, as the results list shows it.</summary>
-public sealed class SearchResult(MessageData message, string chatName, string query)
+/// <param name="chatName">The line above the message: the chat, or who sent it in a list of one chat's messages.</param>
+/// <param name="withSender">Whether the message starts with who sent it, when the line above does not say so.</param>
+public sealed class SearchResult(MessageData message, string chatName, string query, bool withSender = true)
 {
     public MessageData Message { get; } = message;
     public string ChatName { get; } = chatName;
     public string Time { get; } = Formatting.ChatListTime(message.Ts, DateTime.Now);
     public SearchSnippet Text { get; } = SearchSnippet
         .Find(MessagePreview.Describe(message.Kind, message.Text, message.Media?.Name, message.Media?.Seconds ?? 0, message.FromMe).Text, query)
-        .WithPrefix(message.FromMe ? "You: " : message.SenderName is { Length: > 0 } s ? s + ": " : "");
+        .WithPrefix(!withSender ? "" : message.FromMe ? "You: " : message.SenderName is { Length: > 0 } s ? s + ": " : "");
 }
 
 /// <summary>
@@ -756,7 +758,10 @@ public sealed partial class MainWindow : Window
         else if (ProfilePane.IsOpen)
         {
             args.Handled = true;
-            ProfilePane.Close();
+            if (!ProfilePane.GoBack())
+            {
+                ProfilePane.Close();
+            }
         }
         else if (SearchPanel.Visibility == Visibility.Visible)
         {

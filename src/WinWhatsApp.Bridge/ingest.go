@@ -455,6 +455,15 @@ func (b *Bridge) applyKeep(chat, id string, kept bool) {
 	b.reloadAndEmit(chat, id)
 }
 
+// applyStar stars a message or takes the star away.
+func (b *Bridge) applyStar(chat, id string, starred bool) {
+	if _, err := b.w.ExecContext(b.ctx, `UPDATE messages SET starred = ? WHERE chat = ? AND id = ?`, starred, chat, id); err != nil {
+		b.log.Errorf("Failed to star message %s: %v", id, err)
+		return
+	}
+	b.reloadAndEmit(chat, id)
+}
+
 func (b *Bridge) onReceipt(evt *events.Receipt) {
 	ctx := b.ctx
 	chat := b.canonical(ctx, evt.Chat).String()
@@ -773,6 +782,7 @@ func (b *Bridge) convertHistory(ctx context.Context, chat types.JID, web *waWeb.
 		return nil
 	}
 	m.Kept = web.GetKeepInChat().GetKeepType() == waE2E.KeepType_KEEP_FOR_ALL
+	m.Starred = web.GetStarred()
 	if evt.Info.ID != web.GetKey().GetID() {
 		// ParseWebMessage turns an edit into the edited message under the
 		// original ID; it replaces the text of the original when that is stored.

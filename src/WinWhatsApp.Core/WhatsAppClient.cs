@@ -213,12 +213,18 @@ public sealed class WhatsAppClient : IDisposable
     public Task<ChatData> GetChatAsync(string chat) => CallAsync("chat", new JsonObject { ["chat"] = chat }, BridgeJson.Default.ChatData);
 
     /// <param name="media">Only photos and videos, as the viewer steps through them.</param>
-    public Task<MessagesPage> GetMessagesAsync(string chat, Cursor? before = null, Cursor? after = null, string? around = null, int limit = 60, bool media = false)
+    /// <param name="filter">Only some messages, for the lists in a chat's info: media, docs, links, starred or kept.</param>
+    public Task<MessagesPage> GetMessagesAsync(string chat, Cursor? before = null, Cursor? after = null, string? around = null, int limit = 60, bool media = false,
+        string? filter = null)
     {
         var parameters = new JsonObject { ["chat"] = chat, ["limit"] = limit };
         if (media)
         {
             parameters["media"] = true;
+        }
+        if (filter is not null)
+        {
+            parameters["filter"] = filter;
         }
         if (before is not null)
         {
@@ -235,8 +241,9 @@ public sealed class WhatsAppClient : IDisposable
         return CallAsync("messages", parameters, BridgeJson.Default.MessagesPage);
     }
 
-    public Task<List<MessageData>> SearchAsync(string query, int limit = 50) =>
-        CallAsync("search", new JsonObject { ["query"] = query, ["limit"] = limit }, BridgeJson.Default.ListMessageData);
+    /// <param name="chat">Only in this chat, when given.</param>
+    public Task<List<MessageData>> SearchAsync(string query, int limit = 50, string? chat = null) =>
+        CallAsync("search", new JsonObject { ["query"] = query, ["limit"] = limit, ["chat"] = chat ?? "" }, BridgeJson.Default.ListMessageData);
 
     public Task<MessageData> SendTextAsync(string chat, string text, string? replyTo, LinkData? link = null)
     {
@@ -290,6 +297,9 @@ public sealed class WhatsAppClient : IDisposable
     /// <summary>The pinned messages of a chat, the newest pin first.</summary>
     public Task<List<MessageData>> GetPinsAsync(string chat) => CallAsync("pins", new JsonObject { ["chat"] = chat }, BridgeJson.Default.ListMessageData);
 
+    public Task StarAsync(string chat, string id, bool star) =>
+        CallAsync("star", new JsonObject { ["chat"] = chat, ["id"] = id, ["star"] = star });
+
     public Task KeepAsync(string chat, string id, bool keep) =>
         CallAsync("keep", new JsonObject { ["chat"] = chat, ["id"] = id, ["keep"] = keep });
 
@@ -340,6 +350,23 @@ public sealed class WhatsAppClient : IDisposable
     public Task ArchiveAsync(string chat, bool archive) => CallAsync("setChat", new JsonObject { ["chat"] = chat, ["archive"] = archive });
 
     public Task MarkUnreadAsync(string chat) => CallAsync("setChat", new JsonObject { ["chat"] = chat, ["markUnread"] = true });
+
+    /// <summary>Turns disappearing messages on for 24 hours, 7 days or 90 days, in seconds, or off with 0.</summary>
+    public Task SetDisappearingAsync(string chat, long seconds) => CallAsync("setChat", new JsonObject { ["chat"] = chat, ["ephemeral"] = seconds });
+
+    /// <summary>Deletes the messages of a chat on every device, except the starred ones.</summary>
+    public Task ClearChatAsync(string chat) => CallAsync("clearChat", new JsonObject { ["chat"] = chat });
+
+    public Task DeleteChatAsync(string chat) => CallAsync("deleteChat", new JsonObject { ["chat"] = chat });
+
+    public Task<ChatInfoData> GetChatInfoAsync(string chat) => CallAsync("chatInfo", new JsonObject { ["chat"] = chat }, BridgeJson.Default.ChatInfoData);
+
+    public Task<List<CommonGroupData>> GetCommonGroupsAsync(string jid) =>
+        CallAsync("commonGroups", new JsonObject { ["jid"] = jid }, BridgeJson.Default.ListCommonGroupData);
+
+    public Task BlockAsync(string jid, bool block) => CallAsync("block", new JsonObject { ["jid"] = jid, ["block"] = block });
+
+    public Task LeaveGroupAsync(string chat) => CallAsync("leaveGroup", new JsonObject { ["chat"] = chat });
 
     public Task RequestOlderAsync(string chat) => CallAsync("requestOlder", new JsonObject { ["chat"] = chat });
 

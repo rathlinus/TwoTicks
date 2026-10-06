@@ -205,6 +205,23 @@ func fix(dir string, shift int64, d *demo) {
 	}
 }
 
+// matches reports whether a message belongs in one of the lists of a chat's info.
+func matches(m map[string]any, filter string) bool {
+	text, _ := m["text"].(string)
+	switch filter {
+	case "media":
+		return m["kind"] == "image" || m["kind"] == "video" || m["kind"] == "gif"
+	case "docs":
+		return m["kind"] == "document"
+	case "links":
+		return m["link"] != nil || strings.Contains(text, "http://") || strings.Contains(text, "https://") || strings.Contains(text, "www.")
+	case "starred", "kept":
+		on, _ := m[filter].(bool)
+		return on
+	}
+	return false
+}
+
 func str(p map[string]any, key string) string {
 	s, _ := p[key].(string)
 	return s
@@ -224,18 +241,64 @@ func handle(d *demo, state map[string]any, method string, p map[string]any) any 
 		}
 		return map[string]any{"jid": str(p, "chat")}
 	case "messages":
+		filter := str(p, "filter")
+		if media, _ := p["media"].(bool); media {
+			filter = "media"
+		}
 		list := []map[string]any{}
 		for _, m := range d.Messages[str(p, "chat")] {
-			if media, _ := p["media"].(bool); media && m["kind"] != "image" && m["kind"] != "video" {
-				continue
+			if filter == "" || matches(m, filter) {
+				list = append(list, m)
 			}
-			list = append(list, m)
 		}
 		return map[string]any{"messages": list, "hasOlder": false, "hasNewer": false}
+	case "chatInfo":
+		info := map[string]any{}
+		recent := []map[string]any{}
+		messages := d.Messages[str(p, "chat")]
+		for _, filter := range []string{"media", "docs", "links", "starred", "kept"} {
+			n := 0
+			for _, m := range messages {
+				if matches(m, filter) {
+					n++
+				}
+			}
+			info[filter] = n
+		}
+		for i := len(messages) - 1; i >= 0 && len(recent) < 6; i-- {
+			if matches(messages[i], "media") {
+				recent = append(recent, messages[i])
+			}
+		}
+		info["recent"] = recent
+		return info
+	case "commonGroups":
+		list := []map[string]any{}
+		for jid, g := range d.Groups {
+			members, _ := g["members"].([]any)
+			found := false
+			var names []string
+			for _, member := range members {
+				m, _ := member.(map[string]any)
+				if m["jid"] == str(p, "jid") {
+					found = true
+				}
+				if me, _ := m["me"].(bool); !me {
+					names = append(names, str(m, "name"))
+				}
+			}
+			if found {
+				list = append(list, map[string]any{"jid": jid, "name": g["name"], "members": strings.Join(append(names, "You"), ", ")})
+			}
+		}
+		return list
 	case "search":
 		query := strings.ToLower(str(p, "query"))
 		list := []map[string]any{}
-		for _, messages := range d.Messages {
+		for chat, messages := range d.Messages {
+			if only := str(p, "chat"); only != "" && only != chat {
+				continue
+			}
 			for _, m := range messages {
 				if text, _ := m["text"].(string); query != "" && strings.Contains(strings.ToLower(text), query) {
 					list = append(list, m)

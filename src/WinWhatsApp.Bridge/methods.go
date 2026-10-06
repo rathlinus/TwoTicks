@@ -36,6 +36,8 @@ type messagesParams struct {
 	Limit  int     `json:"limit"`
 	// Only photos and videos, for stepping through them in the viewer.
 	Media bool `json:"media"`
+	// Only some messages, for the lists in the chat's info: see messageFilters.
+	Filter string `json:"filter"`
 }
 
 type messagesResult struct {
@@ -50,6 +52,8 @@ type setChatParams struct {
 	Pin        *bool  `json:"pin"`
 	Archive    *bool  `json:"archive"`
 	MarkUnread *bool  `json:"markUnread"`
+	// Seconds until messages disappear; 0 turns disappearing messages off.
+	Ephemeral *int64 `json:"ephemeral"`
 }
 
 type contact struct {
@@ -156,6 +160,8 @@ func (b *Bridge) methods() map[string]handler {
 			p, err := params[struct {
 				Query string `json:"query"`
 				Limit int    `json:"limit"`
+				// Only in this chat, when given.
+				Chat string `json:"chat"`
 			}](raw)
 			if err != nil {
 				return nil, err
@@ -168,8 +174,8 @@ func (b *Bridge) methods() map[string]handler {
 			}
 			pattern := "%" + strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(p.Query) + "%"
 			list, err := b.queryMessages(ctx, `SELECT `+messageColumns+` FROM messages m
-				WHERE m.text LIKE ? ESCAPE '\' AND m.kind NOT IN ('revoked', 'system')
-				ORDER BY m.ts DESC LIMIT ?`, pattern, p.Limit)
+				WHERE m.text LIKE ?1 ESCAPE '\' AND m.kind NOT IN ('revoked', 'system') AND (?2 = '' OR m.chat = ?2)
+				ORDER BY m.ts DESC LIMIT ?3`, pattern, p.Chat, p.Limit)
 			if err != nil {
 				return nil, err
 			}
@@ -267,6 +273,18 @@ func (b *Bridge) methods() map[string]handler {
 				list = []*Message{}
 			}
 			return list, nil
+		},
+
+		"star": func(ctx context.Context, raw json.RawMessage) (any, error) {
+			p, err := params[struct {
+				Chat string `json:"chat"`
+				ID   string `json:"id"`
+				Star bool   `json:"star"`
+			}](raw)
+			if err != nil {
+				return nil, err
+			}
+			return true, b.star(ctx, p.Chat, p.ID, p.Star)
 		},
 
 		"keep": func(ctx context.Context, raw json.RawMessage) (any, error) {
@@ -511,6 +529,77 @@ func (b *Bridge) methods() map[string]handler {
 			return true, b.setChat(ctx, p)
 		},
 
+		// Deletes the messages of a chat but keeps the chat.
+		"clearChat": func(ctx context.Context, raw json.RawMessage) (any, error) {
+			p, err := params[chatParams](raw)
+			if err != nil {
+				return nil, err
+			}
+			return true, b.clearChat(ctx, p.Chat)
+		},
+
+		"deleteChat": func(ctx context.Context, raw json.RawMessage) (any, error) {
+			p, err := params[chatParams](raw)
+			if err != nil {
+				return nil, err
+			}
+			return true, b.deleteChatEverywhere(ctx, p.Chat)
+		},
+
+		// What the info of a chat counts and the newest photos and videos.
+		"chatInfo": func(ctx context.Context, raw json.RawMessage) (any, error) {
+			p, err := params[chatParams](raw)
+			if err != nil {
+				return nil, err
+			}
+			return b.chatInfo(ctx, p.Chat)
+		},
+
+		"commonGroups": func(ctx context.Context, raw json.RawMessage) (any, error) {
+			p, err := params[struct {
+				JID string `json:"jid"`
+			}](raw)
+			if err != nil {
+				return nil, err
+			}
+			jid, err := types.ParseJID(p.JID)
+			if err != nil {
+				return nil, err
+			}
+			return b.commonGroups(ctx, jid)
+		},
+
+		"block": func(ctx context.Context, raw json.RawMessage) (any, error) {
+			p, err := params[struct {
+				JID   string `json:"jid"`
+				Block bool   `json:"block"`
+			}](raw)
+			if err != nil {
+				return nil, err
+			}
+			jid, err := types.ParseJID(p.JID)
+			if err != nil {
+				return nil, err
+			}
+			return true, b.block(ctx, jid, p.Block)
+		},
+
+		"leaveGroup": func(ctx context.Context, raw json.RawMessage) (any, error) {
+			p, err := params[chatParams](raw)
+			if err != nil {
+				return nil, err
+			}
+			jid, err := types.ParseJID(p.Chat)
+			if err != nil {
+				return nil, err
+			}
+			if err := b.cli.LeaveGroup(ctx, jid); err != nil {
+				return nil, err
+			}
+			b.updateChat(jid, `read_only = 1`)
+			return true, nil
+		},
+
 		// Asks the phone for messages older than the oldest one stored.
 		"requestOlder": func(ctx context.Context, raw json.RawMessage) (any, error) {
 			p, err := params[chatParams](raw)
@@ -577,7 +666,14 @@ func (b *Bridge) messages(ctx context.Context, p messagesParams) (*messagesResul
 	}
 	sel := `SELECT ` + messageColumns + ` FROM messages m WHERE m.chat = ? `
 	if p.Media {
-		sel += `AND m.kind IN ('image', 'video', 'gif') `
+		p.Filter = "media"
+	}
+	if p.Filter != "" {
+		filter, ok := messageFilters[p.Filter]
+		if !ok {
+			return nil, errors.New("unknown filter " + p.Filter)
+		}
+		sel += `AND ` + filter + ` `
 	}
 	var list []*Message
 	var err error
@@ -763,6 +859,11 @@ func (b *Bridge) setChat(ctx context.Context, p setChatParams) error {
 			return err
 		}
 		b.updateChat(jid, `marked_unread = 1`)
+	}
+	if p.Ephemeral != nil {
+		if err := b.setDisappearing(ctx, jid, *p.Ephemeral); err != nil {
+			return err
+		}
 	}
 	return nil
 }

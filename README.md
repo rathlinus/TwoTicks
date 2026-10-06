@@ -28,6 +28,7 @@ It looks like WhatsApp because it draws with WhatsApp Web's own emoji, icons, co
 
 - WhatsApp's formatting: \*bold\*, \_italic\_, \~strikethrough\~, \`inline code\` and \`\`\`code blocks\`\`\`
 - Replies, @mentions, reactions and link previews
+- Starring messages, in sync with the phone
 - Editing your messages, and deleting for everyone or for you; press Up in an empty message box to edit your last one
 - Photos, videos, GIFs, stickers, documents, voice messages and locations
 - Read receipts: one tick, two ticks, two blue ticks
@@ -58,6 +59,8 @@ The search field finds chats by name and messages by their text, across all chat
 ## Contact and group info
 
 Click the name at the top of a chat to see who it is: the profile picture, the about text and the phone number of a person, or the description, the members and the admins of a group.
+
+The info also holds what belongs to the chat, as in WhatsApp: its photos, videos, documents and links, its starred and kept messages, a search in it, muting, disappearing messages and the groups you share with the person. At the bottom you can clear or delete the chat, block the person or leave the group.
 
 <p align="center">
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark-group-info.webp" /><img src="docs/screenshots/light-group-info.webp" alt="The info of a group beside the chat: its picture, description, who created it and the list of members" width="70%" /></picture>
