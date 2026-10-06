@@ -204,8 +204,33 @@
                     ItemContainerStyle="{StaticResource ChatContainerStyle}"
                     ItemTemplate="{StaticResource ChatTemplate}"
                     ItemsSource="{x:Bind Session.Chats.Visible}"
+                    Loaded="OnChatListLoaded"
                     SelectionChanged="OnChatSelectionChanged"
                     SelectionMode="Single" />
+
+                <!-- Shadows at the edges of the chat list while there is more to scroll to. -->
+                <Rectangle x:Name="ChatListTopShadow" Grid.Row="5" Height="10" VerticalAlignment="Top" IsHitTestVisible="False" Opacity="0">
+                    <Rectangle.OpacityTransition>
+                        <ScalarTransition Duration="0:0:0.15" />
+                    </Rectangle.OpacityTransition>
+                    <Rectangle.Fill>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Offset="0" Color="{ThemeResource ScrollShadowColor}" />
+                            <GradientStop Offset="1" Color="#00000000" />
+                        </LinearGradientBrush>
+                    </Rectangle.Fill>
+                </Rectangle>
+                <Rectangle x:Name="ChatListBottomShadow" Grid.Row="5" Height="10" VerticalAlignment="Bottom" IsHitTestVisible="False" Opacity="0">
+                    <Rectangle.OpacityTransition>
+                        <ScalarTransition Duration="0:0:0.15" />
+                    </Rectangle.OpacityTransition>
+                    <Rectangle.Fill>
+                        <LinearGradientBrush StartPoint="0,1" EndPoint="0,0">
+                            <GradientStop Offset="0" Color="{ThemeResource ScrollShadowColor}" />
+                            <GradientStop Offset="1" Color="#00000000" />
+                        </LinearGradientBrush>
+                    </Rectangle.Fill>
+                </Rectangle>
 
                 <Grid x:Name="SearchPanel" Grid.Row="3" Grid.RowSpan="3" Background="{ThemeResource SurfaceBrush}" Visibility="Collapsed">
                     <ScrollViewer>

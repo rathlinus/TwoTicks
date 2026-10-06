@@ -58,6 +58,7 @@ public sealed partial class MainWindow : Window
     private bool _titleBarPending;
     private RectInt32[] _captionRects = [];
     private RectInt32[] _passthroughRects = [];
+    private ScrollViewer? _chatScroller;
 
     public MainWindow()
     {
@@ -542,6 +543,29 @@ public sealed partial class MainWindow : Window
             // The open chat moved in the list; ListView forgets the selection when rows move.
             SelectCurrentChat();
         }
+    }
+
+    private void OnChatListLoaded(object sender, RoutedEventArgs e)
+    {
+        if (_chatScroller is not null || Descendants<ScrollViewer>(ChatListView).FirstOrDefault() is not { } scroller)
+        {
+            return;
+        }
+        _chatScroller = scroller;
+        scroller.RegisterPropertyChangedCallback(ScrollViewer.VerticalOffsetProperty, (_, _) => UpdateChatListShadows());
+        scroller.RegisterPropertyChangedCallback(ScrollViewer.ScrollableHeightProperty, (_, _) => UpdateChatListShadows());
+        UpdateChatListShadows();
+    }
+
+    /// <summary>Shows the shadow at an edge of the chat list when more chats lie beyond it.</summary>
+    private void UpdateChatListShadows()
+    {
+        if (_chatScroller is not { } scroller)
+        {
+            return;
+        }
+        ChatListTopShadow.Opacity = scroller.VerticalOffset > 0.5 ? 1 : 0;
+        ChatListBottomShadow.Opacity = scroller.VerticalOffset < scroller.ScrollableHeight - 0.5 ? 1 : 0;
     }
 
     private void OnChatContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)

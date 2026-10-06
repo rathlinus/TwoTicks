@@ -52,6 +52,7 @@
                     <SolidColorBrush x:Key="SendButtonBrush" Color="#1DAA61" />
                     <SolidColorBrush x:Key="SendButtonIconBrush" Color="#FFFFFF" />
                     <SolidColorBrush x:Key="MessageHighlightBrush" Color="#331DAA61" />
+                    <Color x:Key="ScrollShadowColor">#1A000000</Color>
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Dark">
                     <SolidColorBrush x:Key="ConversationBackgroundBrush" Color="#161717" />
@@ -90,6 +91,7 @@
                     <SolidColorBrush x:Key="SendButtonBrush" Color="#21C063" />
                     <SolidColorBrush x:Key="SendButtonIconBrush" Color="#0A0A0A" />
                     <SolidColorBrush x:Key="MessageHighlightBrush" Color="#3321C063" />
+                    <Color x:Key="ScrollShadowColor">#66000000</Color>
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
 
