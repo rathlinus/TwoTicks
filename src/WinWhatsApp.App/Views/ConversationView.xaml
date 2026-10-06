@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:c="using:WinWhatsApp.App.Controls"
+    xmlns:local="using:WinWhatsApp.App.Views"
     xmlns:m="using:WinWhatsApp.App.Models"
     AllowDrop="True"
     DragOver="OnDragOver"
@@ -11,12 +12,18 @@
     Drop="OnDrop">
 
     <UserControl.Resources>
+        <!-- The highlight starts hidden. Opacity defaults to 1, and the binding setting it
+             to 0 on a new row would play the fade, lighting up every row of a chat as it opens. -->
+        <Style x:Key="MessageHighlightStyle" TargetType="Border">
+            <Setter Property="Opacity" Value="0" />
+        </Style>
+
         <!-- A message in a bubble, incoming on the left and one's own on the right. -->
         <DataTemplate x:Key="BubbleTemplate" x:DataType="m:MessageItem">
             <Grid Padding="{x:Bind RowPadding, Mode=OneWay}">
                 <!-- Across the whole row for a moment when the chat jumps to this message. -->
                 <Border Margin="{x:Bind HighlightMargin, Mode=OneWay}" Background="{ThemeResource MessageHighlightBrush}" IsHitTestVisible="False"
-                        Opacity="{x:Bind HighlightOpacity, Mode=OneWay}">
+                        Style="{StaticResource MessageHighlightStyle}" Opacity="{x:Bind HighlightOpacity, Mode=OneWay}">
                     <Border.OpacityTransition>
                         <ScalarTransition Duration="0:0:0.3" />
                     </Border.OpacityTransition>
@@ -168,7 +175,7 @@
         <DataTemplate x:Key="BareTemplate" x:DataType="m:MessageItem">
             <Grid Padding="{x:Bind RowPadding, Mode=OneWay}">
                 <Border Margin="{x:Bind HighlightMargin, Mode=OneWay}" Background="{ThemeResource MessageHighlightBrush}" IsHitTestVisible="False"
-                        Opacity="{x:Bind HighlightOpacity, Mode=OneWay}">
+                        Style="{StaticResource MessageHighlightStyle}" Opacity="{x:Bind HighlightOpacity, Mode=OneWay}">
                     <Border.OpacityTransition>
                         <ScalarTransition Duration="0:0:0.3" />
                     </Border.OpacityTransition>
@@ -231,6 +238,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
@@ -300,14 +308,6 @@
                                Visibility="Collapsed" />
                 </Grid>
             </Button>
-
-            <Border x:Name="DropOverlay" Margin="12" Background="{ThemeResource SmokeFillColorDefaultBrush}" BorderBrush="{ThemeResource AccentGreenBrush}"
-                    BorderThickness="2" CornerRadius="12" Visibility="Collapsed" IsHitTestVisible="False">
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
-                    <c:WaIcon HorizontalAlignment="Center" Kind="Media" Size="44" Foreground="White" />
-                    <TextBlock FontSize="16" Foreground="White" Text="Drop files to send them" />
-                </StackPanel>
-            </Border>
         </Grid>
 
         <!-- Replying to or editing a message. -->
@@ -333,8 +333,34 @@
             </Button>
         </Grid>
 
+        <!-- The preview of the first link in the text, which goes along with it. -->
+        <Grid x:Name="LinkBar" Grid.Row="3" Padding="12,8,12,0" Background="{ThemeResource ComposerTrayBrush}" Visibility="Collapsed">
+            <Grid MinHeight="60" Background="{ThemeResource ComposerBrush}" CornerRadius="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Border x:Name="LinkBarThumbBox" Width="84" Height="84" Background="{ThemeResource QuoteBackgroundBrush}">
+                    <Image x:Name="LinkBarThumb" Stretch="UniformToFill" />
+                </Border>
+                <ProgressRing x:Name="LinkBarProgress" Width="22" Height="22" Margin="18,0,0,0" IsActive="False" />
+                <StackPanel Grid.Column="1" Padding="16,10,8,10" VerticalAlignment="Center" Spacing="2">
+                    <RichTextBlock x:Name="LinkBarTitle" FontSize="14.5" FontWeight="SemiBold" Foreground="{ThemeResource TextPrimaryBrush}" IsTextSelectionEnabled="False"
+                                   MaxLines="2" TextTrimming="CharacterEllipsis" TextWrapping="Wrap" />
+                    <RichTextBlock x:Name="LinkBarDescription" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" IsTextSelectionEnabled="False"
+                                   MaxLines="2" TextTrimming="CharacterEllipsis" TextWrapping="Wrap" />
+                    <TextBlock x:Name="LinkBarHost" FontSize="13" Foreground="{ThemeResource MetaTextBrush}" MaxLines="1" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+                <Button Grid.Column="2" Margin="0,0,8,0" VerticalAlignment="Center" AutomationProperties.Name="Remove the preview" Click="OnRemoveLinkPreviewClick"
+                        Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="Send without the preview">
+                    <c:WaIcon Kind="Close" Size="22" />
+                </Button>
+            </Grid>
+        </Grid>
+
         <!-- Writing, in WhatsApp's field: attach and emoji inside it, send beside it. -->
-        <Grid x:Name="Composer" Grid.Row="3" Padding="12,8,12,10" ColumnSpacing="8" Background="{ThemeResource ComposerTrayBrush}">
+        <Grid x:Name="Composer" Grid.Row="4" Padding="12,8,12,10" ColumnSpacing="8" Background="{ThemeResource ComposerTrayBrush}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
@@ -405,8 +431,19 @@
             </Button>
         </Grid>
 
-        <Border x:Name="ReadOnlyNotice" Grid.Row="3" Padding="16" Background="{ThemeResource ComposerTrayBrush}" Visibility="Collapsed">
+        <Border x:Name="ReadOnlyNotice" Grid.Row="4" Padding="16" Background="{ThemeResource ComposerTrayBrush}" Visibility="Collapsed">
             <TextBlock HorizontalAlignment="Center" Foreground="{ThemeResource TextSecondaryBrush}" Text="Only admins can send messages to this group." />
+        </Border>
+
+        <!-- Files about to be sent, over the chat. -->
+        <local:SendMediaView x:Name="MediaPreview" Grid.Row="1" Grid.RowSpan="4" Visibility="Collapsed" />
+
+        <Border x:Name="DropOverlay" Grid.Row="1" Grid.RowSpan="4" Margin="12" Background="{ThemeResource SmokeFillColorDefaultBrush}" BorderBrush="{ThemeResource AccentGreenBrush}"
+                BorderThickness="2" CornerRadius="12" Visibility="Collapsed" IsHitTestVisible="False">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+                <c:WaIcon HorizontalAlignment="Center" Kind="Media" Size="44" Foreground="White" />
+                <TextBlock FontSize="16" Foreground="White" Text="Drop files to send them" />
+            </StackPanel>
         </Border>
     </Grid>
 </UserControl>

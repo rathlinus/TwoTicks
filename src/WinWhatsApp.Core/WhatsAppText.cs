@@ -76,6 +76,19 @@ public static partial class WhatsAppText
         return Merge(spans);
     }
 
+    /// <summary>The first web link in a message, as it is written there; null when there is none. It gets the preview.</summary>
+    public static string? FirstLink(string? text)
+    {
+        foreach (TextSpan span in Parse(text))
+        {
+            if (span.Link is not null)
+            {
+                return span.Text;
+            }
+        }
+        return null;
+    }
+
     private readonly record struct Atom(int Start, int Length, string Text, string? Link, bool IsMention);
 
     private static void ParseInline(string text, TextStyle style, List<TextSpan> spans, IReadOnlyDictionary<string, string>? mentions)

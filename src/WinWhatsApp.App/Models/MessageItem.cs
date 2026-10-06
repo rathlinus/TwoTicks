@@ -437,18 +437,7 @@ public sealed class MessageItem : Observable
     public string LinkDescription => _data.Link?.Description ?? "";
     public Visibility LinkDescriptionVisibility => string.IsNullOrEmpty(LinkDescription) ? Visibility.Collapsed : Visibility.Visible;
 
-    public string LinkHost
-    {
-        get
-        {
-            string url = _data.Link?.Url ?? "";
-            if (!url.Contains("://", StringComparison.Ordinal))
-            {
-                url = "https://" + url;
-            }
-            return Uri.TryCreate(url, UriKind.Absolute, out Uri? uri) ? uri.Host : url;
-        }
-    }
+    public string LinkHost => Formatting.LinkHost(_data.Link?.Url ?? "");
 
     public bool IsLocation => _data.Kind == "location";
 

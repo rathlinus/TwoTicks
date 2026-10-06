@@ -85,6 +85,16 @@ public static class Formatting
     /// The initials for a picture placeholder: the first letters of the first
     /// two words, or the last two digits of a number.
     /// </summary>
+    /// <summary>The site a link goes to, such as en.wikipedia.org, as a link preview names it.</summary>
+    public static string LinkHost(string url)
+    {
+        if (!url.Contains("://", StringComparison.Ordinal))
+        {
+            url = "https://" + url;
+        }
+        return Uri.TryCreate(url, UriKind.Absolute, out Uri? uri) ? uri.Host : url;
+    }
+
     public static string Initials(string name)
     {
         string[] words = name.Split([' ', '-', '_'], StringSplitOptions.RemoveEmptyEntries);

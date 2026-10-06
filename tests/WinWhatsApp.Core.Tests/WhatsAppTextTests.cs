@@ -56,6 +56,14 @@ public class WhatsAppTextTests
         Assert.Equal(TextStyle.Bold, link.Style);
     }
 
+    [Theory]
+    [InlineData("see https://en.wikipedia.org/wiki/Clean-room_design.", "https://en.wikipedia.org/wiki/Clean-room_design")]
+    [InlineData("*www.example.com* and https://example.org", "www.example.com")]
+    [InlineData("```https://example.org```", null)]
+    [InlineData("no link here", null)]
+    public void FindsTheLinkToPreview(string text, string? expected) =>
+        Assert.Equal(expected, WhatsAppText.FirstLink(text));
+
     [Fact]
     public void LinksKeepTheirUnderscores()
     {

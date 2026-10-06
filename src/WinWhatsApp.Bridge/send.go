@@ -18,6 +18,8 @@ type sendParams struct {
 	Chat    string `json:"chat"`
 	Text    string `json:"text"`
 	ReplyTo string `json:"replyTo"`
+	// The preview of a link in the text, as linkPreview made it.
+	Link *Link `json:"link"`
 }
 
 type sendMediaParams struct {
@@ -128,10 +130,22 @@ func (b *Bridge) sendText(ctx context.Context, p sendParams) (*Message, error) {
 	m := b.newOutgoing(chat, "text", p.Text)
 	ci, quote := b.replyContext(ctx, chat, p.ReplyTo)
 	m.Quote = quote
+	if l := p.Link; l != nil && l.URL != "" && strings.Contains(p.Text, l.URL) && (l.Title != "" || l.Description != "") {
+		m.Link = l
+	}
 
 	msg := &waE2E.Message{Conversation: proto.String(p.Text)}
-	if ci != nil {
-		msg = &waE2E.Message{ExtendedTextMessage: &waE2E.ExtendedTextMessage{Text: proto.String(p.Text), ContextInfo: ci}}
+	if ci != nil || m.Link != nil {
+		ext := &waE2E.ExtendedTextMessage{Text: proto.String(p.Text), ContextInfo: ci}
+		if m.Link != nil {
+			// The receiving apps find the link in the text by the matched text.
+			ext.MatchedText = proto.String(m.Link.URL)
+			ext.Title = optional(m.Link.Title)
+			ext.Description = optional(m.Link.Description)
+			ext.JPEGThumbnail = m.Link.Thumb
+			ext.PreviewType = waE2E.ExtendedTextMessage_NONE.Enum()
+		}
+		msg = &waE2E.Message{ExtendedTextMessage: ext}
 	}
 	return b.dispatch(ctx, chat, m, func(context.Context, *Message) (*waE2E.Message, error) { return msg, nil })
 }

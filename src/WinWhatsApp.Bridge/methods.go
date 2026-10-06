@@ -186,6 +186,16 @@ func (b *Bridge) methods() map[string]handler {
 			return b.sendText(ctx, p)
 		},
 
+		"linkPreview": func(ctx context.Context, raw json.RawMessage) (any, error) {
+			p, err := params[struct {
+				URL string `json:"url"`
+			}](raw)
+			if err != nil {
+				return nil, err
+			}
+			return linkPreview(ctx, p.URL)
+		},
+
 		"sendMedia": func(ctx context.Context, raw json.RawMessage) (any, error) {
 			p, err := params[sendMediaParams](raw)
 			if err != nil {

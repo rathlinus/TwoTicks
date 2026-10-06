@@ -296,4 +296,5 @@ public static class MessageStatus
 [JsonSerializable(typeof(GroupData))]
 [JsonSerializable(typeof(ErrorData))]
 [JsonSerializable(typeof(Cursor))]
+[JsonSerializable(typeof(LinkData))]
 internal sealed partial class BridgeJson : JsonSerializerContext;

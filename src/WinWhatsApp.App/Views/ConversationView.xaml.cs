@@ -26,7 +26,13 @@ public sealed partial class ConversationView : UserControl
 
     private readonly HashSet<string> _autoDownloads = [];
     private readonly DispatcherQueueTimer _highlightTimer;
+    private readonly DispatcherQueueTimer _linkTimer;
     private MessageItem? _highlighted;
+    private string? _linkUrl;
+    private LinkData? _link;
+    private string? _removedLinkUrl;
+    private int _linkVersion;
+    private string? _captionFromComposer;
     private ScrollViewer? _scroller;
     private Conversation? _shown;
     private MessageItem? _replyTo;
@@ -48,6 +54,14 @@ public sealed partial class ConversationView : UserControl
         _highlightTimer.Interval = TimeSpan.FromSeconds(2);
         _highlightTimer.IsRepeating = false;
         _highlightTimer.Tick += OnHighlightTimerTick;
+
+        // A link is previewed once typing stops for a moment, not at every letter of it.
+        _linkTimer = DispatcherQueue.CreateTimer();
+        _linkTimer.Interval = TimeSpan.FromMilliseconds(500);
+        _linkTimer.IsRepeating = false;
+        _linkTimer.Tick += (_, _) => _ = UpdateLinkPreviewAsync();
+
+        MediaPreview.SendRequested += OnMediaSendRequested;
     }
 
     /// <summary>
@@ -80,6 +94,8 @@ public sealed partial class ConversationView : UserControl
         if (conversation is null)
         {
             SaveDraft();
+            MediaPreview.Close();
+            ClearLinkPreview();
             _shown = null;
             MessageList.ItemsSource = null;
             return;
@@ -96,6 +112,9 @@ public sealed partial class ConversationView : UserControl
         {
             SaveDraft();
             CancelReply();
+            MediaPreview.Close();
+            ClearLinkPreview();
+            _removedLinkUrl = null;
             AudioPlayer.Stop();
             _newWhileAway = 0;
             UpdateScrollButton();
@@ -376,6 +395,91 @@ public sealed partial class ConversationView : UserControl
         {
             Session.NotifyTyping();
         }
+        _linkTimer.Stop();
+        _linkTimer.Start();
+    }
+
+    // ---- The preview of a link ----
+
+    /// <summary>Shows the preview of the first link in the text, as WhatsApp does above the message box.</summary>
+    private async Task UpdateLinkPreviewAsync()
+    {
+        string text = MessageBox.Text;
+        if (text.Trim().Length == 0)
+        {
+            _removedLinkUrl = null;
+        }
+        string? url = _editing is null && _shown is { Chat.IsReadOnly: false } ? WhatsAppText.FirstLink(text) : null;
+        if (url == _removedLinkUrl)
+        {
+            url = null;
+        }
+        if (url == _linkUrl)
+        {
+            return;
+        }
+        ClearLinkPreview();
+        if (url is null)
+        {
+            return;
+        }
+
+        _linkUrl = url;
+        int version = _linkVersion;
+        LinkBarThumbBox.Visibility = Visibility.Collapsed;
+        LinkBarProgress.IsActive = true;
+        LinkBarProgress.Visibility = Visibility.Visible;
+        LinkBarTitle.Visibility = Visibility.Collapsed;
+        LinkBarDescription.Visibility = Visibility.Collapsed;
+        LinkBarHost.Text = Formatting.LinkHost(url);
+        LinkBar.Visibility = Visibility.Visible;
+
+        LinkData? link = null;
+        try
+        {
+            link = await Session.Client.GetLinkPreviewAsync(url);
+        }
+        catch (BridgeException)
+        {
+            // The site could not be reached; the link goes without a preview.
+        }
+        if (version != _linkVersion)
+        {
+            return;
+        }
+        // Without a preview the bar goes, but the link stays the one handled,
+        // so typing on does not fetch it again.
+        LinkBarProgress.IsActive = false;
+        LinkBarProgress.Visibility = Visibility.Collapsed;
+        if (link is null)
+        {
+            LinkBar.Visibility = Visibility.Collapsed;
+            return;
+        }
+        _link = link;
+        LinkBarThumb.Source = Images.FromBytes(link.Thumb);
+        LinkBarThumbBox.Visibility = link.Thumb is { Length: > 0 } ? Visibility.Visible : Visibility.Collapsed;
+        EmojiText.SetText(LinkBarTitle, link.Title ?? "");
+        LinkBarTitle.Visibility = string.IsNullOrEmpty(link.Title) ? Visibility.Collapsed : Visibility.Visible;
+        EmojiText.SetText(LinkBarDescription, link.Description ?? "");
+        LinkBarDescription.Visibility = string.IsNullOrEmpty(link.Description) ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private void ClearLinkPreview()
+    {
+        _linkVersion++;
+        _linkUrl = null;
+        _link = null;
+        LinkBar.Visibility = Visibility.Collapsed;
+        LinkBarProgress.IsActive = false;
+        LinkBarThumb.Source = null;
+    }
+
+    private void OnRemoveLinkPreviewClick(object sender, RoutedEventArgs e)
+    {
+        _removedLinkUrl = _linkUrl;
+        ClearLinkPreview();
+        FocusComposer();
     }
 
     /// <summary>The send button shows once there is something to send.</summary>
@@ -411,9 +515,12 @@ public sealed partial class ConversationView : UserControl
         }
 
         string? replyTo = _replyTo?.Id;
+        LinkData? link = _link is { } loaded && text.Contains(loaded.Url, StringComparison.Ordinal) ? loaded : null;
         SetText("");
         CancelReply();
-        if (!await Session.SendTextAsync(text, replyTo) && MessageBox.Text.Length == 0)
+        ClearLinkPreview();
+        _removedLinkUrl = null;
+        if (!await Session.SendTextAsync(text, replyTo, link) && MessageBox.Text.Length == 0)
         {
             // Keep what was typed when it could not be sent.
             SetText(text);
@@ -471,8 +578,7 @@ public sealed partial class ConversationView : UserControl
 
     // ---- Files ----
 
-    private async void OnAttachPhotosClick(object sender, RoutedEventArgs e) =>
-        await PickAndSendAsync([".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".heic", ".mp4", ".mov", ".m4v", ".3gp"]);
+    private async void OnAttachPhotosClick(object sender, RoutedEventArgs e) => await PickAndSendAsync(SendMediaView.PhotoAndVideoTypes);
 
     private async void OnAttachFilesClick(object sender, RoutedEventArgs e) => await PickAndSendAsync(["*"], asDocument: true);
 
@@ -487,33 +593,62 @@ public sealed partial class ConversationView : UserControl
         IReadOnlyList<StorageFile> files = await picker.PickMultipleFilesAsync();
         if (files.Count > 0)
         {
-            await SendFilesAsync(files.Select(f => f.Path).ToList(), asDocument);
+            ShowFiles(files.Select(f => f.Path).ToList(), asDocument);
         }
     }
 
-    private async Task SendFilesAsync(IReadOnlyList<string> paths, bool asDocument = false)
+    /// <summary>Shows files to send over the chat, or adds them when files are shown already.</summary>
+    private void ShowFiles(IReadOnlyList<string> paths, bool asDocument = false)
     {
-        if (_shown is not { } conversation || paths.Count == 0)
+        if (_shown is null || paths.Count == 0)
         {
             return;
         }
-        var dialog = new SendFilesDialog(paths, conversation.Chat.Name, asDocument, MessageBox.Text) { XamlRoot = XamlRoot };
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+        if (MediaPreview.IsOpen)
+        {
+            MediaPreview.Add(paths);
+        }
+        else
+        {
+            // What was typed becomes the caption, and leaves the message box once it is sent.
+            _captionFromComposer = MessageBox.Text.Trim();
+            MediaPreview.Open(paths, asDocument, _captionFromComposer);
+        }
+    }
+
+    private async void OnMediaSendRequested(IReadOnlyList<PendingFile> files, bool asDocument)
+    {
+        if (_shown is not { } conversation)
         {
             return;
         }
-        if (dialog.Caption.Length > 0 && dialog.Caption == MessageBox.Text.Trim())
+        if (_captionFromComposer is { Length: > 0 } typed && files[0].Caption.Trim() == typed && MessageBox.Text.Trim() == typed)
         {
             SetText("");
         }
+        _captionFromComposer = null;
         string? replyTo = _replyTo?.Id;
         CancelReply();
-        for (int i = 0; i < paths.Count; i++)
+        FocusComposer();
+        for (int i = 0; i < files.Count; i++)
         {
-            OutgoingMedia media = await MediaInfo.DescribeAsync(conversation.Jid, paths[i], i == 0 ? dialog.Caption : null,
-                i == 0 ? replyTo : null, dialog.AsDocument);
+            string caption = files[i].Caption.Trim();
+            OutgoingMedia media = await MediaInfo.DescribeAsync(conversation.Jid, files[i].Path, caption.Length > 0 ? caption : null,
+                i == 0 ? replyTo : null, asDocument);
             await Session.SendFileAsync(media);
         }
+    }
+
+    /// <summary>Closes the files about to be sent, as Esc does. False when none are shown.</summary>
+    public bool CloseMediaPreview()
+    {
+        if (!MediaPreview.IsOpen)
+        {
+            return false;
+        }
+        MediaPreview.Close();
+        FocusComposer();
+        return true;
     }
 
     private async void OnPaste(object sender, TextControlPasteEventArgs e)
@@ -523,7 +658,7 @@ public sealed partial class ConversationView : UserControl
         {
             e.Handled = true;
             IReadOnlyList<IStorageItem> items = await content.GetStorageItemsAsync();
-            await SendFilesAsync(items.OfType<StorageFile>().Select(f => f.Path).ToList());
+            ShowFiles(items.OfType<StorageFile>().Select(f => f.Path).ToList());
         }
         else if (content.Contains(StandardDataFormats.Bitmap))
         {
@@ -531,7 +666,7 @@ public sealed partial class ConversationView : UserControl
             string? path = await MediaInfo.SaveClipboardImageAsync(content);
             if (path is not null)
             {
-                await SendFilesAsync([path]);
+                ShowFiles([path]);
             }
         }
     }
@@ -556,7 +691,7 @@ public sealed partial class ConversationView : UserControl
             return;
         }
         IReadOnlyList<IStorageItem> items = await e.DataView.GetStorageItemsAsync();
-        await SendFilesAsync(items.OfType<StorageFile>().Select(f => f.Path).ToList());
+        ShowFiles(items.OfType<StorageFile>().Select(f => f.Path).ToList());
     }
 
     // ---- Messages: clicks and the context menu ----

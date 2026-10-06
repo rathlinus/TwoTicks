@@ -227,8 +227,22 @@ public sealed class WhatsAppClient : IDisposable
     public Task<List<MessageData>> SearchAsync(string query, int limit = 50) =>
         CallAsync("search", new JsonObject { ["query"] = query, ["limit"] = limit }, BridgeJson.Default.ListMessageData);
 
-    public Task<MessageData> SendTextAsync(string chat, string text, string? replyTo) =>
-        CallAsync("send", new JsonObject { ["chat"] = chat, ["text"] = text, ["replyTo"] = replyTo }, BridgeJson.Default.MessageData);
+    public Task<MessageData> SendTextAsync(string chat, string text, string? replyTo, LinkData? link = null)
+    {
+        var parameters = new JsonObject { ["chat"] = chat, ["text"] = text, ["replyTo"] = replyTo };
+        if (link is not null)
+        {
+            parameters["link"] = JsonSerializer.SerializeToNode(link, BridgeJson.Default.LinkData);
+        }
+        return CallAsync("send", parameters, BridgeJson.Default.MessageData);
+    }
+
+    /// <summary>The title, description and picture of a web page, for a link about to be sent; null when it has none.</summary>
+    public async Task<LinkData?> GetLinkPreviewAsync(string url, CancellationToken cancellationToken = default)
+    {
+        JsonElement result = await Connection.CallAsync("linkPreview", new JsonObject { ["url"] = url }, cancellationToken).ConfigureAwait(false);
+        return result.ValueKind == JsonValueKind.Object ? result.Deserialize(BridgeJson.Default.LinkData) : null;
+    }
 
     public Task<MessageData> SendMediaAsync(OutgoingMedia media)
     {

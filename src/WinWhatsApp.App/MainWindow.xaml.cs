@@ -514,6 +514,10 @@ public sealed partial class MainWindow : Window
             args.Handled = true;
             CloseViewer();
         }
+        else if (ConversationPane.CloseMediaPreview())
+        {
+            args.Handled = true;
+        }
         else if (SearchPanel.Visibility == Visibility.Visible)
         {
             args.Handled = true;

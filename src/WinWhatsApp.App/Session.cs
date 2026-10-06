@@ -686,7 +686,7 @@ public sealed class Session : Observable
 
     // ---- Writing ----
 
-    public async Task<bool> SendTextAsync(string text, string? replyTo)
+    public async Task<bool> SendTextAsync(string text, string? replyTo, LinkData? link = null)
     {
         if (_current is not { } conversation)
         {
@@ -695,7 +695,7 @@ public sealed class Session : Observable
         StopTyping();
         try
         {
-            MessageData message = await Client.SendTextAsync(conversation.Jid, text, replyTo);
+            MessageData message = await Client.SendTextAsync(conversation.Jid, text, replyTo, link);
             OnSent(message);
             return true;
         }
