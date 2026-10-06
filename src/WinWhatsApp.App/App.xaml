@@ -114,6 +114,9 @@
             <Style TargetType="RichTextBlock">
                 <Setter Property="FontFamily" Value="{StaticResource WhatsAppFont}" />
             </Style>
+            <Style TargetType="TextBox" BasedOn="{StaticResource DefaultTextBoxStyle}">
+                <Setter Property="FontFamily" Value="{StaticResource WhatsAppFont}" />
+            </Style>
 
             <!-- A button that is only an icon until hovered. -->
             <Style x:Key="IconButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">

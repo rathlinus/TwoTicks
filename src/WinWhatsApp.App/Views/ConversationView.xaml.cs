@@ -76,6 +76,10 @@ public sealed partial class ConversationView : UserControl
             {
                 _scroller = found;
                 _scroller.ViewChanged += OnViewChanged;
+                if (MessageList.ItemsPanelRoot is { } rows)
+                {
+                    rows.SizeChanged += OnRowsSizeChanged;
+                }
             }
             return _scroller;
         }
@@ -121,7 +125,6 @@ public sealed partial class ConversationView : UserControl
 
             _settingText = true;
             MessageBox.Text = conversation.Chat.Draft ?? "";
-            MessageBox.SelectionStart = MessageBox.Text.Length;
             _settingText = false;
             conversation.Chat.Draft = null;
             UpdateSendButton();
@@ -134,20 +137,35 @@ public sealed partial class ConversationView : UserControl
         ReadOnlyNotice.Visibility = readOnly ? Visibility.Visible : Visibility.Collapsed;
         UpdateOlderPanel();
 
-        MessageList.UpdateLayout();
-        _ = Scroller;
+        // Laying the list out now would make the rows at the top of the chat,
+        // only to throw them away when it scrolls to the bottom. The list
+        // brings a row into view by itself once it lays out; only the first
+        // time does it need laying out here, so that its scroll viewer exists.
+        if (_scroller is null)
+        {
+            MessageList.UpdateLayout();
+            _ = Scroller;
+        }
+        // Until the view reports where it ended up, whether it follows the
+        // newest messages down goes by where it was sent.
         if (aroundMessage is not null && conversation.Find(aroundMessage) is { } target)
         {
+            _atBottom = false;
             ScrollTo(target);
         }
         else if (conversation.UnreadLine is { } line)
         {
+            _atBottom = false;
             MessageList.ScrollIntoView(line, ScrollIntoViewAlignment.Leading);
         }
         else
         {
+            _atBottom = true;
             ScrollToBottom();
         }
+        // A chat too short to scroll reports no scrolling, so whether it is at
+        // the bottom is worked out once its rows are laid out.
+        DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, UpdateAtBottom);
         FocusComposer();
     }
 
@@ -171,7 +189,13 @@ public sealed partial class ConversationView : UserControl
         {
             return;
         }
-        MessageList.ScrollIntoView(MessageList.Items[^1], ScrollIntoViewAlignment.Leading);
+        // Following a new message at the bottom only scrolls. Asking the list to
+        // bring the row into view makes it drop and rebuild the rows it shows,
+        // which blanks the chat for a moment.
+        if (!animate || Scroller is null)
+        {
+            MessageList.ScrollIntoView(MessageList.Items[^1], ScrollIntoViewAlignment.Default);
+        }
         // Rows get their real height only once they are shown, which changes
         // where the bottom is. Go there again after they have been laid out.
         DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
@@ -229,19 +253,28 @@ public sealed partial class ConversationView : UserControl
         if (_highlighted is not null)
         {
             _highlighted.IsHighlighted = false;
+            _highlighted.HasHighlight = false;
         }
         _highlighted = item;
+        // Lit before the band is made, so it starts lit rather than fading in.
         item.IsHighlighted = true;
+        item.HasHighlight = true;
         _highlightTimer.Stop();
         _highlightTimer.Start();
     }
 
     private void OnHighlightTimerTick(DispatcherQueueTimer sender, object args)
     {
-        if (_highlighted is not null)
+        if (_highlighted is { } item)
         {
-            _highlighted.IsHighlighted = false;
+            item.IsHighlighted = false;
             _highlighted = null;
+            // The band goes once it has faded out, unless the row lit up again.
+            DispatcherQueueTimer done = DispatcherQueue.CreateTimer();
+            done.Interval = TimeSpan.FromMilliseconds(400);
+            done.IsRepeating = false;
+            done.Tick += (_, _) => item.HasHighlight = item.IsHighlighted;
+            done.Start();
         }
     }
 
@@ -251,12 +284,7 @@ public sealed partial class ConversationView : UserControl
         {
             return;
         }
-        _atBottom = _scroller.VerticalOffset >= _scroller.ScrollableHeight - 60;
-        if (_atBottom && !_shown.HasNewer)
-        {
-            _newWhileAway = 0;
-        }
-        UpdateScrollButton();
+        UpdateAtBottom();
 
         if (_scroller.VerticalOffset < 800 && _shown.HasOlder)
         {
@@ -267,6 +295,34 @@ public sealed partial class ConversationView : UserControl
         {
             await Session.LoadNewerAsync();
         }
+    }
+
+    /// <summary>
+    /// Pictures and link previews get their height only once they have loaded,
+    /// which is after the chat scrolled to the bottom. The list keeps the rows
+    /// above in place, so the newest messages would slide out of view; at the
+    /// bottom, the chat follows them down.
+    /// </summary>
+    private void OnRowsSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (_atBottom && _shown is { HasNewer: false } && _scroller is { } scroller && e.NewSize.Height > e.PreviousSize.Height)
+        {
+            scroller.ChangeView(null, scroller.ScrollableHeight, null, true);
+        }
+    }
+
+    private void UpdateAtBottom()
+    {
+        if (Scroller is not { } scroller || _shown is null)
+        {
+            return;
+        }
+        _atBottom = scroller.VerticalOffset >= scroller.ScrollableHeight - 60;
+        if (_atBottom && !_shown.HasNewer)
+        {
+            _newWhileAway = 0;
+        }
+        UpdateScrollButton();
     }
 
     private void UpdateScrollButton()
@@ -388,7 +444,7 @@ public sealed partial class ConversationView : UserControl
         }
     }
 
-    private void OnMessageBoxTextChanged(object sender, TextChangedEventArgs e)
+    private void OnMessageBoxTextChanged(object sender, RoutedEventArgs e)
     {
         UpdateSendButton();
         if (!_settingText && MessageBox.Text.Length > 0 && _editing is null)
@@ -490,7 +546,6 @@ public sealed partial class ConversationView : UserControl
     {
         _settingText = true;
         MessageBox.Text = text;
-        MessageBox.SelectionStart = text.Length;
         _settingText = false;
     }
 
@@ -565,15 +620,12 @@ public sealed partial class ConversationView : UserControl
         FocusComposer();
     }
 
-    private void OnEmojiFlyoutOpened(object? sender, object e) => EmojiPickerPanel.Focus(FocusState.Programmatic);
+    private void OnEmojiFlyoutOpened(object? sender, object e) => EmojiPickerPanel.FocusSearch();
 
     /// <summary>Puts a picked emoji where the cursor is, and keeps the picker open for more.</summary>
     private void OnEmojiPicked(string emoji)
     {
-        int start = MessageBox.SelectionStart;
-        MessageBox.SelectedText = emoji;
-        MessageBox.SelectionStart = start + emoji.Length;
-        MessageBox.SelectionLength = 0;
+        MessageBox.Insert(emoji);
     }
 
     // ---- Files ----
@@ -934,6 +986,7 @@ public sealed partial class ConversationView : UserControl
             flyout.Hide();
             var picker = new EmojiPicker();
             var pickerFlyout = new Flyout { Content = picker, Placement = FlyoutPlacementMode.Top };
+            pickerFlyout.Opened += (_, _) => picker.FocusSearch();
             picker.Picked += emoji =>
             {
                 pickerFlyout.Hide();

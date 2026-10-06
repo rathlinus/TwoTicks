@@ -73,7 +73,7 @@
 
                     <StackPanel x:Name="AboutSection" Padding="24,14,24,18" Spacing="6" BorderBrush="{ThemeResource DividerBrush}" BorderThickness="0,1,0,0">
                         <TextBlock x:Name="AboutHeading" FontSize="14" Foreground="{ThemeResource TextSecondaryBrush}" />
-                        <RichTextBlock x:Name="AboutText" FontSize="15" Foreground="{ThemeResource TextPrimaryBrush}" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
+                        <RichTextBlock x:Name="AboutText" c:ParagraphSelection.IsEnabled="True" FontSize="15" Foreground="{ThemeResource TextPrimaryBrush}" IsTextSelectionEnabled="True" TextWrapping="Wrap" />
                         <TextBlock x:Name="CreatedText" Margin="0,4,0,0" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" TextWrapping="Wrap" />
                     </StackPanel>
 

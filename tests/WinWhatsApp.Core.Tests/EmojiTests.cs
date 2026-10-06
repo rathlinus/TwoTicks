@@ -10,8 +10,34 @@ public class EmojiTests
     {
         string path = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "WinWhatsApp.App", "Assets", "WhatsApp", "emoji.json");
         using FileStream stream = File.OpenRead(path);
-        return EmojiSet.Load(stream);
+        EmojiSet set = EmojiSet.Load(stream);
+        using FileStream names = File.OpenRead(Path.Combine(Path.GetDirectoryName(path)!, "emoji-names.json"));
+        set.LoadNames(names);
+        return set;
     });
+
+    [Fact]
+    public void FindsEmojiByTheStartOfTheirName()
+    {
+        List<string> found = Set.Search("thumbs");
+        Assert.Equal("👍", found[0]);
+        Assert.Contains("👎", found);
+    }
+
+    [Fact]
+    public void FindsEmojiByKeywordAfterThoseFoundByName()
+    {
+        List<string> found = Set.Search("lol");
+        Assert.Contains("😂", found);
+        Assert.Empty(Set.Search("   "));
+    }
+
+    [Fact]
+    public void EveryWordOfTheQueryHasToMatch()
+    {
+        List<string> found = Set.Search("flag germ");
+        Assert.Equal(["🇩🇪"], found);
+    }
 
     private static EmojiSet Set => s_set.Value;
 

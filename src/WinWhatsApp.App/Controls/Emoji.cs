@@ -5,6 +5,8 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Foundation;
 using Windows.Graphics.Imaging;
+using Windows.Storage;
+using Windows.Storage.Streams;
 using WinWhatsApp.Core;
 
 namespace WinWhatsApp.App.Controls;
@@ -35,6 +37,12 @@ internal static class Emoji
             using FileStream stream = File.OpenRead(path);
             Set = EmojiSet.Load(stream);
             s_sheets = new BitmapImage?[Set.CellOf(Set.Count - 1).Sheet + 1];
+            string names = Path.Combine(AppContext.BaseDirectory, "Assets", "WhatsApp", "emoji-names.json");
+            if (File.Exists(names))
+            {
+                using FileStream namesStream = File.OpenRead(names);
+                Set.LoadNames(namesStream);
+            }
         }
         catch (Exception e)
         {
@@ -52,6 +60,40 @@ internal static class Emoji
             s_sheets[number] = sheet;
         }
         return sheet;
+    }
+
+    private static readonly Dictionary<int, byte[]> s_pictures = [];
+
+    /// <summary>One emoji as a PNG of its own, cut from its sheet, for places that take a picture file: the box to write in.</summary>
+    public static async Task<byte[]> PictureAsync(int index)
+    {
+        if (s_pictures.TryGetValue(index, out byte[]? known))
+        {
+            return known;
+        }
+        EmojiCell cell = Set!.CellOf(index);
+        StorageFile file = await StorageFile.GetFileFromPathAsync(Path.Combine(AppContext.BaseDirectory, "Assets", "WhatsApp", "Emoji", $"{cell.Sheet}.webp"));
+        using IRandomAccessStream sheet = await file.OpenReadAsync();
+        BitmapDecoder decoder = await BitmapDecoder.CreateAsync(sheet);
+        var transform = new BitmapTransform
+        {
+            Bounds = new BitmapBounds { X = (uint)cell.X, Y = (uint)cell.Y, Width = EmojiSet.CellSize, Height = EmojiSet.CellSize },
+        };
+        PixelDataProvider pixels = await decoder.GetPixelDataAsync(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied, transform,
+            ExifOrientationMode.IgnoreExifOrientation, ColorManagementMode.DoNotColorManage);
+
+        using var output = new InMemoryRandomAccessStream();
+        BitmapEncoder encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, output);
+        encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied, EmojiSet.CellSize, EmojiSet.CellSize, 96, 96, pixels.DetachPixelData());
+        await encoder.FlushAsync();
+        byte[] png = new byte[output.Size];
+        using (var reader = new DataReader(output.GetInputStreamAt(0)))
+        {
+            await reader.LoadAsync((uint)output.Size);
+            reader.ReadBytes(png);
+        }
+        s_pictures[index] = png;
+        return png;
     }
 
     /// <summary>One emoji, size pixels square: its sheet, moved so the emoji's cell shows through a clip.</summary>

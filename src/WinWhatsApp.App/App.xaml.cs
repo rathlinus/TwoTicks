@@ -66,7 +66,7 @@ public partial class App : Application
         });
         _notifier.Replied += (chat, text) => _ui.TryEnqueue(() => _ = Session.ReplyFromNotificationAsync(chat, text));
         _notifier.MarkedRead += chat => _ui.TryEnqueue(() => _ = Session.MarkReadAsync(chat));
-        _notifier.Register();
+        _notifier.Register(AppIcon.Folder(settings.WhatsAppIcon));
 
         // The helper starts first: it is ready with the chats by the time the
         // window has been built.
@@ -74,7 +74,7 @@ public partial class App : Application
         Session.Start();
         Window = new MainWindow();
 
-        _tray = new TrayIcon();
+        _tray = new TrayIcon(AppIcon.Folder(settings.WhatsAppIcon));
         _tray.OpenRequested += ShowWindow;
         _tray.QuitRequested += Quit;
         _badge = new TaskbarBadge(WindowHandle);
@@ -90,6 +90,8 @@ public partial class App : Application
         AppInstance.GetCurrent().Activated += (_, e) => _ui.TryEnqueue(() => OnActivated(e));
 
         Startup.Refresh();
+        // A new install writes the Start menu entry again, with the logo.
+        _ = Task.Run(() => AppIcon.UpdateShortcuts(settings.WhatsAppIcon));
 
         bool background = Environment.GetCommandLineArgs().Contains(Program.BackgroundSwitch);
         if (!background)
@@ -101,6 +103,24 @@ public partial class App : Application
     private void OnActivated(AppActivationArguments arguments) => ShowWindow();
 
     public void ShowWindow() => Window.ShowAndActivate();
+
+    /// <summary>Shows the icon picked in the settings everywhere the app has one.</summary>
+    public void ApplyIcon()
+    {
+        bool whatsApp = Session.Settings.WhatsAppIcon;
+        string assets = AppIcon.Folder(whatsApp);
+        Window.SetIcon(assets);
+        _tray?.SetIcons(assets);
+        try
+        {
+            _notifier.SetIcon(assets);
+        }
+        catch (Exception e)
+        {
+            Log.Error("Failed to change the notification icon", e);
+        }
+        _ = Task.Run(() => AppIcon.UpdateShortcuts(whatsApp));
+    }
 
     public void Quit()
     {

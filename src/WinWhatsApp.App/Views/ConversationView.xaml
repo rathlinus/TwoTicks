@@ -12,18 +12,12 @@
     Drop="OnDrop">
 
     <UserControl.Resources>
-        <!-- The highlight starts hidden. Opacity defaults to 1, and the binding setting it
-             to 0 on a new row would play the fade, lighting up every row of a chat as it opens. -->
-        <Style x:Key="MessageHighlightStyle" TargetType="Border">
-            <Setter Property="Opacity" Value="0" />
-        </Style>
-
         <!-- A message in a bubble, incoming on the left and one's own on the right. -->
         <DataTemplate x:Key="BubbleTemplate" x:DataType="m:MessageItem">
             <Grid Padding="{x:Bind RowPadding, Mode=OneWay}">
                 <!-- Across the whole row for a moment when the chat jumps to this message. -->
-                <Border Margin="{x:Bind HighlightMargin, Mode=OneWay}" Background="{ThemeResource MessageHighlightBrush}" IsHitTestVisible="False"
-                        Style="{StaticResource MessageHighlightStyle}" Opacity="{x:Bind HighlightOpacity, Mode=OneWay}">
+                <Border x:Name="HighlightBand" x:Load="{x:Bind HasHighlight, Mode=OneWay}" Margin="{x:Bind HighlightMargin, Mode=OneWay}" Background="{ThemeResource MessageHighlightBrush}"
+                        IsHitTestVisible="False" Opacity="{x:Bind HighlightOpacity, Mode=OneWay}">
                     <Border.OpacityTransition>
                         <ScalarTransition Duration="0:0:0.3" />
                     </Border.OpacityTransition>
@@ -31,17 +25,17 @@
 
                 <Grid HorizontalAlignment="{x:Bind Alignment}" MaxWidth="600" Margin="{x:Bind BubbleMargin}">
                     <!-- WhatsApp's tail on the first bubble of a run. -->
-                    <c:WaIcon Margin="-10.5,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Kind="TailIn" Size="13"
-                              Foreground="{ThemeResource IncomingBubbleBrush}" Visibility="{x:Bind TailInVisibility, Mode=OneWay}" />
-                    <c:WaIcon Margin="0,0,-10.5,0" HorizontalAlignment="Right" VerticalAlignment="Top" Kind="TailOut" Size="13"
-                              Foreground="{ThemeResource OutgoingBubbleBrush}" Visibility="{x:Bind TailOutVisibility, Mode=OneWay}" />
+                    <c:WaIcon x:Name="TailIn" x:Load="{x:Bind HasTailIn, Mode=OneWay}" Margin="-10.5,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Kind="TailIn" Size="13"
+                              Foreground="{ThemeResource IncomingBubbleBrush}" />
+                    <c:WaIcon x:Name="TailOut" x:Load="{x:Bind HasTailOut, Mode=OneWay}" Margin="0,0,-10.5,0" HorizontalAlignment="Right" VerticalAlignment="Top" Kind="TailOut" Size="13"
+                              Foreground="{ThemeResource OutgoingBubbleBrush}" />
                     <Border Background="{ThemeResource IncomingBubbleBrush}" BorderBrush="{ThemeResource BubbleBorderBrush}" BorderThickness="0,0,0,1"
                             CornerRadius="{x:Bind BubbleCorners, Mode=OneWay}" Visibility="{x:Bind IncomingVisibility}" />
                     <Border Background="{ThemeResource OutgoingBubbleBrush}" BorderBrush="{ThemeResource BubbleBorderBrush}" BorderThickness="0,0,0,1"
                             CornerRadius="{x:Bind BubbleCorners, Mode=OneWay}" Visibility="{x:Bind OutgoingVisibility}" />
 
                     <StackPanel Padding="4,3,4,4" Spacing="3">
-                        <c:PlainButton Margin="6,2,6,0" HorizontalAlignment="Left" Click="OnSenderClick" Visibility="{x:Bind SenderVisibility, Mode=OneWay}">
+                        <c:PlainButton x:Name="Sender" x:Load="{x:Bind HasSender, Mode=OneWay}" Margin="6,2,6,0" HorizontalAlignment="Left" Click="OnSenderClick">
                             <c:EmojiLabel Text="{x:Bind SenderName}" FontSize="13" FontWeight="SemiBold" Foreground="{x:Bind SenderBrush}" />
                         </c:PlainButton>
 
@@ -79,7 +73,7 @@
                                     Visibility="{x:Bind TimeOverVisualVisibility, Mode=OneWay}">
                                 <StackPanel Orientation="Horizontal" Spacing="3">
                                     <TextBlock FontSize="11" Foreground="White" Text="{x:Bind TimeText}" />
-                                    <c:Ticks Status="{x:Bind Status, Mode=OneWay}" Visibility="{x:Bind TicksVisibility}" />
+                                    <c:Ticks x:Name="VisualTicks" x:Load="{x:Bind FromMe}" Status="{x:Bind Status, Mode=OneWay}" />
                                 </StackPanel>
                             </Border>
                         </Grid>
@@ -148,7 +142,7 @@
                         </HyperlinkButton>
 
                         <c:MessageBodyPanel>
-                            <RichTextBlock x:Name="Body" x:Load="{x:Bind HasText, Mode=OneWay}" Margin="6,1,6,3" c:RichText.Spans="{x:Bind Spans, Mode=OneWay}"
+                            <RichTextBlock Margin="6,1,6,3" c:ParagraphSelection.IsEnabled="True" c:RichText.Spans="{x:Bind Spans, Mode=OneWay}"
                                            ContextFlyout="{x:Null}" FontSize="14.5" Foreground="{ThemeResource TextPrimaryBrush}" IsTextSelectionEnabled="True"
                                            TextWrapping="Wrap" Visibility="{x:Bind TextVisibility, Mode=OneWay}" />
                             <StackPanel x:Name="Notice" x:Load="{x:Bind IsNotice, Mode=OneWay}" Margin="6,2,10,3" Orientation="Horizontal" Spacing="6">
@@ -158,7 +152,7 @@
                             <StackPanel Margin="0,0,6,3" Orientation="Horizontal" Spacing="3" Visibility="{x:Bind TimeInTextVisibility, Mode=OneWay}">
                                 <TextBlock Style="{StaticResource MetaTextStyle}" Text="Edited" Visibility="{x:Bind EditedVisibility, Mode=OneWay}" />
                                 <TextBlock Style="{StaticResource MetaTextStyle}" Text="{x:Bind TimeText}" />
-                                <c:Ticks Status="{x:Bind Status, Mode=OneWay}" Visibility="{x:Bind TicksVisibility}" />
+                                <c:Ticks x:Name="TextTicks" x:Load="{x:Bind FromMe}" Status="{x:Bind Status, Mode=OneWay}" />
                             </StackPanel>
                         </c:MessageBodyPanel>
                     </StackPanel>
@@ -176,8 +170,8 @@
         <!-- Stickers and messages that are only a few emoji: no bubble. -->
         <DataTemplate x:Key="BareTemplate" x:DataType="m:MessageItem">
             <Grid Padding="{x:Bind RowPadding, Mode=OneWay}">
-                <Border Margin="{x:Bind HighlightMargin, Mode=OneWay}" Background="{ThemeResource MessageHighlightBrush}" IsHitTestVisible="False"
-                        Style="{StaticResource MessageHighlightStyle}" Opacity="{x:Bind HighlightOpacity, Mode=OneWay}">
+                <Border x:Name="BareHighlightBand" x:Load="{x:Bind HasHighlight, Mode=OneWay}" Margin="{x:Bind HighlightMargin, Mode=OneWay}" Background="{ThemeResource MessageHighlightBrush}"
+                        IsHitTestVisible="False" Opacity="{x:Bind HighlightOpacity, Mode=OneWay}">
                     <Border.OpacityTransition>
                         <ScalarTransition Duration="0:0:0.3" />
                     </Border.OpacityTransition>
@@ -185,7 +179,7 @@
 
                 <Grid HorizontalAlignment="{x:Bind Alignment}" Margin="{x:Bind BubbleMargin}">
                     <StackPanel Spacing="2">
-                        <c:PlainButton Margin="2,0" HorizontalAlignment="Left" Click="OnSenderClick" Visibility="{x:Bind SenderVisibility, Mode=OneWay}">
+                        <c:PlainButton x:Name="BareSender" x:Load="{x:Bind HasSender, Mode=OneWay}" Margin="2,0" HorizontalAlignment="Left" Click="OnSenderClick">
                             <RichTextBlock c:EmojiText.Text="{x:Bind SenderName}" FontSize="13" FontWeight="SemiBold" Foreground="{x:Bind SenderBrush}" IsTextSelectionEnabled="False" />
                         </c:PlainButton>
                         <Image x:Name="StickerImage" x:Load="{x:Bind IsSticker}" Width="{x:Bind VisualWidth}" Height="{x:Bind VisualHeight}" Source="{x:Bind Visual, Mode=OneWay}" />
@@ -194,7 +188,7 @@
                         <Border Padding="6,1,5,1" HorizontalAlignment="{x:Bind Alignment}" Background="{ThemeResource DayChipBrush}" CornerRadius="8">
                             <StackPanel Orientation="Horizontal" Spacing="3">
                                 <TextBlock Style="{StaticResource MetaTextStyle}" Text="{x:Bind TimeText}" />
-                                <c:Ticks Status="{x:Bind Status, Mode=OneWay}" Visibility="{x:Bind TicksVisibility}" />
+                                <c:Ticks x:Name="BareTicks" x:Load="{x:Bind FromMe}" Status="{x:Bind Status, Mode=OneWay}" />
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -288,6 +282,10 @@
                 ItemTemplateSelector="{StaticResource MessageTemplates}"
                 SelectionMode="None"
                 ShowsScrollingPlaceholders="False">
+                <!-- No animations: rows the list makes again while scrolling would fade in, as if the chat were reloading. -->
+                <ListView.ItemContainerTransitions>
+                    <TransitionCollection />
+                </ListView.ItemContainerTransitions>
                 <ListView.Resources>
                     <SolidColorBrush x:Key="ListViewItemBackgroundPointerOver" Color="Transparent" />
                     <SolidColorBrush x:Key="ListViewItemBackgroundPressed" Color="Transparent" />
@@ -407,7 +405,7 @@
                         </Flyout>
                     </Button.Flyout>
                 </Button>
-                <TextBox
+                <c:EmojiTextBox
                     x:Name="MessageBox"
                     Grid.Column="2"
                     MaxHeight="180"

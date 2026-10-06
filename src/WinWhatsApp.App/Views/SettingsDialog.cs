@@ -41,6 +41,17 @@ internal sealed partial class SettingsDialog : ContentDialog
         };
         panel.Children.Add(theme);
 
+        var icon = new RadioButtons { Header = "App icon", MaxColumns = 2, Margin = new Thickness(0, 8, 0, 0) };
+        icon.Items.Add("WinWhatsApp");
+        icon.Items.Add("WhatsApp");
+        icon.SelectedIndex = settings.WhatsAppIcon ? 1 : 0;
+        icon.SelectionChanged += (_, _) =>
+        {
+            settings.WhatsAppIcon = icon.SelectedIndex == 1;
+            App.Current.ApplyIcon();
+        };
+        panel.Children.Add(icon);
+
         panel.Children.Add(Heading("Account"));
         string who = session.Me is { } me ? $"{me.Name}  (+{me.Jid.Split('@')[0]})" : "Not linked";
         panel.Children.Add(new TextBlock { Text = who, Margin = new Thickness(0, 0, 0, 8) });

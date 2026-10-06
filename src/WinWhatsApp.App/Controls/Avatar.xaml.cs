@@ -46,7 +46,8 @@ public sealed partial class Avatar : UserControl
         PersonIcon.Size = Size;
         GroupIcon.Size = Math.Round(Size * 0.55);
         bool hasPhoto = Source is not null;
-        PhotoBrush.ImageSource = Source;
+        PhotoImage.Source = Source;
+        Photo.CornerRadius = new CornerRadius(Size / 2);
         Photo.Visibility = hasPhoto ? Visibility.Visible : Visibility.Collapsed;
         PersonIcon.Visibility = !hasPhoto && !IsGroup ? Visibility.Visible : Visibility.Collapsed;
         GroupIcon.Visibility = !hasPhoto && IsGroup ? Visibility.Visible : Visibility.Collapsed;

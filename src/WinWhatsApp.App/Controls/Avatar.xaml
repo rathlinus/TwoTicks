@@ -11,10 +11,11 @@
         <c:WaIcon x:Name="PersonIcon" Kind="DefaultUser" Foreground="{ThemeResource DefaultAvatarForegroundBrush}" />
         <c:WaIcon x:Name="GroupIcon" Kind="Group" HorizontalAlignment="Center" VerticalAlignment="Center"
                   Foreground="{ThemeResource DefaultAvatarForegroundBrush}" Visibility="Collapsed" />
-        <Ellipse x:Name="Photo" Visibility="Collapsed">
-            <Ellipse.Fill>
-                <ImageBrush x:Name="PhotoBrush" Stretch="UniformToFill" />
-            </Ellipse.Fill>
-        </Ellipse>
+        <!-- An Image cut round, not an ImageBrush: a brush draws nothing for a
+             picture another element has decoded already, as the same chat's
+             picture in the list and in the header. -->
+        <Grid x:Name="Photo" Visibility="Collapsed">
+            <Image x:Name="PhotoImage" Stretch="UniformToFill" />
+        </Grid>
     </Grid>
 </UserControl>

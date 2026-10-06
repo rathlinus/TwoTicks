@@ -43,6 +43,9 @@ public sealed class AppSettings
     /// <summary>"System", "Light" or "Dark".</summary>
     public string Theme { get; set; } = "System";
 
+    /// <summary>Shows WhatsApp's own icon instead of the WinWhatsApp logo.</summary>
+    public bool WhatsAppIcon { get; set; }
+
     public WindowPlacement? Window { get; set; }
 
     public double ChatListWidth { get; set; } = 380;

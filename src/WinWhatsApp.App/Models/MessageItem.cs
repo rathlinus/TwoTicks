@@ -48,6 +48,7 @@ public sealed class MessageItem : Observable
     private double _progress;
     private string _audioTime = "";
     private bool _isHighlighted;
+    private bool _hasHighlight;
 
     public MessageItem(MessageData data, bool isGroup)
     {
@@ -135,10 +136,10 @@ public sealed class MessageItem : Observable
             if (Set(ref _isFirstInRun, value))
             {
                 OnPropertyChanged(nameof(RowPadding));
-                OnPropertyChanged(nameof(SenderVisibility));
+                OnPropertyChanged(nameof(HasSender));
                 OnPropertyChanged(nameof(BubbleCorners));
-                OnPropertyChanged(nameof(TailInVisibility));
-                OnPropertyChanged(nameof(TailOutVisibility));
+                OnPropertyChanged(nameof(HasTailIn));
+                OnPropertyChanged(nameof(HasTailOut));
             }
         }
     }
@@ -148,11 +149,10 @@ public sealed class MessageItem : Observable
     /// <summary>The first bubble of a run has WhatsApp's tail at its top corner, which is square there.</summary>
     public CornerRadius BubbleCorners => !_isFirstInRun ? new CornerRadius(8) : FromMe ? new CornerRadius(8, 0, 8, 8) : new CornerRadius(0, 8, 8, 8);
 
-    public Visibility TailInVisibility => _isFirstInRun && !FromMe ? Visibility.Visible : Visibility.Collapsed;
-    public Visibility TailOutVisibility => _isFirstInRun && FromMe ? Visibility.Visible : Visibility.Collapsed;
+    public bool HasTailIn => _isFirstInRun && !FromMe;
+    public bool HasTailOut => _isFirstInRun && FromMe;
 
-    public Visibility SenderVisibility => IsGroup && !FromMe && _isFirstInRun && !string.IsNullOrEmpty(_data.SenderName)
-        ? Visibility.Visible : Visibility.Collapsed;
+    public bool HasSender => IsGroup && !FromMe && _isFirstInRun && !string.IsNullOrEmpty(_data.SenderName);
 
     public string SenderName => _data.SenderName ?? "";
     public Brush SenderBrush => BrushFor(_data.Sender);
@@ -188,6 +188,13 @@ public sealed class MessageItem : Observable
     public double HighlightOpacity => _isHighlighted ? 1 : 0;
 
     /// <summary>
+    /// Whether the row has the band behind it, from the moment it lights up
+    /// until it has faded out. Other rows have no band at all: one made with a
+    /// row would play its fade as the row appears.
+    /// </summary>
+    public bool HasHighlight { get => _hasHighlight; set => Set(ref _hasHighlight, value); }
+
+    /// <summary>
     /// The band behind a highlighted message reaches 2 pixels above and below
     /// the bubble, the gap between two bubbles of a run, and down past its reactions.
     /// </summary>
@@ -196,7 +203,6 @@ public sealed class MessageItem : Observable
     // ---- Ticks and time ----
 
     public int Status => _data.Status;
-    public Visibility TicksVisibility => FromMe ? Visibility.Visible : Visibility.Collapsed;
     public bool IsFailed => FromMe && _data.Status == MessageStatus.Failed;
     public Visibility EditedVisibility => _data.Edited ? Visibility.Visible : Visibility.Collapsed;
 
@@ -354,9 +360,14 @@ public sealed class MessageItem : Observable
     {
         try
         {
-            Windows.Storage.StorageFile file = await Windows.Storage.StorageFile.GetFileFromPathAsync(path);
-            using Windows.Storage.FileProperties.StorageItemThumbnail frame =
-                await file.GetThumbnailAsync(Windows.Storage.FileProperties.ThumbnailMode.VideosView, 480);
+            // Read off the UI thread. This runs while the list makes the row,
+            // and these calls can let the window handle messages while they
+            // wait, which runs layout inside the list's own and makes XAML end the app.
+            using Windows.Storage.FileProperties.StorageItemThumbnail frame = await Task.Run(async () =>
+            {
+                Windows.Storage.StorageFile file = await Windows.Storage.StorageFile.GetFileFromPathAsync(path);
+                return await file.GetThumbnailAsync(Windows.Storage.FileProperties.ThumbnailMode.VideosView, 480);
+            });
             var image = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage();
             await image.SetSourceAsync(frame);
             if (_visual is null)

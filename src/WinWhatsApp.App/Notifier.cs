@@ -35,21 +35,26 @@ internal sealed class Notifier
     /// <summary>Mark as read was pressed in a notification. Raised on a background thread.</summary>
     public event Action<string>? MarkedRead;
 
-    public void Register()
+    /// <param name="assets">The folder with AppIcon.png; see <see cref="AppIcon"/>.</param>
+    public void Register(string assets)
     {
         try
         {
-            using (RegistryKey app = Registry.CurrentUser.CreateSubKey($@"Software\Classes\AppUserModelId\{AppId}"))
-            {
-                app.SetValue("DisplayName", "WinWhatsApp");
-                app.SetValue("IconUri", Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.png"));
-            }
+            SetIcon(assets);
             _notifier = ToastNotificationManager.CreateToastNotifier(AppId);
         }
         catch (Exception e)
         {
             Log.Error("Notifications are not available", e);
         }
+    }
+
+    /// <summary>Sets the name and icon Windows shows with the notifications.</summary>
+    public void SetIcon(string assets)
+    {
+        using RegistryKey app = Registry.CurrentUser.CreateSubKey($@"Software\Classes\AppUserModelId\{AppId}");
+        app.SetValue("DisplayName", "WinWhatsApp");
+        app.SetValue("IconUri", Path.Combine(assets, "AppIcon.png"));
     }
 
     /// <summary>Takes the app's notifications out of the notification centre, where clicking them would do nothing once the app quit.</summary>

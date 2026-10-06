@@ -29,6 +29,7 @@ public sealed class EmojiSet
 
     private readonly Dictionary<string, int> _byText = new(StringComparer.Ordinal);
     private readonly List<string> _texts = [];
+    private readonly List<(int Index, string[] Name, string[] Keywords)> _names = [];
 
     private EmojiSet()
     {
@@ -72,6 +73,55 @@ public sealed class EmojiSet
         set.Categories = categories;
         return set;
     }
+
+    /// <summary>Reads emoji-names.json: the name and keywords of each emoji, to search by.</summary>
+    public void LoadNames(Stream json)
+    {
+        using JsonDocument document = JsonDocument.Parse(json);
+        foreach (JsonProperty entry in document.RootElement.EnumerateObject())
+        {
+            int index = Find(entry.Name);
+            List<string> words = entry.Value.EnumerateArray().Select(e => e.GetString() ?? "").ToList();
+            if (index < 0 || words.Count == 0)
+            {
+                continue;
+            }
+            _names.Add((index, Words(words[0]), words.Skip(1).SelectMany(Words).Distinct().ToArray()));
+        }
+        _names.Sort((a, b) => a.Index.CompareTo(b.Index));
+    }
+
+    /// <summary>
+    /// The emoji whose name or keywords have a word starting with each word of
+    /// the query: those found by name first, then by keyword, each in
+    /// WhatsApp's order.
+    /// </summary>
+    public List<string> Search(string query, int limit = 200)
+    {
+        string[] wanted = Words(query);
+        if (wanted.Length == 0)
+        {
+            return [];
+        }
+        bool Has(string[] words, string start) => words.Any(w => w.StartsWith(start, StringComparison.Ordinal));
+        var byName = new List<string>();
+        var byKeyword = new List<string>();
+        foreach ((int index, string[] name, string[] keywords) in _names)
+        {
+            if (wanted.All(w => Has(name, w)))
+            {
+                byName.Add(_texts[index]);
+            }
+            else if (wanted.All(w => Has(name, w) || Has(keywords, w)))
+            {
+                byKeyword.Add(_texts[index]);
+            }
+        }
+        return byName.Concat(byKeyword).Take(limit).ToList();
+    }
+
+    private static string[] Words(string text) =>
+        text.ToLowerInvariant().Split([' ', ':', ',', '-', '.', '’', '\''],StringSplitOptions.RemoveEmptyEntries);
 
     private void Add(string text, int index)
     {

@@ -22,6 +22,7 @@ public sealed partial class EmojiPicker : UserControl
     ];
 
     private readonly List<ToggleButton> _tabs = [];
+    private string _tab = "SMILEYS_PEOPLE";
 
     public EmojiPicker()
     {
@@ -32,6 +33,13 @@ public sealed partial class EmojiPicker : UserControl
             AddTab(key, icon, name);
         }
         Loaded += (_, _) => Show(RecentEmoji.Count > 0 ? "Recent" : "SMILEYS_PEOPLE");
+    }
+
+    /// <summary>Starts with an empty search and the cursor in it, so typing searches.</summary>
+    public void FocusSearch()
+    {
+        SearchBox.Text = "";
+        SearchBox.Focus(FocusState.Programmatic);
     }
 
     /// <summary>Raised with the emoji that was clicked.</summary>
@@ -60,6 +68,14 @@ public sealed partial class EmojiPicker : UserControl
 
     private void Show(string key)
     {
+        _tab = key;
+        if (SearchBox.Text.Length > 0)
+        {
+            // Clearing the search shows this tab.
+            SearchBox.Text = "";
+            return;
+        }
+        NothingFound.Visibility = Visibility.Collapsed;
         foreach (ToggleButton tab in _tabs)
         {
             tab.IsChecked = (string)tab.Tag == key;
@@ -72,6 +88,23 @@ public sealed partial class EmojiPicker : UserControl
             ? RecentEmoji
             : Emoji.Set.Categories.TryGetValue(key, out IReadOnlyList<string>? emoji) ? emoji : [];
         EmojiGrid.ItemsSource = list.Where(e => Emoji.Set.Find(e) >= 0).ToList();
+    }
+
+    private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
+    {
+        string query = SearchBox.Text.Trim();
+        if (query.Length == 0 || Emoji.Set is null)
+        {
+            Show(_tab);
+            return;
+        }
+        foreach (ToggleButton tab in _tabs)
+        {
+            tab.IsChecked = false;
+        }
+        List<string> found = Emoji.Set.Search(query);
+        EmojiGrid.ItemsSource = found;
+        NothingFound.Visibility = found.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void OnContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)

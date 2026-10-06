@@ -76,7 +76,7 @@
                 <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="Transparent" />
                 <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="Transparent" />
             </Grid.Resources>
-            <TextBox
+            <c:EmojiTextBox
                 x:Name="CaptionBox"
                 MaxHeight="140"
                 VerticalAlignment="Center"

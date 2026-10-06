@@ -1,7 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
-using Microsoft.UI.Xaml.Shapes;
+using Windows.Foundation;
 
 namespace WinWhatsApp.App.Controls;
 
@@ -9,15 +9,23 @@ namespace WinWhatsApp.App.Controls;
 /// One of WhatsApp's icons, drawn in the foreground colour it inherits, as a
 /// FontIcon would be.
 /// </summary>
+/// <remarks>
+/// Every message row has a few of these, so they are cheap to make: the
+/// paths are made once, when the icon is first measured, rather than at each
+/// property XAML sets, and they take the colour directly instead of through a
+/// binding each.
+/// </remarks>
 public sealed partial class WaIcon : UserControl
 {
     public static readonly DependencyProperty KindProperty = DependencyProperty.Register(
-        nameof(Kind), typeof(string), typeof(WaIcon), new PropertyMetadata(null, (d, _) => ((WaIcon)d).Build()));
+        nameof(Kind), typeof(string), typeof(WaIcon), new PropertyMetadata(null, (d, _) => ((WaIcon)d).OnShapeChanged()));
 
     public static readonly DependencyProperty SizeProperty = DependencyProperty.Register(
-        nameof(Size), typeof(double), typeof(WaIcon), new PropertyMetadata(20.0, (d, _) => ((WaIcon)d).Build()));
+        nameof(Size), typeof(double), typeof(WaIcon), new PropertyMetadata(20.0, (d, _) => ((WaIcon)d).OnShapeChanged()));
 
-    private readonly Canvas _canvas = new();
+    private readonly Canvas _canvas = new() { Width = 20, Height = 20 };
+    private string? _builtKind;
+    private double _builtSize = -1;
 
     public WaIcon()
     {
@@ -25,7 +33,7 @@ public sealed partial class WaIcon : UserControl
         IsHitTestVisible = false;
         Content = _canvas;
         Loaded += (_, _) => FollowParentForeground();
-        Build();
+        RegisterPropertyChangedCallback(ForegroundProperty, (_, _) => ApplyFill());
     }
 
     /// <summary>
@@ -63,20 +71,47 @@ public sealed partial class WaIcon : UserControl
         set => SetValue(SizeProperty, value);
     }
 
-    private void Build()
+    private void OnShapeChanged()
     {
-        _canvas.Children.Clear();
         _canvas.Width = Size;
         _canvas.Height = Size;
-        if (string.IsNullOrEmpty(Kind))
+        InvalidateMeasure();
+    }
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        Build();
+        return base.MeasureOverride(availableSize);
+    }
+
+    private void Build()
+    {
+        string? kind = Kind;
+        double size = Size;
+        if (kind == _builtKind && size == _builtSize)
         {
             return;
         }
-        foreach (IconPath part in WaIcons.Scaled(Kind, Size))
+        _builtKind = kind;
+        _builtSize = size;
+        _canvas.Children.Clear();
+        if (string.IsNullOrEmpty(kind))
         {
-            var path = new Microsoft.UI.Xaml.Shapes.Path { Data = WaIcons.Geometry(part) };
-            path.SetBinding(Shape.FillProperty, new Binding { Source = this, Path = new PropertyPath(nameof(Foreground)) });
-            _canvas.Children.Add(path);
+            return;
+        }
+        var fill = Foreground;
+        foreach (IconPath part in WaIcons.Scaled(kind, size))
+        {
+            _canvas.Children.Add(new Microsoft.UI.Xaml.Shapes.Path { Data = WaIcons.Geometry(part), Fill = fill });
+        }
+    }
+
+    private void ApplyFill()
+    {
+        var fill = Foreground;
+        foreach (UIElement child in _canvas.Children)
+        {
+            ((Microsoft.UI.Xaml.Shapes.Path)child).Fill = fill;
         }
     }
 }

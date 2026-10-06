@@ -105,7 +105,6 @@ public sealed partial class SendMediaView : UserControl
         _selected = file;
         file.IsSelected = true;
         CaptionBox.Text = file.Caption;
-        CaptionBox.SelectionStart = CaptionBox.Text.Length;
         _ = ShowPreviewAsync(file);
     }
 
@@ -248,10 +247,7 @@ public sealed partial class SendMediaView : UserControl
 
     private void OnEmojiPicked(string emoji)
     {
-        int start = CaptionBox.SelectionStart;
-        CaptionBox.SelectedText = emoji;
-        CaptionBox.SelectionStart = start + emoji.Length;
-        CaptionBox.SelectionLength = 0;
+        CaptionBox.Insert(emoji);
     }
 
     private async void OnAddClick(object sender, RoutedEventArgs e)

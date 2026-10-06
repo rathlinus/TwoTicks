@@ -3,8 +3,8 @@
     x:Class="WinWhatsApp.App.Controls.EmojiPicker"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <!-- WhatsApp's emoji, by category, with the ones used last first. -->
-    <Grid Width="388" Height="380" RowSpacing="4">
+    <!-- WhatsApp's emoji, by category, with the ones used last first, and a search by name. -->
+    <Grid Width="388" Height="420" RowSpacing="4">
         <Grid.Resources>
             <ResourceDictionary>
                 <ResourceDictionary.MergedDictionaries>
@@ -14,12 +14,16 @@
         </Grid.Resources>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <StackPanel x:Name="Tabs" Orientation="Horizontal" Spacing="2" />
+        <TextBox x:Name="SearchBox" Margin="0,0,0,4" PlaceholderText="Search emoji" TextChanged="OnSearchTextChanged" />
+        <StackPanel x:Name="Tabs" Grid.Row="1" Orientation="Horizontal" Spacing="2" />
+        <TextBlock x:Name="NothingFound" Grid.Row="2" Margin="0,24,0,0" HorizontalAlignment="Center" Foreground="{ThemeResource TextSecondaryBrush}"
+                   Text="No emoji found" Visibility="Collapsed" />
         <GridView
             x:Name="EmojiGrid"
-            Grid.Row="1"
+            Grid.Row="2"
             ContainerContentChanging="OnContainerContentChanging"
             IsItemClickEnabled="True"
             ItemClick="OnItemClick"

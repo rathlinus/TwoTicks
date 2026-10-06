@@ -103,11 +103,8 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <TitleBar x:Name="AppTitleBar" Title="WinWhatsApp" Background="{ThemeResource SurfaceEmphasizedBrush}">
-            <TitleBar.IconSource>
-                <ImageIconSource ImageSource="Assets/AppIcon.ico" />
-            </TitleBar.IconSource>
-        </TitleBar>
+        <!-- The icon is set by MainWindow.SetIcon, from the setting. -->
+        <TitleBar x:Name="AppTitleBar" Title="WinWhatsApp" Background="{ThemeResource SurfaceEmphasizedBrush}" />
 
         <Grid x:Name="MainArea" Grid.Row="1">
             <Grid.ColumnDefinitions>

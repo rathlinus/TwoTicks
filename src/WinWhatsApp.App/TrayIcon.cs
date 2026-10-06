@@ -17,8 +17,8 @@ internal sealed unsafe class TrayIcon : IDisposable
     private readonly Native.WndProc _windowProcedure;
     private readonly nint _window;
     private readonly uint _taskbarCreated;
-    private readonly nint _icon;
-    private readonly nint _unreadIcon;
+    private nint _icon;
+    private nint _unreadIcon;
     private bool _unread;
     private string _tooltip = "WinWhatsApp";
     private bool _added;
@@ -26,7 +26,8 @@ internal sealed unsafe class TrayIcon : IDisposable
     public event Action? OpenRequested;
     public event Action? QuitRequested;
 
-    public TrayIcon()
+    /// <param name="assets">The folder with Tray.ico and TrayUnread.ico; see <see cref="AppIcon"/>.</param>
+    public TrayIcon(string assets)
     {
         _windowProcedure = WindowProcedure;
         nint instance = Native.GetModuleHandle(0);
@@ -46,10 +47,24 @@ internal sealed unsafe class TrayIcon : IDisposable
         // Sent to all windows when Explorer restarts; the icon has to be added again.
         _taskbarCreated = Native.RegisterWindowMessage("TaskbarCreated");
 
-        string assets = Path.Combine(AppContext.BaseDirectory, "Assets");
         _icon = LoadIcon(Path.Combine(assets, "Tray.ico"));
         _unreadIcon = LoadIcon(Path.Combine(assets, "TrayUnread.ico"));
         Add();
+    }
+
+    /// <summary>Switches to the icons in another folder.</summary>
+    public void SetIcons(string assets)
+    {
+        nint icon = _icon, unreadIcon = _unreadIcon;
+        _icon = LoadIcon(Path.Combine(assets, "Tray.ico"));
+        _unreadIcon = LoadIcon(Path.Combine(assets, "TrayUnread.ico"));
+        if (_added)
+        {
+            var data = CreateData(Native.NIF_ICON);
+            Native.Shell_NotifyIcon(Native.NIM_MODIFY, ref data);
+        }
+        Native.DestroyIcon(icon);
+        Native.DestroyIcon(unreadIcon);
     }
 
     private nint LoadIcon(string path)

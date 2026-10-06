@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Foundation;
 using Windows.Graphics;
 using WinWhatsApp.App.Controls;
@@ -53,7 +54,7 @@ public sealed partial class MainWindow : Window
         InitializeComponent();
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
-        AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico"));
+        SetIcon(AppIcon.Folder(Session.Settings.WhatsAppIcon));
         AppWindow.Closing += OnClosing;
         AppWindow.Changed += OnWindowChanged;
         Activated += OnActivated;
@@ -194,6 +195,14 @@ public sealed partial class MainWindow : Window
         }
         Session.Settings.ChatListWidth = ChatColumn.ActualWidth;
         SettingsStore.Save(Session.Settings);
+    }
+
+    /// <summary>The icon in the title bar, the taskbar and Alt+Tab, from the folder with AppIcon.ico.</summary>
+    public void SetIcon(string assets)
+    {
+        string icon = Path.Combine(assets, "AppIcon.ico");
+        AppWindow.SetIcon(icon);
+        AppTitleBar.IconSource = new ImageIconSource { ImageSource = new BitmapImage(new Uri(icon)) };
     }
 
     public void ApplyTheme()

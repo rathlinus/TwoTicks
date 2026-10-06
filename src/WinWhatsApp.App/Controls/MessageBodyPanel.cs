@@ -55,8 +55,10 @@ public sealed partial class MessageBodyPanel : Panel
             _timeOnOwnLine = false;
             return full;
         }
-        if (double.IsInfinity(available.Width))
+        if (double.IsInfinity(available.Width) || full.Width + timeSize.Width <= available.Width)
         {
+            // Every line leaves room for the time, so it goes beside the last
+            // without measuring the text again. That is most messages.
             _timeOnOwnLine = false;
             return new Size(full.Width + timeSize.Width, Math.Max(full.Height, timeSize.Height));
         }

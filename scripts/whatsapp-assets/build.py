@@ -7,6 +7,7 @@ servers, and writes what the app uses:
 
     src/WinWhatsApp.App/Assets/WhatsApp/Emoji/<n>.webp   the emoji sprite sheets
     src/WinWhatsApp.App/Assets/WhatsApp/emoji.json        which emoji is in which cell
+    src/WinWhatsApp.App/Assets/WhatsApp/emoji-names.json  names and keywords, to search
     src/WinWhatsApp.App/Assets/WhatsApp/doodle-*.webp     the chat wallpapers
     src/WinWhatsApp.App/Assets/Fonts/Roboto*.ttf          the text font
     src/WinWhatsApp.App/Controls/WaIcons.g.cs             the icons as path data
@@ -17,6 +18,11 @@ Run it after using WhatsApp Web in Firefox, so the cache is fresh:
     python scripts/whatsapp-assets/build.py
 
 Needs Python 3.10 or newer and Node.js.
+
+The names to search emoji by are Unicode's (CLDR), not WhatsApp's. They are
+fetched again with the rest, or alone, without the cache:
+
+    python scripts/whatsapp-assets/build.py --names
 """
 import argparse
 import glob
@@ -212,6 +218,38 @@ def build_emoji(work, node):
     log(f'  {len(glyphs)} emoji on {len(sprites)} sheets')
 
 
+# CLDR's English names and keywords: the plain emoji, and the derived file for
+# flags, keycaps and sequences such as families.
+CLDR = 'https://raw.githubusercontent.com/unicode-org/cldr-json/main/cldr-json/{}/en/annotations.json'
+SKIN_TONES = {chr(c) for c in range(0x1F3FB, 0x1F400)}
+
+
+def build_emoji_names():
+    """Writes the name and keywords of each emoji of the set, to search by. Skin tones are left out: search shows the plain emoji."""
+    annotations = {}
+    for folder, key in (('cldr-annotations-full/annotations', 'annotations'), ('cldr-annotations-derived-full/annotationsDerived', 'annotationsDerived')):
+        annotations.update(json.loads(fetch(CLDR.format(folder)))[key]['annotations'])
+
+    def lookup(text):
+        return annotations.get(text) or annotations.get(text.replace('\ufe0f', ''))
+
+    glyphs = json.load(open(os.path.join(ASSETS, 'WhatsApp', 'emoji.json'), encoding='utf-8'))['glyphs']
+    names = {}
+    for variants in glyphs:
+        first = variants[0]
+        if SKIN_TONES & set(first):
+            continue
+        entry = next((found for found in map(lookup, variants) if found), None)
+        if not entry or 'tts' not in entry:
+            continue
+        name = entry['tts'][0]
+        keywords = [k for k in entry.get('default', []) if k != name]
+        names[first] = [name] + keywords
+    with open(os.path.join(ASSETS, 'WhatsApp', 'emoji-names.json'), 'w', encoding='utf-8', newline='\n') as f:
+        json.dump(names, f, ensure_ascii=False, separators=(',', ':'))
+    log(f'  names of {len(names)} emoji')
+
+
 # ---- Wallpapers and font ----
 
 def build_wallpapers(work, page):
@@ -336,7 +374,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--profile', help='the Firefox profile folder name, when not the one with the largest cache')
     parser.add_argument('--keep', help='a folder to keep the extracted files in, for looking at them')
+    parser.add_argument('--names', action='store_true', help='only fetch the names of the emoji, to search them')
     args = parser.parse_args()
+    if args.names:
+        build_emoji_names()
+        return
 
     node = shutil.which('node') or sys.exit('Node.js was not found.')
     work = args.keep or tempfile.mkdtemp(prefix='whatsapp-assets-')
@@ -347,6 +389,7 @@ def main():
     page = fetch('https://web.whatsapp.com/', page=True).decode('utf-8', 'replace')
     os.makedirs(os.path.join(ASSETS, 'WhatsApp'), exist_ok=True)
     build_emoji(work, node)
+    build_emoji_names()
     build_icons(work, node)
     build_wallpapers(work, page)
     build_fonts(page)
