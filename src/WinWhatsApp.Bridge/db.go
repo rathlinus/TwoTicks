@@ -77,6 +77,16 @@ CREATE TABLE IF NOT EXISTS receipts (
 	PRIMARY KEY (chat, msg_id, user)
 );
 
+-- Messages pinned at the top of their chat, until the pin runs out.
+CREATE TABLE IF NOT EXISTS pins (
+	chat    TEXT NOT NULL,
+	msg_id  TEXT NOT NULL,
+	sender  TEXT NOT NULL,
+	ts      INTEGER NOT NULL,
+	expires INTEGER NOT NULL,
+	PRIMARY KEY (chat, msg_id)
+);
+
 CREATE TABLE IF NOT EXISTS avatars (
 	jid        TEXT PRIMARY KEY,
 	picture_id TEXT NOT NULL DEFAULT '',
@@ -120,6 +130,7 @@ type Message struct {
 	Edited     bool              `json:"edited,omitempty"`
 	// How often the message was forwarded before it got here; 0 when it was not.
 	Forwarded int  `json:"forwarded,omitempty"`
+	Pinned    bool `json:"pinned,omitempty"`
 	Notify    bool `json:"notify,omitempty"`
 
 	mentionJIDs []string
@@ -294,7 +305,7 @@ func bumpChat(ctx context.Context, db execer, chat string, isGroup bool, ts int6
 }
 
 const messageColumns = `m.rowid, m.chat, m.id, m.sender, m.from_me, m.ts, m.kind, m.text, m.media, m.quote, m.mentions, m.link, m.status, m.edited, m.unread, m.push_name, m.raw_chat, m.raw_sender, m.local_path,
-	m.forwarded`
+	m.forwarded, EXISTS (SELECT 1 FROM pins p WHERE p.chat = m.chat AND p.msg_id = m.id AND p.expires > unixepoch())`
 
 type scanner interface {
 	Scan(dest ...any) error
@@ -304,7 +315,7 @@ func scanMessage(row scanner) (*Message, error) {
 	var m Message
 	var media, quote, mentions, link sql.NullString
 	err := row.Scan(&m.Seq, &m.Chat, &m.ID, &m.Sender, &m.FromMe, &m.TS, &m.Kind, &m.Text, &media, &quote, &mentions, &link,
-		&m.Status, &m.Edited, &m.unread, &m.pushName, &m.rawChat, &m.rawSender, &m.localPath, &m.Forwarded)
+		&m.Status, &m.Edited, &m.unread, &m.pushName, &m.rawChat, &m.rawSender, &m.localPath, &m.Forwarded, &m.Pinned)
 	if err != nil {
 		return nil, err
 	}

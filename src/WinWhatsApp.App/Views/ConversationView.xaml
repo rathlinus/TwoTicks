@@ -77,6 +77,7 @@
                             <Border Margin="6" Padding="6,1,5,1" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="#80000000" CornerRadius="8"
                                     Visibility="{x:Bind TimeOverVisualVisibility, Mode=OneWay}">
                                 <StackPanel Orientation="Horizontal" Spacing="3">
+                                    <c:WaIcon VerticalAlignment="Center" Kind="Pin" Size="14" Foreground="White" Visibility="{x:Bind PinnedVisibility, Mode=OneWay}" />
                                     <TextBlock FontSize="11" Foreground="White" Text="{x:Bind TimeText}" />
                                     <c:Ticks x:Name="VisualTicks" x:Load="{x:Bind FromMe}" Status="{x:Bind Status, Mode=OneWay}" />
                                 </StackPanel>
@@ -124,6 +125,7 @@
                                         Samples="{x:Bind Waveform, Mode=OneWay}" Tapped="OnAudioSeek" />
                             <TextBlock Grid.Row="1" Grid.Column="1" Margin="2,0,0,0" Style="{StaticResource MetaTextStyle}" Text="{x:Bind AudioTime, Mode=OneWay}" />
                             <StackPanel Grid.Row="1" Grid.Column="1" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="3">
+                                <c:WaIcon VerticalAlignment="Center" Kind="Pin" Size="14" Foreground="{ThemeResource MetaTextBrush}" Visibility="{x:Bind PinnedVisibility, Mode=OneWay}" />
                                 <TextBlock Style="{StaticResource MetaTextStyle}" Text="{x:Bind TimeText}" />
                                 <c:Ticks x:Name="AudioTicks" x:Load="{x:Bind FromMe}" Status="{x:Bind Status, Mode=OneWay}" />
                             </StackPanel>
@@ -170,6 +172,7 @@
                                 <TextBlock FontSize="14" FontStyle="Italic" Foreground="{ThemeResource MetaTextBrush}" Text="{x:Bind NoticeText, Mode=OneWay}" TextWrapping="Wrap" />
                             </StackPanel>
                             <StackPanel Margin="0,0,6,3" Orientation="Horizontal" Spacing="3" Visibility="{x:Bind TimeInTextVisibility, Mode=OneWay}">
+                                <c:WaIcon VerticalAlignment="Center" Kind="Pin" Size="14" Foreground="{ThemeResource MetaTextBrush}" Visibility="{x:Bind PinnedVisibility, Mode=OneWay}" />
                                 <TextBlock Style="{StaticResource MetaTextStyle}" Text="Edited" Visibility="{x:Bind EditedVisibility, Mode=OneWay}" />
                                 <TextBlock Style="{StaticResource MetaTextStyle}" Text="{x:Bind TimeText}" />
                                 <c:Ticks x:Name="TextTicks" x:Load="{x:Bind FromMe}" Status="{x:Bind Status, Mode=OneWay}" />
@@ -221,6 +224,7 @@
                                        IsTextSelectionEnabled="False" />
                         <Border Padding="6,1,5,1" HorizontalAlignment="{x:Bind Alignment}" Background="{ThemeResource DayChipBrush}" CornerRadius="8">
                             <StackPanel Orientation="Horizontal" Spacing="3">
+                                <c:WaIcon VerticalAlignment="Center" Kind="Pin" Size="14" Foreground="{ThemeResource MetaTextBrush}" Visibility="{x:Bind PinnedVisibility, Mode=OneWay}" />
                                 <TextBlock Style="{StaticResource MetaTextStyle}" Text="{x:Bind TimeText}" />
                                 <c:Ticks x:Name="BareTicks" x:Load="{x:Bind FromMe}" Status="{x:Bind Status, Mode=OneWay}" />
                             </StackPanel>
@@ -333,10 +337,34 @@
         <!-- WhatsApp's wallpaper, behind the messages and the composer below them. -->
         <c:ChatWallpaper Grid.Row="1" Grid.RowSpan="4" />
 
-        <!-- The messages, newest at the bottom. -->
+        <!-- The messages, newest at the bottom, under the pinned ones. -->
         <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- A pinned message. A click goes to it and shows the next one. -->
+            <Grid x:Name="PinBar" MinHeight="48" Padding="16,6,8,6" ColumnSpacing="12" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource DividerBrush}"
+                  BorderThickness="0,0,0,1" Tapped="OnPinBarTapped" Visibility="Collapsed">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel x:Name="PinMarks" VerticalAlignment="Center" Spacing="2" />
+                <c:WaIcon Grid.Column="1" VerticalAlignment="Center" Kind="Pin" Size="20" Foreground="{ThemeResource MetaTextBrush}" />
+                <RichTextBlock x:Name="PinText" Grid.Column="2" VerticalAlignment="Center" FontSize="14" Foreground="{ThemeResource TextSecondaryBrush}" IsTextSelectionEnabled="False"
+                               MaxLines="1" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                <Button Grid.Column="3" VerticalAlignment="Center" AutomationProperties.Name="Unpin" Click="OnUnpinBarClick" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="Unpin">
+                    <c:WaIcon Kind="Unpin" Size="20" />
+                </Button>
+            </Grid>
+
             <ListView
                 x:Name="MessageList"
+                Grid.Row="1"
                 Padding="0,0,0,14"
                 ContainerContentChanging="OnContainerContentChanging"
                 ContextRequested="OnMessageContextRequested"
@@ -371,7 +399,7 @@
             </ListView>
 
             <!-- Back to the newest messages. -->
-            <Button x:Name="ScrollDownButton" Width="44" Height="44" Margin="0,0,20,16" Padding="0" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+            <Button x:Name="ScrollDownButton" Grid.Row="1" Width="44" Height="44" Margin="0,0,20,16" Padding="0" HorizontalAlignment="Right" VerticalAlignment="Bottom"
                     Background="{ThemeResource ComposerBrush}" BorderBrush="{ThemeResource DividerBrush}" Click="OnScrollDownClick"
                     CornerRadius="22" Visibility="Collapsed" AutomationProperties.Name="Scroll to the newest message">
                 <Grid>

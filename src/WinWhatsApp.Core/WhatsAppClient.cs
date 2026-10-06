@@ -37,6 +37,9 @@ public sealed class WhatsAppClient : IDisposable
     public event Action<AvatarData>? AvatarChanged;
     public event Action<MergedData>? ChatMerged;
 
+    /// <summary>A message of the chat was pinned or unpinned.</summary>
+    public event Action<MessageRef>? PinsChanged;
+
     /// <summary>Messages of a chat were deleted on the phone.</summary>
     public event Action<MessageRef>? ChatCleared;
     public event Action<SyncData>? SyncProgress;
@@ -145,6 +148,9 @@ public sealed class WhatsAppClient : IDisposable
                     break;
                 case "cleared":
                     ChatCleared?.Invoke(Read(data, BridgeJson.Default.MessageRef));
+                    break;
+                case "pins":
+                    PinsChanged?.Invoke(Read(data, BridgeJson.Default.MessageRef));
                     break;
                 case "merged":
                     ChatMerged?.Invoke(Read(data, BridgeJson.Default.MergedData));
@@ -276,6 +282,13 @@ public sealed class WhatsAppClient : IDisposable
 
     public Task EditAsync(string chat, string id, string text) =>
         CallAsync("edit", new JsonObject { ["chat"] = chat, ["id"] = id, ["text"] = text });
+
+    /// <param name="seconds">How long the message stays pinned.</param>
+    public Task PinMessageAsync(string chat, string id, bool pin, long seconds = 0) =>
+        CallAsync("pin", new JsonObject { ["chat"] = chat, ["id"] = id, ["pin"] = pin, ["seconds"] = seconds });
+
+    /// <summary>The pinned messages of a chat, the newest pin first.</summary>
+    public Task<List<MessageData>> GetPinsAsync(string chat) => CallAsync("pins", new JsonObject { ["chat"] = chat }, BridgeJson.Default.ListMessageData);
 
     /// <summary>Sends a copy of a message to other chats; returns the copies.</summary>
     public Task<List<MessageData>> ForwardAsync(string chat, string id, IEnumerable<string> to) =>

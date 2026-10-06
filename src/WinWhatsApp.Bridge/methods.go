@@ -238,6 +238,37 @@ func (b *Bridge) methods() map[string]handler {
 			return true, b.edit(ctx, p.Chat, p.ID, p.Text)
 		},
 
+		"pin": func(ctx context.Context, raw json.RawMessage) (any, error) {
+			p, err := params[struct {
+				Chat    string `json:"chat"`
+				ID      string `json:"id"`
+				Pin     bool   `json:"pin"`
+				Seconds int64  `json:"seconds"`
+			}](raw)
+			if err != nil {
+				return nil, err
+			}
+			return true, b.pin(ctx, p.Chat, p.ID, p.Pin, p.Seconds)
+		},
+
+		// The pinned messages of a chat, the newest pin first.
+		"pins": func(ctx context.Context, raw json.RawMessage) (any, error) {
+			p, err := params[chatParams](raw)
+			if err != nil {
+				return nil, err
+			}
+			list, err := b.queryMessages(ctx, `SELECT `+messageColumns+` FROM pins p JOIN messages m ON m.chat = p.chat AND m.id = p.msg_id
+				WHERE p.chat = ? AND p.expires > unixepoch() ORDER BY p.ts DESC`, p.Chat)
+			if err != nil {
+				return nil, err
+			}
+			b.decorateMessages(ctx, list)
+			if list == nil {
+				list = []*Message{}
+			}
+			return list, nil
+		},
+
 		"forward": func(ctx context.Context, raw json.RawMessage) (any, error) {
 			p, err := params[struct {
 				Chat string   `json:"chat"`

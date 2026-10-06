@@ -68,6 +68,9 @@ public sealed class MessageData
     /// <summary>How often the message was forwarded before it got here; 0 when it was not.</summary>
     public int Forwarded { get; set; }
 
+    /// <summary>Pinned at the top of the chat.</summary>
+    public bool Pinned { get; set; }
+
     /// <summary>Set on new incoming messages that should raise a notification.</summary>
     public bool Notify { get; set; }
 }

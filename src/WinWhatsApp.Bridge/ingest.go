@@ -167,6 +167,16 @@ func (b *Bridge) onMessage(evt *events.Message, live bool) {
 		b.applyReaction(chat.String(), sender.String(), r.GetKey().GetID(), r.GetText(), info.Timestamp.Unix())
 		return
 	}
+	if pin := msg.GetPinInChatMessage(); pin != nil {
+		sender := b.canonical(ctx, info.Sender)
+		if info.IsFromMe {
+			sender = b.ownJID()
+		}
+		seconds := int64(msg.GetMessageContextInfo().GetMessageAddOnDurationInSecs())
+		b.applyPin(chat.String(), pin.GetKey().GetID(), sender.String(), pin.GetType() == waE2E.PinInChatMessage_PIN_FOR_ALL,
+			info.Timestamp.Unix(), seconds)
+		return
+	}
 
 	m := b.convert(ctx, evt)
 	if m == nil {
@@ -314,6 +324,11 @@ func (b *Bridge) revoke(chat, id string) {
 		return
 	}
 	_, _ = b.w.ExecContext(b.ctx, `DELETE FROM reactions WHERE chat = ? AND msg_id = ?`, chat, id)
+	if res, err := b.w.ExecContext(b.ctx, `DELETE FROM pins WHERE chat = ? AND msg_id = ?`, chat, id); err == nil {
+		if n, _ := res.RowsAffected(); n > 0 {
+			b.out.event("pins", map[string]string{"chat": chat})
+		}
+	}
 	b.reloadAndEmit(chat, id)
 	b.emitChat(chat)
 }
@@ -400,6 +415,31 @@ func (b *Bridge) applyReaction(chat, sender, id, emoji string, ts int64) {
 		return
 	}
 	b.reloadAndEmit(chat, id)
+}
+
+// A pin lasts seven days unless it says otherwise, as WhatsApp's default.
+const defaultPinSeconds = 7 * 24 * 60 * 60
+
+// applyPin pins a message at the top of its chat for a time, or unpins it.
+func (b *Bridge) applyPin(chat, id, sender string, pinned bool, ts, seconds int64) {
+	var err error
+	if pinned {
+		if seconds <= 0 {
+			seconds = defaultPinSeconds
+		}
+		_, err = b.w.ExecContext(b.ctx, `
+			INSERT INTO pins (chat, msg_id, sender, ts, expires) VALUES (?, ?, ?, ?, ?)
+			ON CONFLICT (chat, msg_id) DO UPDATE SET sender = excluded.sender, ts = excluded.ts, expires = excluded.expires
+			WHERE excluded.ts >= pins.ts`, chat, id, sender, ts, ts+seconds)
+	} else {
+		_, err = b.w.ExecContext(b.ctx, `DELETE FROM pins WHERE chat = ? AND msg_id = ? AND ts <= ?`, chat, id, ts)
+	}
+	if err != nil {
+		b.log.Errorf("Failed to store pin: %v", err)
+		return
+	}
+	b.reloadAndEmit(chat, id)
+	b.out.event("pins", map[string]string{"chat": chat})
 }
 
 func (b *Bridge) onReceipt(evt *events.Receipt) {
@@ -523,6 +563,7 @@ func (b *Bridge) onHistorySync(evt *events.HistorySync) {
 		conv     *waHistorySync.Conversation
 		messages []*Message
 		react    [][4]any
+		pins     [][4]any
 	}
 	var convs []parsed
 
@@ -565,6 +606,20 @@ func (b *Bridge) onHistorySync(evt *events.HistorySync) {
 				}
 				if r.GetText() != "" {
 					p.react = append(p.react, [4]any{web.GetKey().GetID(), reactor.String(), r.GetText(), normalizeTimestamp(r.GetSenderTimestampMS())})
+				}
+			}
+			if pin := web.GetPinInChat(); pin != nil && pin.GetType() == waWeb.PinInChat_PIN_FOR_ALL {
+				target := pin.GetKey().GetID()
+				if target == "" {
+					target = web.GetKey().GetID()
+				}
+				ts := normalizeTimestamp(pin.GetSenderTimestampMS())
+				seconds := int64(pin.GetMessageAddOnContextInfo().GetMessageAddOnDurationInSecs())
+				if seconds <= 0 {
+					seconds = defaultPinSeconds
+				}
+				if ts+seconds > time.Now().Unix() {
+					p.pins = append(p.pins, [4]any{target, "", ts, ts + seconds})
 				}
 			}
 		}
@@ -654,6 +709,10 @@ func (b *Bridge) onHistorySync(evt *events.HistorySync) {
 		for _, r := range p.react {
 			_, _ = tx.ExecContext(ctx, `INSERT OR IGNORE INTO reactions (chat, msg_id, sender, emoji, ts) VALUES (?, ?, ?, ?, ?)`,
 				chat, r[0], r[1], r[2], r[3])
+		}
+		for _, pin := range p.pins {
+			_, _ = tx.ExecContext(ctx, `INSERT OR IGNORE INTO pins (chat, msg_id, sender, ts, expires) VALUES (?, ?, ?, ?, ?)`,
+				chat, pin[0], pin[1], pin[2], pin[3])
 		}
 		if p.chat.Server == types.HiddenUserServer {
 			b.lidChats.Store(chat, true)

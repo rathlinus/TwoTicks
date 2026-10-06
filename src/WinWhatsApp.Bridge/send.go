@@ -423,6 +423,49 @@ func (b *Bridge) revokeOwn(ctx context.Context, chatText, id string) error {
 	return nil
 }
 
+// pin pins a message at the top of its chat for everyone, for the given
+// number of seconds, or unpins it.
+func (b *Bridge) pin(ctx context.Context, chatText, id string, pinned bool, seconds int64) error {
+	chat, keyChat, sender, m, err := b.target(ctx, chatText, id)
+	if err != nil {
+		return err
+	}
+	if !canAddOn(m) {
+		return errors.New("this message can't be pinned")
+	}
+	pinType := waE2E.PinInChatMessage_UNPIN_FOR_ALL
+	if pinned {
+		pinType = waE2E.PinInChatMessage_PIN_FOR_ALL
+		if seconds <= 0 {
+			seconds = defaultPinSeconds
+		}
+	}
+	now := time.Now()
+	msg := &waE2E.Message{PinInChatMessage: &waE2E.PinInChatMessage{
+		Key:               b.cli.BuildMessageKey(keyChat, sender, types.MessageID(id)),
+		Type:              pinType.Enum(),
+		SenderTimestampMS: proto.Int64(now.UnixMilli()),
+	}}
+	if pinned {
+		msg.MessageContextInfo = &waE2E.MessageContextInfo{MessageAddOnDurationInSecs: proto.Uint32(uint32(seconds))}
+	}
+	if _, err := b.cli.SendMessage(ctx, chat, msg); err != nil {
+		return err
+	}
+	b.applyPin(chatText, id, b.ownJID().String(), pinned, now.Unix(), seconds)
+	return nil
+}
+
+// canAddOn reports whether a message can be pinned or kept: one that is there
+// to see, and sent.
+func canAddOn(m *Message) bool {
+	switch m.Kind {
+	case "revoked", "system", "pending", "viewonce", "unsupported":
+		return false
+	}
+	return !m.FromMe || m.Status > statusPending
+}
+
 // forward sends a copy of a message to other chats, marked as forwarded.
 // Media goes along without uploading it again.
 func (b *Bridge) forward(ctx context.Context, chatText, id string, to []string) ([]*Message, error) {

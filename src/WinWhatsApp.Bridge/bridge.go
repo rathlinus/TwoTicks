@@ -413,6 +413,7 @@ func (b *Bridge) deleteChat(jid types.JID, keepChat bool, lastTimestamp int64) {
 		`DELETE FROM messages WHERE chat = ?1 AND ts <= ?2`,
 		`DELETE FROM reactions WHERE chat = ?1 AND msg_id NOT IN (SELECT id FROM messages WHERE chat = ?1)`,
 		`DELETE FROM receipts WHERE chat = ?1 AND msg_id NOT IN (SELECT id FROM messages WHERE chat = ?1)`,
+		`DELETE FROM pins WHERE chat = ?1 AND msg_id NOT IN (SELECT id FROM messages WHERE chat = ?1)`,
 		`UPDATE chats SET unread = (SELECT COUNT(*) FROM messages WHERE chat = ?1 AND unread = 1),
 			last_id = COALESCE((SELECT id FROM messages WHERE chat = ?1 ORDER BY ts DESC, rowid DESC LIMIT 1), '')
 			WHERE jid = ?1`,
@@ -434,6 +435,11 @@ func (b *Bridge) deleteMessage(jid types.JID, id string) {
 	if _, err := b.w.ExecContext(b.ctx, `DELETE FROM messages WHERE chat = ? AND id = ?`, chat, id); err != nil {
 		b.log.Errorf("Failed to delete message: %v", err)
 		return
+	}
+	if res, err := b.w.ExecContext(b.ctx, `DELETE FROM pins WHERE chat = ? AND msg_id = ?`, chat, id); err == nil {
+		if n, _ := res.RowsAffected(); n > 0 {
+			b.out.event("pins", map[string]string{"chat": chat})
+		}
 	}
 	b.refreshLastMessage(chat)
 	b.out.event("deleted", map[string]string{"chat": chat, "id": id})
@@ -536,6 +542,8 @@ func (b *Bridge) mergeChat(from, to string) {
 		`DELETE FROM reactions WHERE chat = ?1`,
 		`UPDATE OR IGNORE receipts SET chat = ?2 WHERE chat = ?1`,
 		`DELETE FROM receipts WHERE chat = ?1`,
+		`UPDATE OR IGNORE pins SET chat = ?2 WHERE chat = ?1`,
+		`DELETE FROM pins WHERE chat = ?1`,
 		`INSERT INTO chats (jid, name, is_group, last_ts, last_id, unread, marked_unread, muted_until, pinned, archived, read_only, members, ephemeral)
 			SELECT ?2, name, is_group, last_ts, last_id, unread, marked_unread, muted_until, pinned, archived, read_only, members, ephemeral FROM chats WHERE jid = ?1
 			ON CONFLICT (jid) DO UPDATE SET

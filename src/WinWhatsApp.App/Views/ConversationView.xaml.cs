@@ -24,6 +24,9 @@ public sealed partial class ConversationView : UserControl
 {
     private static readonly string[] s_quickReactions = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
+    // How long a pin lasts, as WhatsApp offers it.
+    private static readonly (string Text, long Seconds)[] s_pinDurations = [("24 hours", 86_400), ("7 days", 604_800), ("30 days", 2_592_000)];
+
     private readonly HashSet<string> _autoDownloads = [];
     private readonly DispatcherQueueTimer _highlightTimer;
     private readonly DispatcherQueueTimer _linkTimer;
@@ -38,6 +41,7 @@ public sealed partial class ConversationView : UserControl
     private MessageItem? _replyTo;
     private MessageItem? _editing;
     private bool _atBottom = true;
+    private int _pinIndex;
     private int _newWhileAway;
     private bool _settingText;
 
@@ -62,6 +66,7 @@ public sealed partial class ConversationView : UserControl
         _linkTimer.Tick += (_, _) => _ = UpdateLinkPreviewAsync();
 
         MediaPreview.SendRequested += OnMediaSendRequested;
+        Session.PropertyChanged += OnSessionChanged;
     }
 
     /// <summary>
@@ -117,6 +122,7 @@ public sealed partial class ConversationView : UserControl
             MediaPreview.Close();
             ClearLinkPreview();
             _shown = null;
+            UpdatePinBar();
             MessageList.ItemsSource = null;
             return;
         }
@@ -135,6 +141,7 @@ public sealed partial class ConversationView : UserControl
             MediaPreview.Close();
             ClearLinkPreview();
             _removedLinkUrl = null;
+            _pinIndex = 0;
             AudioPlayer.Stop();
             _newWhileAway = 0;
             UpdateScrollButton();
@@ -147,6 +154,7 @@ public sealed partial class ConversationView : UserControl
         }
 
         _shown = conversation;
+        UpdatePinBar();
         MessageList.ItemsSource = conversation.Items;
         bool readOnly = conversation.Chat.IsReadOnly;
         Composer.Visibility = readOnly ? Visibility.Collapsed : Visibility.Visible;
@@ -1003,6 +1011,24 @@ public sealed partial class ConversationView : UserControl
         {
             Add("Forward", "Forward", () => _ = ForwardAsync(item));
         }
+        if (item.CanAddOn && writable)
+        {
+            if (item.IsPinned)
+            {
+                Add("Unpin", "Unpin", () => _ = Session.PinAsync(item.Chat, item.Id, false));
+            }
+            else
+            {
+                var pin = new MenuFlyoutSubItem { Text = "Pin", Icon = WaIcons.PathIcon("Pin") };
+                foreach ((string text, long seconds) in s_pinDurations)
+                {
+                    var entry = new MenuFlyoutItem { Text = text };
+                    entry.Click += (_, _) => _ = Session.PinAsync(item.Chat, item.Id, true, seconds);
+                    pin.Items.Add(entry);
+                }
+                menu.Items.Add(pin);
+            }
+        }
         if (item.CanEdit)
         {
             Add("Edit", "Edit", () => StartEdit(item));
@@ -1180,6 +1206,79 @@ public sealed partial class ConversationView : UserControl
         if (target is not null)
         {
             File.Copy(path, target.Path, overwrite: true);
+        }
+    }
+
+    // ---- Pinned messages ----
+
+    private void OnSessionChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(Session.Pins))
+        {
+            UpdatePinBar();
+        }
+    }
+
+    /// <summary>Shows one pinned message above the chat, with a mark for each pin when there are several.</summary>
+    private void UpdatePinBar()
+    {
+        IReadOnlyList<MessageData> pins = Session.Pins;
+        if (pins.Count == 0 || _shown is null)
+        {
+            PinBar.Visibility = Visibility.Collapsed;
+            return;
+        }
+        _pinIndex = Math.Clamp(_pinIndex, 0, pins.Count - 1);
+        MessageData pin = pins[_pinIndex];
+        string text = MessagePreview.Describe(pin.Kind, pin.Text, pin.Media?.Name, pin.Media?.Seconds ?? 0, pin.FromMe).Text;
+        if (_shown.Chat.IsGroup)
+        {
+            text = (pin.FromMe ? "You" : pin.SenderName ?? "") + ": " + text;
+        }
+        EmojiText.SetText(PinText, text);
+
+        PinMarks.Children.Clear();
+        if (pins.Count > 1)
+        {
+            double height = (32 - 2 * (pins.Count - 1)) / (double)pins.Count;
+            for (int i = 0; i < pins.Count; i++)
+            {
+                PinMarks.Children.Add(new Microsoft.UI.Xaml.Shapes.Rectangle
+                {
+                    Width = 3,
+                    Height = height,
+                    RadiusX = 1.5,
+                    RadiusY = 1.5,
+                    Fill = (Brush)Application.Current.Resources[i == _pinIndex ? "AccentGreenBrush" : "DividerBrush"],
+                });
+            }
+        }
+        PinBar.Visibility = Visibility.Visible;
+    }
+
+    private async void OnPinBarTapped(object sender, TappedRoutedEventArgs e)
+    {
+        IReadOnlyList<MessageData> pins = Session.Pins;
+        if (_shown is not { } conversation || pins.Count == 0)
+        {
+            return;
+        }
+        MessageData pin = pins[Math.Clamp(_pinIndex, 0, pins.Count - 1)];
+        _pinIndex = (_pinIndex + 1) % pins.Count;
+        UpdatePinBar();
+        if (!ShowMessage(pin.Id))
+        {
+            await Session.OpenAsync(conversation.Jid, pin.Id);
+        }
+    }
+
+    private void OnUnpinBarClick(object sender, RoutedEventArgs e)
+    {
+        IReadOnlyList<MessageData> pins = Session.Pins;
+        if (pins.Count > 0)
+        {
+            MessageData pin = pins[Math.Clamp(_pinIndex, 0, pins.Count - 1)];
+            _ = Session.PinAsync(pin.Chat, pin.Id, false);
         }
     }
 

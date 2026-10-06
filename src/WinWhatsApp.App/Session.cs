@@ -37,6 +37,8 @@ public sealed class Session : Observable
     private DispatcherQueueTimer? _typingStop;
     private string? _error;
     private bool _stateKnown;
+    private IReadOnlyList<MessageData> _pins = [];
+    private int _pinsVersion;
 
     // Chat updates as they arrived, numbered, so that a list read before some
     // of them does not undo them. See ReloadChatsAsync.
@@ -81,6 +83,13 @@ public sealed class Session : Observable
         Client.PresenceChanged += p => Post(() => OnPresence(p));
         Client.AvatarChanged += a => Post(() => OnAvatar(a));
         Client.ChatMerged += m => Post(() => OnMerged(m));
+        Client.PinsChanged += r => Post(() =>
+        {
+            if (_current?.Jid == r.Chat)
+            {
+                _ = LoadPinsAsync(_current);
+            }
+        });
         Client.ChatCleared += c => Post(() => OnCleared(c));
         Client.SyncProgress += s => Post(() => SyncProgress = s.Progress);
         Client.CallReceived += c => Post(() => OnCall(c));
@@ -447,11 +456,17 @@ public sealed class Session : Observable
             {
                 conversation.Upsert(message);
             }
+            bool sameChat = _current?.Jid == conversation.Jid;
             Current = conversation;
             _presenceText = null;
             _groupMembersText = null;
             UpdateHeaderStatus();
+            if (!sameChat)
+            {
+                Pins = [];
+            }
             ConversationOpened?.Invoke(aroundMessage);
+            _ = LoadPinsAsync(conversation);
 
             if (_windowActive)
             {
@@ -477,7 +492,28 @@ public sealed class Session : Observable
         _openVersion++;
         Current = null;
         HeaderStatus = null;
+        Pins = [];
         ConversationOpened?.Invoke(null);
+    }
+
+    /// <summary>The pinned messages of the open chat, the newest pin first.</summary>
+    public IReadOnlyList<MessageData> Pins { get => _pins; private set => Set(ref _pins, value); }
+
+    private async Task LoadPinsAsync(Conversation conversation)
+    {
+        int version = ++_pinsVersion;
+        try
+        {
+            List<MessageData> pins = await Client.GetPinsAsync(conversation.Jid);
+            if (version == _pinsVersion && _current == conversation)
+            {
+                Pins = pins;
+            }
+        }
+        catch (BridgeException)
+        {
+            // The banner stays as it was; the next change of a pin tries again.
+        }
     }
 
     private async Task LoadGroupMembersAsync(Conversation conversation)
@@ -753,6 +789,7 @@ public sealed class Session : Observable
     public async Task RevokeAsync(MessageItem item) => await Try(() => Client.RevokeAsync(item.Chat, item.Id));
     public async Task DeleteForMeAsync(MessageItem item) => await Try(() => Client.DeleteForMeAsync(item.Chat, item.Id));
     public async Task RetryAsync(MessageItem item) => await Try(() => Client.RetryAsync(item.Chat, item.Id));
+    public async Task PinAsync(string chat, string id, bool pin, long seconds = 0) => await Try(() => Client.PinMessageAsync(chat, id, pin, seconds));
 
     public async Task ForwardAsync(MessageItem item, IReadOnlyList<string> to)
     {
