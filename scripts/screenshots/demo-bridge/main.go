@@ -4,6 +4,8 @@
 //
 // WINWHATSAPP_DEMO is the folder with demo.json and its pictures.
 // WINWHATSAPP_DEMO_QR=1 shows the linking screen instead of the chats.
+// A file named demo-incoming in the app's data folder makes it send the
+// incoming message of demo.json, as if it just arrived, and is then deleted.
 package main
 
 import (
@@ -33,11 +35,14 @@ type demo struct {
 	Contacts []map[string]string         `json:"contacts"`
 	Presence map[string]map[string]any   `json:"presence"`
 	Typing   []map[string]any            `json:"typing"`
+	Incoming map[string]any              `json:"incoming"`
 }
 
 var (
 	mu  sync.Mutex
 	out = bufio.NewWriter(os.Stdout)
+	// Guards the demo's chats and messages, which the incoming message changes.
+	dmu sync.Mutex
 )
 
 func write(v any) {
@@ -52,7 +57,7 @@ func write(v any) {
 func event(name string, data any) { write(map[string]any{"event": name, "data": data}) }
 
 func main() {
-	flag.String("data", "", "ignored: the app's data folder")
+	data := flag.String("data", "", "the app's data folder, where demo-incoming is looked for")
 	flag.Bool("debug", false, "ignored")
 	flag.Parse()
 
@@ -90,6 +95,9 @@ func main() {
 			time.Sleep(3 * time.Second)
 		}
 	}()
+	if *data != "" && d.Incoming != nil {
+		go watchIncoming(&d, filepath.Join(*data, "demo-incoming"))
+	}
 
 	reader := bufio.NewReaderSize(os.Stdin, 1<<20)
 	for {
@@ -103,12 +111,54 @@ func main() {
 			if json.Unmarshal(line, &req) == nil {
 				var p map[string]any
 				_ = json.Unmarshal(req.Params, &p)
-				write(map[string]any{"id": req.ID, "result": handle(&d, state, req.Method, p)})
+				dmu.Lock()
+				result := handle(&d, state, req.Method, p)
+				dmu.Unlock()
+				write(map[string]any{"id": req.ID, "result": result})
 			}
 		}
 		if err != nil {
 			return
 		}
+	}
+}
+
+// watchIncoming sends the incoming message once the trigger file shows up,
+// with the message event and the updated chat, as the real helper does.
+func watchIncoming(d *demo, trigger string) {
+	for {
+		time.Sleep(200 * time.Millisecond)
+		if os.Remove(trigger) != nil {
+			continue
+		}
+		dmu.Lock()
+		m := map[string]any{}
+		for key, value := range d.Incoming {
+			m[key] = value
+		}
+		chat := str(m, "chat")
+		m["ts"] = float64(time.Now().Unix())
+		m["notify"] = true
+		d.Messages[chat] = append(d.Messages[chat], m)
+		var updated map[string]any
+		for _, c := range d.Chats {
+			if c["jid"] == chat {
+				unread, _ := c["unread"].(float64)
+				c["unread"] = unread + 1
+				c["ts"] = m["ts"]
+				last := map[string]any{"id": m["id"], "fromMe": false, "kind": m["kind"], "status": 0, "text": m["text"]}
+				if name := str(m, "senderName"); name != "" {
+					last["senderName"] = strings.Fields(name)[0]
+				}
+				c["last"] = last
+				updated = c
+			}
+		}
+		event("message", m)
+		if updated != nil {
+			event("chat", updated)
+		}
+		dmu.Unlock()
 	}
 }
 

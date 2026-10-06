@@ -244,6 +244,14 @@ def main() -> None:
     add(people["grandpa"][0], "grandpa", 2 * day + 3 * hour, text="Thanks for the photos!")
     add(running, "jonas", 3 * day, text="Sunday 9:00, usual spot")
 
+    # The message the helper sends on cue, for the screenshot of a notification. It is not
+    # in the chat yet, so its time is set when it arrives.
+    incoming = {
+        "chat": hiking, "id": "DEMO9001", "seq": seq[0] + 1, "sender": people["jonas"][0], "fromMe": False,
+        "ts": now, "kind": "text", "status": 0, "senderName": people["jonas"][1],
+        "text": "Who's bringing headlamps? It's still dark at 06:30 🔦",
+    }
+
     def last(chat):
         m = messages[chat][-1]
         l = {"id": m["id"], "fromMe": m["fromMe"], "kind": m["kind"], "status": m["status"]}
@@ -309,6 +317,7 @@ def main() -> None:
         "contacts": [{"jid": j, "name": n, "phone": "+" + j.split("@")[0]} for j, n in people.values()],
         "presence": {people["mia"][0]: {"jid": people["mia"][0], "online": True}},
         "typing": [{"chat": people["mia"][0], "sender": people["mia"][0], "typing": True}],
+        "incoming": incoming,
     }
 
     DEMO.mkdir(parents=True, exist_ok=True)
