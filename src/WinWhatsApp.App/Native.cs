@@ -137,6 +137,11 @@ internal static partial class Native
     [LibraryImport("user32.dll")]
     public static partial int GetSystemMetricsForDpi(int index, uint dpi);
 
+    public const int DWMWA_CAPTION_COLOR = 35;
+
+    [LibraryImport("dwmapi.dll")]
+    public static partial int DwmSetWindowAttribute(nint hwnd, int attribute, ref uint value, int size);
+
     public const int SM_CXDOUBLECLK = 36, SM_CYDOUBLECLK = 37;
 
     [LibraryImport("user32.dll")]

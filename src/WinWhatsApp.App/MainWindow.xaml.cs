@@ -216,7 +216,22 @@ public sealed partial class MainWindow : Window
         titleBar.ButtonBackgroundColor = Colors.Transparent;
         titleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
         Root.LayoutUpdated += (_, _) => QueueTitleBarUpdate();
+        Root.ActualThemeChanged += (_, _) => DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, SetCaptionColor);
+        SetCaptionColor();
         AppWindow.Changed += (_, _) => QueueTitleBarUpdate();
+    }
+
+    /// <summary>
+    /// Windows keeps a line of its frame above the app when the window is maximized,
+    /// in the caption colour, which is light by default: it takes the colour of the headers.
+    /// </summary>
+    private void SetCaptionColor()
+    {
+        if (ChatPane.Background is SolidColorBrush { Color: var color })
+        {
+            uint colorRef = color.R | (uint)color.G << 8 | (uint)color.B << 16;
+            Native.DwmSetWindowAttribute(App.Current.WindowHandleOf(this), Native.DWMWA_CAPTION_COLOR, ref colorRef, sizeof(uint));
+        }
     }
 
     /// <summary>Updates the title bar once after the layout settles, not on every pass.</summary>
