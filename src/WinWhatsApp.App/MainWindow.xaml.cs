@@ -841,7 +841,7 @@ public sealed partial class MainWindow : Window
         {
             return;
         }
-        var dialog = new NewChatDialog(Session) { XamlRoot = Content.XamlRoot };
+        var dialog = new NewChatDialog(Session) { XamlRoot = Content.XamlRoot, RequestedTheme = Root.ActualTheme };
         if (await dialog.ShowAsync() == ContentDialogResult.Primary && dialog.ChosenJid is { } jid)
         {
             EndSearch();
@@ -852,7 +852,7 @@ public sealed partial class MainWindow : Window
 
     private async void OnSettingsClick(object sender, RoutedEventArgs e)
     {
-        var dialog = new SettingsDialog(Session) { XamlRoot = Content.XamlRoot };
+        var dialog = new SettingsDialog(Session) { XamlRoot = Content.XamlRoot, RequestedTheme = Root.ActualTheme };
         await dialog.ShowAsync();
         SettingsStore.Save(Session.Settings);
         ApplyTheme();

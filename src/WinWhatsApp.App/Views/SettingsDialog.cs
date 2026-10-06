@@ -29,15 +29,20 @@ internal sealed partial class SettingsDialog : ContentDialog
         panel.Children.Add(Toggle("Download photos automatically", settings.AutoDownloadImages, v => settings.AutoDownloadImages = v));
 
         var theme = new RadioButtons { Header = "Theme", MaxColumns = 3, Margin = new Thickness(0, 8, 0, 0) };
-        foreach (string name in new[] { "System", "Light", "Dark" })
+        string[] themes = ["System", "Light", "Dark"];
+        foreach (string name in themes)
         {
             theme.Items.Add(name);
         }
-        theme.SelectedItem = settings.Theme;
+        // By position: SelectedItem compares the boxed strings by reference, and the
+        // one from the settings file is never the same object, so nothing was selected.
+        theme.SelectedIndex = Math.Max(0, Array.IndexOf(themes, settings.Theme));
         theme.SelectionChanged += (_, _) =>
         {
             settings.Theme = theme.SelectedItem as string ?? "System";
             App.Current.Window.ApplyTheme();
+            // The dialog is not inside the window's content, so it follows by itself.
+            RequestedTheme = App.Current.Window.Content is FrameworkElement root ? root.ActualTheme : ElementTheme.Default;
         };
         panel.Children.Add(theme);
 
@@ -73,6 +78,7 @@ internal sealed partial class SettingsDialog : ContentDialog
                 CloseButtonText = "Cancel",
                 DefaultButton = ContentDialogButton.Close,
                 XamlRoot = XamlRoot,
+                RequestedTheme = ActualTheme,
             };
             if (await confirm.ShowAsync() == ContentDialogResult.Primary)
             {

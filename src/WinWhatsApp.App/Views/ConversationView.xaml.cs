@@ -1054,6 +1054,8 @@ public sealed partial class ConversationView : UserControl
             CloseButtonText = "Cancel",
             DefaultButton = ContentDialogButton.Close,
             XamlRoot = XamlRoot,
+            // A dialog is not inside the window's content, so it does not take its theme by itself.
+            RequestedTheme = ActualTheme,
         };
         if (await dialog.ShowAsync() == ContentDialogResult.Primary)
         {
