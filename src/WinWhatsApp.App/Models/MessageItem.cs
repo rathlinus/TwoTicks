@@ -205,7 +205,7 @@ public sealed class MessageItem : Observable
 
     /// <summary>The react button sits in the gap beside the bubble, on the side away from its sender.</summary>
     public HorizontalAlignment ReactButtonAlignment => FromMe ? HorizontalAlignment.Left : HorizontalAlignment.Right;
-    public Thickness ReactButtonMargin => FromMe ? new Thickness(-44, 0, 0, 0) : new Thickness(0, 0, -44, 0);
+    public Thickness ReactButtonMargin => FromMe ? new Thickness(-44, -16, 0, -16) : new Thickness(0, -16, -44, -16);
 
     /// <summary>Briefly set when the conversation jumps to this message.</summary>
     public bool IsHighlighted

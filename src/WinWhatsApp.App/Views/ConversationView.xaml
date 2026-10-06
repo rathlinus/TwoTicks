@@ -193,8 +193,9 @@
                         <RichTextBlock c:EmojiText.Text="{x:Bind ReactionsText, Mode=OneWay}" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" IsTextSelectionEnabled="False" />
                     </Border>
 
-                    <!-- While the pointer is over the message: its menu in the corner, and a button to react beside it. -->
-                    <Grid Margin="0,2,2,0" HorizontalAlignment="Right" VerticalAlignment="Top" Visibility="{x:Bind HoverVisibility, Mode=OneWay}">
+                    <!-- While the pointer is over the message: its menu in the corner, and a button to react beside it.
+                         Their margins cancel their size, so a one-line bubble does not grow to fit them. -->
+                    <Grid Margin="-30,2,2,-24" HorizontalAlignment="Right" VerticalAlignment="Top" Visibility="{x:Bind HoverVisibility, Mode=OneWay}">
                         <Border Background="{ThemeResource IncomingBubbleBrush}" CornerRadius="11" Visibility="{x:Bind IncomingVisibility}" />
                         <Border Background="{ThemeResource OutgoingBubbleBrush}" CornerRadius="11" Visibility="{x:Bind OutgoingVisibility}" />
                         <Button Width="30" Height="22" Click="OnMessageMenuClick" CornerRadius="11" Style="{StaticResource IconButtonStyle}" AutomationProperties.Name="Message menu">
@@ -245,7 +246,7 @@
                         <RichTextBlock c:EmojiText.Text="{x:Bind ReactionsText, Mode=OneWay}" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" IsTextSelectionEnabled="False" />
                     </Border>
 
-                    <Button Width="30" Height="22" Margin="0,2,2,0" HorizontalAlignment="Right" VerticalAlignment="Top" Background="{ThemeResource DayChipBrush}"
+                    <Button Width="30" Height="22" Margin="-30,2,2,-24" HorizontalAlignment="Right" VerticalAlignment="Top" Background="{ThemeResource DayChipBrush}"
                             Click="OnMessageMenuClick" CornerRadius="11" Style="{StaticResource IconButtonStyle}" Visibility="{x:Bind HoverVisibility, Mode=OneWay}"
                             AutomationProperties.Name="Message menu">
                         <c:WaIcon Kind="ChevronDown" Size="20" Foreground="{ThemeResource MetaTextBrush}" />
