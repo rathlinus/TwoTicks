@@ -270,6 +270,7 @@ def build_wallpapers(work, page):
 
 def build_fonts(page):
     from fontTools.ttLib import TTFont
+    from fontTools.varLib import instancer
     import io
     styles = [u.replace('\\/', '/') for u in re.findall(r'href="(https://static\.whatsapp\.net/rsrc\.php/[^"]+\.css)"', page)]
     css = ''.join(fetch(u).decode('utf-8', 'replace') for u in styles)
@@ -278,6 +279,9 @@ def build_fonts(page):
     for style, url in re.findall(r'@font-face\{font-family:Roboto Variable;font-style:(\w+);[^}]*src:url\(([^)]+\.woff2)\)', css):
         font = TTFont(io.BytesIO(fetch('https://static.whatsapp.net' + url)))
         font.flavor = None
+        # Only the normal width: a RichEditBox picks the font by name and would
+        # get one of the Condensed instances.
+        font = instancer.instantiateVariableFont(font, {'wdth': 100}, updateFontNames=True)
         font.save(os.path.join(ASSETS, 'Fonts', 'Roboto-Italic.ttf' if style == 'italic' else 'Roboto.ttf'))
         found += 1
     if found != 2:
