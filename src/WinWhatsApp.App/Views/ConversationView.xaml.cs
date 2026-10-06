@@ -1,8 +1,11 @@
 using System.Diagnostics;
+using System.Numerics;
+using Microsoft.UI.Composition;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Windows.ApplicationModel.DataTransfer;
@@ -44,6 +47,9 @@ public sealed partial class ConversationView : UserControl
     private int _pinIndex;
     private int _newWhileAway;
     private bool _settingText;
+    private Conversation? _statusFor;
+    private bool _statusShown;
+    private int _statusVersion;
 
     public ConversationView()
     {
@@ -67,6 +73,10 @@ public sealed partial class ConversationView : UserControl
 
         MediaPreview.SendRequested += OnMediaSendRequested;
         Session.PropertyChanged += OnSessionChanged;
+        ElementCompositionPreview.SetIsTranslationEnabled(HeaderNameLabel, true);
+        ElementCompositionPreview.SetIsTranslationEnabled(HeaderStatusText, true);
+        HeaderStatusText.SizeChanged += OnHeaderStatusSizeChanged;
+        ShowHeaderStatus();
     }
 
     /// <summary>
@@ -1236,6 +1246,129 @@ public sealed partial class ConversationView : UserControl
         {
             UpdatePinBar();
         }
+        else if (e.PropertyName == nameof(Session.HeaderStatus))
+        {
+            ShowHeaderStatus();
+        }
+    }
+
+    // ---- The header's status line ----
+
+    /// <summary>
+    /// Shows the line under the name. Without one the name slides down into the middle,
+    /// and a new line fades in from below. Opening another chat just puts it in place.
+    /// </summary>
+    private void ShowHeaderStatus()
+    {
+        string? status = Session.HeaderStatus;
+        bool show = !string.IsNullOrEmpty(status);
+        bool animate = _statusFor == Session.Current && IsLoaded;
+        _statusFor = Session.Current;
+        int version = ++_statusVersion;
+
+        // Half the status line's height takes the name to the middle of the header.
+        float drop = show ? 0 : (float)HeaderStatusText.ActualHeight / 2;
+        Visual name = ElementCompositionPreview.GetElementVisual(HeaderNameLabel);
+        Visual line = ElementCompositionPreview.GetElementVisual(HeaderStatusText);
+        Animate(name, "Translation", new Vector3(0, drop, 0), animate ? 220 : 0);
+
+        if (!show)
+        {
+            // The old text stays while it fades, so the line keeps its height.
+            _statusShown = false;
+            Animate(line, "Opacity", 0, animate ? 150 : 0);
+            Animate(line, "Translation", new Vector3(0, drop, 0), animate ? 220 : 0);
+            return;
+        }
+
+        if (HeaderStatusText.Text == status && _statusShown)
+        {
+            return;
+        }
+        if (!animate)
+        {
+            HeaderStatusText.Text = status;
+            _statusShown = true;
+            Animate(line, "Opacity", 1, 0);
+            Animate(line, "Translation", Vector3.Zero, 0);
+            return;
+        }
+        if (!_statusShown)
+        {
+            HeaderStatusText.Text = status;
+            _statusShown = true;
+            FadeIn(line);
+            return;
+        }
+
+        // From one status to another: the old one leaves upwards, the new one comes from below.
+        CompositionScopedBatch batch = line.Compositor.CreateScopedBatch(CompositionBatchTypes.Animation);
+        Animate(line, "Opacity", 0, 100);
+        Animate(line, "Translation", new Vector3(0, -6, 0), 100);
+        batch.End();
+        batch.Completed += (_, _) => DispatcherQueue.TryEnqueue(() =>
+        {
+            if (version == _statusVersion)
+            {
+                HeaderStatusText.Text = status;
+                FadeIn(line);
+            }
+        });
+    }
+
+    /// <summary>The line's height is only known after layout, and the empty header centers the name with it.</summary>
+    private void OnHeaderStatusSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (e.NewSize.Height != e.PreviousSize.Height && !_statusShown)
+        {
+            var drop = new Vector3(0, (float)e.NewSize.Height / 2, 0);
+            Animate(ElementCompositionPreview.GetElementVisual(HeaderNameLabel), "Translation", drop, 0);
+            Animate(ElementCompositionPreview.GetElementVisual(HeaderStatusText), "Translation", drop, 0);
+        }
+    }
+
+    private static void FadeIn(Visual line)
+    {
+        Animate(line, "Translation", new Vector3(0, 6, 0), 0);
+        Animate(line, "Opacity", 0, 0);
+        Animate(line, "Opacity", 1, 180);
+        Animate(line, "Translation", Vector3.Zero, 220);
+    }
+
+    /// <summary>Moves a visual's property to a value, at once when no time is given.</summary>
+    private static void Animate(Visual visual, string property, object value, int milliseconds)
+    {
+        visual.StopAnimation(property);
+        if (milliseconds == 0)
+        {
+            if (value is Vector3 vector)
+            {
+                visual.Properties.InsertVector3(property, vector);
+            }
+            else
+            {
+                visual.Opacity = Convert.ToSingle(value);
+            }
+            return;
+        }
+
+        Compositor compositor = visual.Compositor;
+        CubicBezierEasingFunction ease = compositor.CreateCubicBezierEasingFunction(new Vector2(0.2f, 0), new Vector2(0, 1));
+        KeyFrameAnimation animation;
+        if (value is Vector3 target)
+        {
+            Vector3KeyFrameAnimation move = compositor.CreateVector3KeyFrameAnimation();
+            move.InsertKeyFrame(1, target, ease);
+            animation = move;
+        }
+        else
+        {
+            ScalarKeyFrameAnimation fade = compositor.CreateScalarKeyFrameAnimation();
+            fade.InsertKeyFrame(1, Convert.ToSingle(value), ease);
+            animation = fade;
+        }
+        animation.Duration = TimeSpan.FromMilliseconds(milliseconds);
+        visual.StartAnimation(property, animation);
     }
 
     /// <summary>Shows one pinned message above the chat, with a mark for each pin when there are several.</summary>

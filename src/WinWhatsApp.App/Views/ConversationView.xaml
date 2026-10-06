@@ -330,9 +330,9 @@
                     </Grid.ColumnDefinitions>
                     <c:Avatar VerticalAlignment="Center" Size="40" IsGroup="{x:Bind Session.Current.Chat.IsGroup, Mode=OneWay}" Source="{x:Bind Session.Current.Chat.Avatar, Mode=OneWay}" />
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                        <c:EmojiLabel Text="{x:Bind Session.Current.Chat.Name, Mode=OneWay}" FontSize="16" FontWeight="Medium" Foreground="{ThemeResource TextPrimaryBrush}" />
-                        <TextBlock x:Name="HeaderStatusText" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" MaxLines="1"
-                                   Text="{x:Bind Session.HeaderStatus, Mode=OneWay}" TextTrimming="CharacterEllipsis" />
+                        <!-- The status line keeps its room even when empty; the name is moved down into the middle then. -->
+                        <c:EmojiLabel x:Name="HeaderNameLabel" Text="{x:Bind Session.Current.Chat.Name, Mode=OneWay}" FontSize="16" FontWeight="Medium" Foreground="{ThemeResource TextPrimaryBrush}" />
+                        <TextBlock x:Name="HeaderStatusText" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" MaxLines="1" Text="&#x200B;" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                 </Grid>
             </c:PlainButton>
