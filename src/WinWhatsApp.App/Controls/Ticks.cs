@@ -43,7 +43,8 @@ public sealed partial class Ticks : UserControl
         {
             MessageStatus.Pending => ("Pending", 12, "MetaTextBrush"),
             MessageStatus.Sent => ("Sent", 16, "MetaTextBrush"),
-            MessageStatus.Delivered => ("Delivered", 16, "MetaTextBrush"),
+            // The double tick of "read", in grey: WhatsApp Web's own "delivered" icon has only one.
+            MessageStatus.Delivered => ("Read", 16, "MetaTextBrush"),
             MessageStatus.Failed => ("Failed", 14, "FailedBrush"),
             >= MessageStatus.Read => ("Read", 16, "ReadTicksBrush"),
             _ => (null, 16, "MetaTextBrush"),
