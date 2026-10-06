@@ -165,7 +165,7 @@ func (b *Bridge) onCallStanza(node *waBinary.Node) {
 		b.sendCallReceipt(ctx, from, id, child.Tag, callID, creator)
 	}
 
-	data, err := waBinary.Marshal(*child)
+	data, err := marshalForEngine(*child)
 	if err != nil {
 		b.log.Warnf("Failed to encode a call stanza: %v", err)
 		return
@@ -223,7 +223,7 @@ func (b *Bridge) onCallReceipt(node *waBinary.Node) {
 	if children := node.GetChildren(); len(children) > 0 {
 		callID = children[0].AttrGetter().OptionalString("call-id")
 	}
-	data, err := waBinary.Marshal(*node)
+	data, err := marshalForEngine(*node)
 	if err != nil {
 		return
 	}
@@ -416,7 +416,7 @@ func (b *Bridge) sendCall(ctx context.Context, peerText, payload string) (map[st
 	}
 	select {
 	case ack := <-wait:
-		data, err := waBinary.Marshal(*ack)
+		data, err := marshalForEngine(*ack)
 		if err != nil {
 			return nil, err
 		}
@@ -519,6 +519,34 @@ func (b *Bridge) tcToken(ctx context.Context, jid types.JID) string {
 		}
 	}
 	return ""
+}
+
+// marshalForEngine encodes a stanza from WhatsApp again for the engine.
+//
+// whatsmeow reads the device ID of a person's main device, device 0, as the
+// person's ID, and writes it back that way. The engine needs it written as a
+// device where WhatsApp sent a device, as in the <device> list of an offer's
+// ack, or it cannot read the stanza. whatsmeow writes the device form for any
+// device above 0 and keeps only the low byte of the number, so device 256
+// comes out as device 0 in the device form.
+func marshalForEngine(node waBinary.Node) ([]byte, error) {
+	markDevices(&node)
+	return waBinary.Marshal(node)
+}
+
+func markDevices(node *waBinary.Node) {
+	if node.Tag == "device" {
+		if jid, ok := node.Attrs["jid"].(types.JID); ok && jid.Device == 0 &&
+			(jid.Server == types.DefaultUserServer || jid.Server == types.HiddenUserServer) {
+			jid.Device = 256
+			node.Attrs["jid"] = jid
+		}
+	}
+	if children, ok := node.Content.([]waBinary.Node); ok {
+		for i := range children {
+			markDevices(&children[i])
+		}
+	}
 }
 
 // legacyJID writes a JID as WhatsApp Web's calling engine does, with c.us for
