@@ -23,7 +23,7 @@
                     </Border.OpacityTransition>
                 </Border>
 
-                <Grid HorizontalAlignment="{x:Bind Alignment}" MaxWidth="600" Margin="{x:Bind BubbleMargin}">
+                <Grid HorizontalAlignment="{x:Bind Alignment}" MaxWidth="{x:Bind BubbleMaxWidth, Mode=OneWay}" Margin="{x:Bind BubbleMargin}">
                     <!-- WhatsApp's tail on the first bubble of a run. -->
                     <c:WaIcon x:Name="TailIn" x:Load="{x:Bind HasTailIn, Mode=OneWay}" Margin="-10.5,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Kind="TailIn" Size="13"
                               Foreground="{ThemeResource IncomingBubbleBrush}" />

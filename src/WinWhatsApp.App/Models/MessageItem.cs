@@ -272,6 +272,9 @@ public sealed class MessageItem : Observable
 
     /// <summary>A photo sits in the bubble with the same small border on every side.</summary>
     public Thickness BubblePadding => HasVisual ? new Thickness(3) : new Thickness(4, 3, 4, 4);
+
+    /// <summary>A photo's bubble is as wide as the photo, and its caption wraps below it, as in WhatsApp.</summary>
+    public double BubbleMaxWidth => HasVisual ? VisualWidth + BubblePadding.Left + BubblePadding.Right : 600;
     public Visibility TimeOverVisualVisibility => TimeOverVisual ? Visibility.Visible : Visibility.Collapsed;
 
     public ImageSource? Visual { get => _visual; private set => Set(ref _visual, value); }
