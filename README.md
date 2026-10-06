@@ -59,6 +59,10 @@ The search field finds chats by name and messages by their text, across all chat
 
 Click the name at the top of a chat to see who it is: the profile picture, the about text and the phone number of a person, or the description, the members and the admins of a group.
 
+<p align="center">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark-group-info.webp" /><img src="docs/screenshots/light-group-info.webp" alt="The info of a group beside the chat: its picture, description, who created it and the list of members" width="70%" /></picture>
+</p>
+
 ## On your desktop
 
 - Notifications for new messages that you can reply to without opening the app
@@ -68,10 +72,10 @@ Click the name at the top of a chat to see who it is: the profile picture, the a
 - Light, dark or the system's theme, and WinWhatsApp's own icon or WhatsApp's
 
 <p align="center">
-  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark-group-info.webp" /><img src="docs/screenshots/light-group-info.webp" alt="The info of a group beside the chat: its picture, description, who created it and the list of members" width="49%" /></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark-notification.webp" /><img src="docs/screenshots/light-notification.webp" alt="A Windows notification for a new message in the hiking group, with the group's picture, a box to type a reply and a button to mark it as read" width="49%" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark-settings.webp" /><img src="docs/screenshots/light-settings.webp" alt="The settings: notifications, running in the notification area, starting with Windows, theme, app icon and the account" width="49%" /></picture>
   <br />
-  <sub>Group info&nbsp;&nbsp;·&nbsp;&nbsp;Settings</sub>
+  <sub>A notification you can reply to&nbsp;&nbsp;·&nbsp;&nbsp;Settings</sub>
 </p>
 
 | Keys | What they do |
