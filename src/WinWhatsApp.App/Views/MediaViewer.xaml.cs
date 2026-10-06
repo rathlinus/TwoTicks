@@ -1,8 +1,12 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Windows.ApplicationModel.DataTransfer;
+using Windows.Storage;
+using Windows.Storage.Streams;
 using Windows.System;
 using WinWhatsApp.App.Controls;
 using WinWhatsApp.App.Models;
@@ -436,6 +440,10 @@ public sealed partial class MediaViewer : UserControl
             case VirtualKey.S when control:
                 Save();
                 break;
+            // The caption copies its own selection.
+            case VirtualKey.C when control && !IsInside(e.OriginalSource as DependencyObject, CaptionBox):
+                Copy();
+                break;
             default:
                 return;
         }
@@ -505,7 +513,82 @@ public sealed partial class MediaViewer : UserControl
         }
     }
 
-    private async void OnShowInChatClick(object sender, RoutedEventArgs e)
+    /// <summary>Right-click on the photo or video, or the menu key.</summary>
+    private void OnContextRequested(UIElement sender, ContextRequestedEventArgs e)
+    {
+        // The caption has its own menu for the text, and the buttons have none.
+        var source = e.OriginalSource as DependencyObject;
+        if (source != this && (!IsInside(source, Stage) || IsInside(source, CaptionBox) || IsInside(source, Failure)
+            || IsInside(source, PreviousButton) || IsInside(source, NextButton)))
+        {
+            return;
+        }
+        if (_current is not { Path: { } path } item)
+        {
+            return;
+        }
+        e.Handled = true;
+
+        var menu = new MenuFlyout();
+        void Add(string text, string icon, Action action)
+        {
+            var entry = new MenuFlyoutItem { Text = text, Icon = WaIcons.PathIcon(icon) };
+            entry.Click += (_, _) => action();
+            menu.Items.Add(entry);
+        }
+        Add(Loc.T("common.copy"), "Copy", Copy);
+        Add(Loc.T("conversation.saveAs"), "Download", Save);
+        Add(Loc.T("media.openInAnotherApp"), "OpenInNew", () => ConversationView.OpenFile(path));
+        Add(Loc.T("conversation.showInFolder"), "Folder", () => Process.Start("explorer.exe", $"/select,\"{path}\""));
+        if (item.Message is not null)
+        {
+            menu.Items.Add(new MenuFlyoutSeparator());
+            Add(Loc.T("media.showInChat"), "Chat", ShowInChat);
+        }
+
+        if (e.TryGetPosition(this, out Windows.Foundation.Point point))
+        {
+            menu.ShowAt(this, point);
+        }
+        else
+        {
+            menu.ShowAt(Stage);
+        }
+    }
+
+    /// <summary>
+    /// Puts the photo on the clipboard as a picture, for pasting into a chat or
+    /// an image editor, and as the file, for pasting into a folder. A video goes
+    /// only as the file.
+    /// </summary>
+    private async void Copy()
+    {
+        if (_current is not { Path: { } path } item)
+        {
+            return;
+        }
+        try
+        {
+            StorageFile file = await StorageFile.GetFileFromPathAsync(path);
+            var package = new DataPackage();
+            package.SetStorageItems([file]);
+            if (!item.IsVideo)
+            {
+                package.SetBitmap(RandomAccessStreamReference.CreateFromFile(file));
+            }
+            Clipboard.SetContent(package);
+            // Keeps it on the clipboard after the app closes.
+            Clipboard.Flush();
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.Runtime.InteropServices.COMException)
+        {
+            Log.Error($"Failed to copy {path}", e);
+        }
+    }
+
+    private void OnShowInChatClick(object sender, RoutedEventArgs e) => ShowInChat();
+
+    private async void ShowInChat()
     {
         if (_current?.Message is not { } message)
         {

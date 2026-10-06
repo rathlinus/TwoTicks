@@ -6,6 +6,7 @@
     xmlns:app="using:WinWhatsApp.App"
     xmlns:c="using:WinWhatsApp.App.Controls"
     xmlns:v="using:WinWhatsApp.App.Views"
+    ContextRequested="OnContextRequested"
     IsTabStop="True"
     KeyDown="OnKeyDown"
     RequestedTheme="Dark"
@@ -84,7 +85,7 @@
         </Grid>
 
         <!-- The photo or video, with arrows to the ones before and after it. -->
-        <Grid Grid.Row="1">
+        <Grid x:Name="Stage" Grid.Row="1">
             <c:ZoomImage x:Name="Photo" EmptyTapped="OnPhotoEmptyTapped" Swiped="OnPhotoSwiped" ZoomChanged="OnPhotoZoomChanged" />
             <MediaPlayerElement x:Name="Video" Margin="24" AreTransportControlsEnabled="True" AutoPlay="True" Visibility="Collapsed" />
             <ProgressRing x:Name="Spinner" Width="48" Height="48" Foreground="White" IsActive="False" IsHitTestVisible="False" />
