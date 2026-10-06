@@ -317,6 +317,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <c:PlainButton x:Name="HeaderButton" HorizontalAlignment="Left" VerticalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center"
                            Click="OnHeaderClick">
@@ -333,7 +334,11 @@
                     </StackPanel>
                 </Grid>
             </c:PlainButton>
-            <Button Grid.Column="1" AutomationProperties.Name="More" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="More">
+            <Button x:Name="CallButton" Grid.Column="1" AutomationProperties.Name="Voice call" Click="OnCallClick" Style="{StaticResource IconButtonStyle}"
+                    ToolTipService.ToolTip="Voice call" Visibility="{x:Bind CallVisibility(Session.Current.Chat), Mode=OneWay}">
+                <c:WaIcon Kind="Call" Size="22" />
+            </Button>
+            <Button Grid.Column="2" AutomationProperties.Name="More" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="More">
                 <c:WaIcon Kind="MoreVert" Size="22" />
                 <Button.Flyout>
                     <MenuFlyout x:Name="ChatMenu" Opening="OnChatMenuOpening" Placement="BottomEdgeAlignedRight" />

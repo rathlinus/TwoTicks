@@ -1,4 +1,5 @@
 using Microsoft.UI.Dispatching;
+using WinWhatsApp.App.Calls;
 using WinWhatsApp.App.Models;
 using WinWhatsApp.Core;
 
@@ -97,11 +98,15 @@ public sealed class Session : Observable
         Client.Failed += message => Post(() => ShowError(message));
 
         Chats.UnreadChanged += () => UnreadChanged?.Invoke(Chats.UnreadChats);
+        Calls = new CallManager(ui, Client, notifier, Chats.Get);
     }
 
     public WhatsAppClient Client { get; }
     public AppSettings Settings { get; }
     public ChatList Chats { get; } = new();
+
+    /// <summary>Voice calls, made and taken here.</summary>
+    public CallManager Calls { get; }
 
     /// <summary>Raised with the number of unread chats whenever it may have changed.</summary>
     public event Action<int>? UnreadChanged;
@@ -214,6 +219,7 @@ public sealed class Session : Observable
                 break;
             case "connected" when previous != "connected":
                 QrCode = null;
+                CallManager.Prefetch();
                 _chatsReload.Start();
                 if (_windowActive)
                 {

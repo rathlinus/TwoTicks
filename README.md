@@ -66,6 +66,12 @@ The info also holds what belongs to the chat, as in WhatsApp: its photos, videos
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark-group-info.webp" /><img src="docs/screenshots/light-group-info.webp" alt="The info of a group beside the chat: its picture, description, who created it and the list of members" width="70%" /></picture>
 </p>
 
+## Calls
+
+Call someone with the phone button at the top of their chat, and answer calls that come in, in a small window of their own or from the notification. The window shows how long the call runs and has buttons to mute and to hang up.
+
+Calls use WhatsApp Web's own calling engine, which WinWhatsApp downloads from WhatsApp once, after linking.
+
 ## On your desktop
 
 - Notifications for new messages that you can reply to without opening the app
@@ -94,7 +100,7 @@ The info also holds what belongs to the chat, as in WhatsApp: its photos, videos
 
 ## What it does not do
 
-There are no voice or video calls. An incoming call shows a notification to answer it on the phone. Status updates, channels and communities are not shown.
+Calls are voice calls with one person. Video calls and group calls show a notification to answer them on the phone. Status updates, channels and communities are not shown.
 
 ## Install
 
@@ -122,7 +128,7 @@ WinWhatsApp is not made by, affiliated with or endorsed by WhatsApp or Meta.
 
 ## Where your data is
 
-Everything is in `%LOCALAPPDATA%\WinWhatsApp`: the link to your phone, the messages, downloaded files, settings and logs. Nothing leaves your PC except what WhatsApp itself sends. When you type a link, WinWhatsApp loads that page and its picture to show a preview, as WhatsApp's apps do. Logging out from the menu, or removing the device on the phone, deletes the messages and files.
+Everything is in `%LOCALAPPDATA%\WinWhatsApp`: the link to your phone, the messages, downloaded files, settings and logs. Nothing leaves your PC except what WhatsApp itself sends. The calling engine is kept in the `Calls` folder there. When you type a link, WinWhatsApp loads that page and its picture to show a preview, as WhatsApp's apps do. Logging out from the menu, or removing the device on the phone, deletes the messages and files.
 
 ## Build
 

@@ -66,6 +66,13 @@ public partial class App : Application
         });
         _notifier.Replied += (chat, text) => _ui.TryEnqueue(() => _ = Session.ReplyFromNotificationAsync(chat, text));
         _notifier.MarkedRead += chat => _ui.TryEnqueue(() => _ = Session.MarkReadAsync(chat));
+        _notifier.CallAnswered += () => _ui.TryEnqueue(() =>
+        {
+            Session.Calls.Answer();
+            Session.Calls.ShowWindow();
+        });
+        _notifier.CallDeclined += () => _ui.TryEnqueue(() => Session.Calls.Decline());
+        _notifier.CallOpened += () => _ui.TryEnqueue(() => Session.Calls.ShowWindow());
         _notifier.Register(AppIcon.Folder(settings.WhatsAppIcon));
 
         // The helper starts first: it is ready with the chats by the time the
@@ -131,6 +138,7 @@ public partial class App : Application
         _quitting = true;
         Log.Info("Quitting");
         AudioPlayer.Stop();
+        Session.Calls.Shutdown();
         _tray?.Dispose();
         _tray = null;
         _notifier.ClearAll();

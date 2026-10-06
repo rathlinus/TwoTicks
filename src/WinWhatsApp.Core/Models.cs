@@ -235,6 +235,57 @@ public sealed class CallData
     public bool Group { get; set; }
 }
 
+/// <summary>
+/// A call stanza from WhatsApp for the calling engine. Node is the stanza in
+/// WhatsApp's binary XML, base64 encoded; the engine reads it as it is.
+/// </summary>
+public sealed class CallSignalData
+{
+    /// <summary>offer, message or receipt.</summary>
+    public string Kind { get; set; } = "";
+    public string Node { get; set; } = "";
+    public string Peer { get; set; } = "";
+    public string? Platform { get; set; }
+    public string? Version { get; set; }
+    public long T { get; set; }
+    public long E { get; set; }
+    public bool Offline { get; set; }
+    public string? TcToken { get; set; }
+    public string CallId { get; set; } = "";
+
+    // For an offer: the chat of the caller and their name.
+    public string? Chat { get; set; }
+    public string? Name { get; set; }
+    public bool NotContact { get; set; }
+}
+
+/// <summary>This device as the calling engine knows itself.</summary>
+public sealed class CallIdentityData
+{
+    public string Pn { get; set; } = "";
+    public string PnUser { get; set; } = "";
+    public string Lid { get; set; } = "";
+}
+
+/// <summary>What the calling engine needs to call someone.</summary>
+public sealed class CallTargetData
+{
+    public string Peer { get; set; } = "";
+    public string PeerPn { get; set; } = "";
+    public List<string> Devices { get; set; } = [];
+    public string? TcToken { get; set; }
+    public string Name { get; set; } = "";
+}
+
+/// <summary>The server's answer to a call stanza.</summary>
+public sealed class CallAckData
+{
+    public string Node { get; set; } = "";
+    public string Error { get; set; } = "0";
+    public string? Type { get; set; }
+    public string? TcToken { get; set; }
+}
+
 public sealed class ContactData
 {
     public string Jid { get; set; } = "";
@@ -339,6 +390,10 @@ public static class MessageStatus
 [JsonSerializable(typeof(MergedData))]
 [JsonSerializable(typeof(SyncData))]
 [JsonSerializable(typeof(CallData))]
+[JsonSerializable(typeof(CallSignalData))]
+[JsonSerializable(typeof(CallIdentityData))]
+[JsonSerializable(typeof(CallTargetData))]
+[JsonSerializable(typeof(CallAckData))]
 [JsonSerializable(typeof(List<ContactData>))]
 [JsonSerializable(typeof(JidData))]
 [JsonSerializable(typeof(CodeData))]

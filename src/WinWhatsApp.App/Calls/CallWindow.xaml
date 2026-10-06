@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="WinWhatsApp.App.Calls.CallWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:c="using:WinWhatsApp.App.Controls"
+    Title="WinWhatsApp call">
+
+    <!-- Dark in both themes, as WhatsApp's call screen is. -->
+    <Grid x:Name="Root" Background="#0B141A" RequestedTheme="Dark">
+        <Grid.Resources>
+            <!-- A round button in one colour that only brightens under the pointer. -->
+            <Style x:Key="CallButtonStyle" TargetType="Button">
+                <Setter Property="Width" Value="60" />
+                <Setter Property="Height" Value="60" />
+                <Setter Property="Foreground" Value="White" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Grid x:Name="Shape" Background="{TemplateBinding Background}" CornerRadius="30">
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualState x:Name="Normal" />
+                                        <VisualState x:Name="PointerOver">
+                                            <VisualState.Setters>
+                                                <Setter Target="Shape.Opacity" Value="0.85" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="Pressed">
+                                            <VisualState.Setters>
+                                                <Setter Target="Shape.Opacity" Value="0.7" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="Disabled">
+                                            <VisualState.Setters>
+                                                <Setter Target="Shape.Opacity" Value="0.4" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{TemplateBinding Foreground}" />
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </Grid.Resources>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel VerticalAlignment="Center" Spacing="10">
+            <TextBlock HorizontalAlignment="Center" FontSize="13" Foreground="#8696A0" Text="End-to-end encrypted" />
+            <c:Avatar x:Name="Picture" Margin="0,18,0,8" HorizontalAlignment="Center" Size="120" />
+            <c:EmojiLabel x:Name="NameText" HorizontalAlignment="Center" FontSize="24" Foreground="#E9EDEF" />
+            <TextBlock x:Name="StatusText" HorizontalAlignment="Center" FontSize="15" Foreground="#8696A0" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Margin="0,0,0,36" HorizontalAlignment="Center" Orientation="Horizontal" Spacing="40">
+            <Button x:Name="MuteButton" AutomationProperties.Name="Mute" Background="#233138" Click="OnMuteClick" Style="{StaticResource CallButtonStyle}" ToolTipService.ToolTip="Mute">
+                <c:WaIcon x:Name="MuteIcon" Kind="Mic" Size="28" />
+            </Button>
+            <Button x:Name="DeclineButton" AutomationProperties.Name="Decline" Background="#EA0038" Click="OnHangUpClick" Style="{StaticResource CallButtonStyle}" ToolTipService.ToolTip="Decline">
+                <c:WaIcon Kind="Call" Size="28" RenderTransformOrigin="0.5,0.5">
+                    <c:WaIcon.RenderTransform>
+                        <RotateTransform Angle="135" />
+                    </c:WaIcon.RenderTransform>
+                </c:WaIcon>
+            </Button>
+            <Button x:Name="AnswerButton" AutomationProperties.Name="Answer" Background="#25D366" Click="OnAnswerClick" Style="{StaticResource CallButtonStyle}" ToolTipService.ToolTip="Answer">
+                <c:WaIcon Kind="Call" Size="28" />
+            </Button>
+        </StackPanel>
+    </Grid>
+</Window>

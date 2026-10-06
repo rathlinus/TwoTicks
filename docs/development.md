@@ -23,6 +23,7 @@ Inno Setup is only needed to compile the setup program.
 | `scripts\screenshots` | Takes the README's screenshots on made-up chats; see its README. |
 | `scripts\copy-whatsapp-desktop.ps1` | Copies the icon and the sounds of WhatsApp from the Microsoft Store to `Assets\WhatsAppIcon` and `Assets\WhatsAppSounds`. Needs WhatsApp installed; run it only to take a newer version. |
 | `scripts\whatsapp-assetsuild.py` | Takes WhatsApp Web's emoji, icons, wallpapers and font; see below. |
+| `scripts\whatsapp-voipuild.py` | Takes WhatsApp Web's calling engine; see Calls below. |
 
 `dotnet build src\WinWhatsApp.App -p:Platform=x64` builds the app for debugging. It builds the Go helper too, whenever its sources changed.
 
@@ -94,3 +95,38 @@ The colours in `App.xaml` and `Controls/WhatsAppColors.xaml` are the values of W
 The messages of a chat are a virtualized `ListView`. `Conversation` builds its rows: messages, a label at each new day, and the line above the first unread message. Older messages load when scrolling near the top. Parts of a bubble that most messages do not have (a reply, a photo, a document) are created only for the messages that have them, with `x:Load`.
 
 Notifications use the plain Windows toast API under the AppUserModelID `WinWhatsApp`, which the app registers itself; the Windows App SDK's notification API does not work for apps that ship the SDK in their folder without being packaged. The unread count on the taskbar button is an overlay icon drawn by `TaskbarBadge`.
+
+## Calls
+
+Calls run WhatsApp Web's own calling engine: WhatsApp's calling library compiled to WebAssembly, with the script Emscripten made for it. The app runs it in a WebView2 that is never shown, and passes call stanzas between it and the helper.
+
+| File | What it is |
+|---|---|
+| `Assets/Voip/wa-voip-glue.js` | the engine's script, as WhatsApp Web has it |
+| `Assets/Voip/manifest.json` | where WhatsApp serves the engine's binary, and its SHA-256 |
+| `Assets/Voip/runtime.js` | the parts of WhatsApp Web's runtime the script expects around it |
+| `Assets/Voip/worker.js` | one of the engine's threads |
+| `Assets/Voip/host.js`, `host.html` | the page: starts the engine, answers its callbacks, carries messages to and from the app |
+| `Assets/Voip/audio-worklet.js` | the microphone and the speakers |
+
+The binary is not in the repository. The app downloads it from WhatsApp the first time it connects, checks it against the hash and keeps it in `Calls` in the data folder, next to the WebView2 profile.
+
+The engine needs threads that share memory, so its page must be isolated from other sites. `PageServer` serves it on a free port of 127.0.0.1 with the headers for that. WebView2 could serve the files itself by intercepting requests, but the engine's threads then hang loading their scripts.
+
+What goes where:
+
+- The helper takes `<call>` stanzas and receipts for them as whatsmeow receives them, from its receive log, because whatsmeow's call events leave out the stanza's id and attributes. It decrypts the call key in an offer with Signal, confirms offers, accepts and rejects with a receipt, and sends the stanza on as a `callSignal` event, in WhatsApp's binary XML. The engine reads that encoding as it is.
+- The engine's stanzas go back through `callSend`. The helper encrypts the call keys in an offer for each device, sends the stanza in a `<call>` and returns the server's ack, which the engine needs as well.
+- The sound of a call goes to WhatsApp's relays over WebTransport, as in WhatsApp Web. The engine sends packets to relay addresses; the page opens one WebTransport session per relay from the relay list the engine reports.
+- `CallManager` keeps the one call there can be, the call window and the sounds. The engine starts with the first call and stops two minutes after the last one, as it takes a few hundred megabytes.
+
+Video and group calls are not handled: their offers show a notification to answer on the phone.
+
+To take a newer engine, make or take a call in WhatsApp Web in Firefox, so that the cache has it, then run:
+
+```
+pip install zstandard brotli
+python scripts\whatsapp-voipuild.py
+```
+
+It finds a binary in the Firefox cache together with the script made for it, and writes the script and the manifest.

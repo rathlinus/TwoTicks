@@ -35,6 +35,15 @@ internal sealed class Notifier
     /// <summary>Mark as read was pressed in a notification. Raised on a background thread.</summary>
     public event Action<string>? MarkedRead;
 
+    /// <summary>Answer was pressed in the notification of a call. Raised on a background thread.</summary>
+    public event Action? CallAnswered;
+
+    /// <summary>Decline was pressed in the notification of a call. Raised on a background thread.</summary>
+    public event Action? CallDeclined;
+
+    /// <summary>The notification of a call was clicked. Raised on a background thread.</summary>
+    public event Action? CallOpened;
+
     /// <param name="assets">The folder with AppIcon.png; see <see cref="AppIcon"/>.</param>
     public void Register(string assets)
     {
@@ -109,12 +118,45 @@ internal sealed class Notifier
         Show(xml, "calls");
     }
 
+    /// <summary>A call that rings here, with buttons to answer and decline it. The app plays the ringtone.</summary>
+    public void ShowIncomingCall(string name, string? avatarPath)
+    {
+        string xml =
+            "<toast launch=\"action=showCall\" activationType=\"foreground\" scenario=\"incomingCall\">" +
+            "<visual><binding template=\"ToastGeneric\">" +
+            $"<text>{Escape(name)}</text><text>Incoming voice call</text>{Logo(avatarPath)}" +
+            "</binding></visual>" +
+            "<actions>" +
+            "<action content=\"Decline\" arguments=\"action=decline\" activationType=\"foreground\"/>" +
+            "<action content=\"Answer\" arguments=\"action=answer\" activationType=\"foreground\"/>" +
+            "</actions>" +
+            "<audio silent=\"true\"/>" +
+            "</toast>";
+        Show(xml, IncomingCallGroup, IncomingCallTag);
+    }
+
+    /// <summary>Removes the notification of a call that stopped ringing.</summary>
+    public void ClearIncomingCall()
+    {
+        try
+        {
+            ToastNotificationManager.History.Remove(IncomingCallTag, IncomingCallGroup, AppId);
+        }
+        catch (Exception)
+        {
+            // Nothing to remove.
+        }
+    }
+
+    private const string IncomingCallGroup = "calls";
+    private const string IncomingCallTag = "incoming";
+
     private static string Logo(string? avatarPath) =>
         !string.IsNullOrEmpty(avatarPath) && File.Exists(avatarPath)
             ? $"<image placement=\"appLogoOverride\" hint-crop=\"circle\" src=\"{Escape(new Uri(avatarPath).AbsoluteUri)}\"/>"
             : "";
 
-    private void Show(string xml, string group)
+    private void Show(string xml, string group, string? tag = null)
     {
         if (_notifier is null)
         {
@@ -125,6 +167,10 @@ internal sealed class Notifier
             var document = new XmlDocument();
             document.LoadXml(xml);
             var toast = new ToastNotification(document) { Group = group };
+            if (tag is not null)
+            {
+                toast.Tag = tag;
+            }
             toast.Activated += OnActivated;
             toast.Dismissed += (sender, _) => Forget(sender);
             lock (_shown)
@@ -172,6 +218,15 @@ internal sealed class Notifier
                 MarkedRead?.Invoke(chat);
                 break;
             case "dismiss":
+                break;
+            case "answer":
+                CallAnswered?.Invoke();
+                break;
+            case "decline":
+                CallDeclined?.Invoke();
+                break;
+            case "showCall":
+                CallOpened?.Invoke();
                 break;
             default:
                 Opened?.Invoke(chat);

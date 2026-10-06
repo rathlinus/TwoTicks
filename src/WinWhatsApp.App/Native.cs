@@ -26,6 +26,8 @@ internal static partial class Native
 
     public const int SW_RESTORE = 9;
 
+    public const uint WS_POPUP = 0x80000000, WS_EX_TOOLWINDOW = 0x80;
+
     public static readonly nint HWND_MESSAGE = -3;
 
     public delegate nint WndProc(nint hwnd, uint message, nint wParam, nint lParam);

@@ -43,7 +43,11 @@ public sealed class WhatsAppClient : IDisposable
     /// <summary>Messages of a chat were deleted on the phone.</summary>
     public event Action<MessageRef>? ChatCleared;
     public event Action<SyncData>? SyncProgress;
+    /// <summary>A call this app cannot answer, such as a video or group call.</summary>
     public event Action<CallData>? CallReceived;
+
+    /// <summary>A call stanza for the calling engine.</summary>
+    public event Action<CallSignalData>? CallSignalReceived;
     public event Action<MessageRef>? SendFailed;
     public event Action<string>? Failed;
 
@@ -160,6 +164,9 @@ public sealed class WhatsAppClient : IDisposable
                     break;
                 case "call":
                     CallReceived?.Invoke(Read(data, BridgeJson.Default.CallData));
+                    break;
+                case "callSignal":
+                    CallSignalReceived?.Invoke(Read(data, BridgeJson.Default.CallSignalData));
                     break;
                 case "sendFailed":
                     SendFailed?.Invoke(Read(data, BridgeJson.Default.MessageRef));
@@ -371,6 +378,15 @@ public sealed class WhatsAppClient : IDisposable
     public Task RequestOlderAsync(string chat) => CallAsync("requestOlder", new JsonObject { ["chat"] = chat });
 
     public Task<GroupData> GetGroupInfoAsync(string chat) => CallAsync("groupInfo", new JsonObject { ["chat"] = chat }, BridgeJson.Default.GroupData);
+
+    public Task<CallIdentityData> GetCallIdentityAsync() => CallAsync("callIdentity", null, BridgeJson.Default.CallIdentityData);
+
+    public Task<CallTargetData> PrepareCallAsync(string chat) =>
+        CallAsync("callPrepare", new JsonObject { ["chat"] = chat }, BridgeJson.Default.CallTargetData);
+
+    /// <summary>Sends a stanza of the calling engine to a peer and returns the server's ack.</summary>
+    public Task<CallAckData> SendCallAsync(string peer, string payload) =>
+        CallAsync("callSend", new JsonObject { ["peer"] = peer, ["payload"] = payload }, BridgeJson.Default.CallAckData);
 
     public void Dispose()
     {

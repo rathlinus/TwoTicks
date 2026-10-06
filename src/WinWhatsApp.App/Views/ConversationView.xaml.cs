@@ -1301,6 +1301,23 @@ public sealed partial class ConversationView : UserControl
         }
     }
 
+    // ---- Calls ----
+
+    /// <summary>People can be called; groups, channels and oneself not.</summary>
+    public Visibility CallVisibility(ChatItem? chat) =>
+        chat is { IsGroup: false } && (chat.Jid.EndsWith("@s.whatsapp.net", StringComparison.Ordinal) || chat.Jid.EndsWith("@lid", StringComparison.Ordinal))
+            && chat.Jid != Session.Me?.Jid
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
+    private void OnCallClick(object sender, RoutedEventArgs e)
+    {
+        if (_shown?.Chat is { } chat)
+        {
+            _ = Session.Calls.StartAsync(chat.Jid, chat.Name);
+        }
+    }
+
     // ---- The chat's menu ----
 
     private void OnHeaderClick(object sender, RoutedEventArgs e)

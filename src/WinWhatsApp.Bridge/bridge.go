@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"go.mau.fi/whatsmeow"
+	waBinary "go.mau.fi/whatsmeow/binary"
 	"go.mau.fi/whatsmeow/store/sqlstore"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
@@ -72,6 +73,9 @@ type Bridge struct {
 	mediaRetries sync.Map // message ID -> chan *events.MediaRetry
 	downloads    sync.Map // chat/id -> *download
 	avatarSlots  chan struct{}
+
+	// Call stanzas, in the order they arrived. See calls.go.
+	callNodes chan *waBinary.Node
 }
 
 func newBridge(dataDir string, log *fileLogger, out *output) (*Bridge, error) {
@@ -85,6 +89,7 @@ func newBridge(dataDir string, log *fileLogger, out *output) (*Bridge, error) {
 		state:       stateStarting,
 		merges:      make(chan [2]string, 256),
 		avatarSlots: make(chan struct{}, 3),
+		callNodes:   make(chan *waBinary.Node, 256),
 	}
 
 	var err error
@@ -111,7 +116,7 @@ func newBridge(dataDir string, log *fileLogger, out *output) (*Bridge, error) {
 	if !log.debug {
 		clientLog = &levelFilter{Logger: clientLog}
 	}
-	b.cli = whatsmeow.NewClient(device, clientLog)
+	b.cli = whatsmeow.NewClient(device, &recvTap{Logger: clientLog, tap: b.tapNode})
 	b.cli.EnableAutoReconnect = true
 	b.cli.AutomaticMessageRerequestFromPhone = true
 	// Mute, pin and archive state arrives as app state. Without this, the
@@ -139,6 +144,7 @@ func newBridge(dataDir string, log *fileLogger, out *output) (*Bridge, error) {
 	b.handlers = b.methods()
 	b.loadLIDChats()
 	go b.runMerges()
+	go b.runCallNodes()
 	return b, nil
 }
 
@@ -335,8 +341,6 @@ func (b *Bridge) onEvent(rawEvt any) {
 			default:
 			}
 		}
-	case *events.CallOffer:
-		b.onCallOffer(evt)
 	}
 }
 
@@ -469,23 +473,6 @@ func (b *Bridge) markChatReadLocally(jid types.JID) {
 	chat := b.canonical(b.ctx, jid).String()
 	_, _ = b.w.ExecContext(b.ctx, `UPDATE messages SET unread = 0 WHERE chat = ? AND unread = 1`, chat)
 	b.updateChat(jid, `unread = 0, marked_unread = 0`)
-}
-
-func (b *Bridge) onCallOffer(evt *events.CallOffer) {
-	from := b.canonical(b.ctx, evt.CallCreator)
-	if from.IsEmpty() {
-		from = b.canonical(b.ctx, evt.From)
-	}
-	video := false
-	if evt.Data != nil {
-		_, video = evt.Data.GetOptionalChildByTag("video")
-	}
-	b.out.event("call", map[string]any{
-		"from":  from.String(),
-		"name":  b.nameOf(b.ctx, from),
-		"video": video,
-		"group": !evt.GroupJID.IsEmpty(),
-	})
 }
 
 // canonical gives the JID a chat or person is stored under. WhatsApp is moving

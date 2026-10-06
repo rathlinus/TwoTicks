@@ -64,6 +64,32 @@ type contact struct {
 
 func (b *Bridge) methods() map[string]handler {
 	return map[string]handler{
+		// This device as the calling engine knows itself.
+		"callIdentity": func(ctx context.Context, _ json.RawMessage) (any, error) {
+			return b.callIdentity()
+		},
+
+		// What the calling engine needs to call the person of a chat.
+		"callPrepare": func(ctx context.Context, raw json.RawMessage) (any, error) {
+			p, err := params[chatParams](raw)
+			if err != nil {
+				return nil, err
+			}
+			return b.prepareCall(ctx, p.Chat)
+		},
+
+		// Sends a stanza of the calling engine and returns the server's ack.
+		"callSend": func(ctx context.Context, raw json.RawMessage) (any, error) {
+			p, err := params[struct {
+				Peer    string `json:"peer"`
+				Payload string `json:"payload"`
+			}](raw)
+			if err != nil {
+				return nil, err
+			}
+			return b.sendCall(ctx, p.Peer, p.Payload)
+		},
+
 		"status": func(ctx context.Context, _ json.RawMessage) (any, error) {
 			return b.stateInfo(), nil
 		},
