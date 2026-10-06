@@ -48,7 +48,7 @@ func (b *Bridge) isOwn(jid types.JID) bool {
 // messages that only change other messages (reactions, edits, deletions) or
 // that carry nothing to show.
 func (b *Bridge) convert(ctx context.Context, evt *events.Message) *Message {
-	msg := evt.Message
+	msg := albumItem(evt.Message)
 	if msg == nil {
 		return nil
 	}
