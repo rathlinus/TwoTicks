@@ -267,7 +267,11 @@
 
             <!-- The All, Unread and Groups filters above the chat list. -->
             <Style x:Key="FilterChipStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
-                <Setter Property="Padding" Value="12,5" />
+                <!-- A fixed height with a radius of exactly half of it, so the ends are
+                     round. A larger radius gets squashed vertically into an ellipse. -->
+                <Setter Property="Height" Value="32" />
+                <Setter Property="Padding" Value="12,0" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
                 <Setter Property="CornerRadius" Value="16" />
                 <Setter Property="BorderThickness" Value="0" />
                 <Setter Property="FontSize" Value="14" />
