@@ -306,8 +306,24 @@ func safeFileName(name string) string {
 }
 
 // thumbnail fetches the preview picture of a video that came without one, as
-// messages from history sync do, and stores it with the message.
+// messages from history sync do, and stores it with the message. A location
+// without a picture gets a map drawn from OpenStreetMap.
 func (b *Bridge) thumbnail(ctx context.Context, chat, id string) error {
+	if m, err := b.loadMessage(ctx, chat, id); err == nil && m != nil && m.Kind == "location" && m.Media != nil {
+		if len(m.Media.Thumb) > 0 {
+			return nil
+		}
+		data, err := mapPreview(ctx, m.Media.Lat, m.Media.Lng)
+		if err != nil {
+			return err
+		}
+		m.Media.Thumb, m.Media.Width, m.Media.Height = data, mapWidth, mapHeight
+		if _, err := b.w.ExecContext(ctx, `UPDATE messages SET media = ? WHERE chat = ? AND id = ?`, marshalOrNil(m.Media, false), chat, id); err != nil {
+			return err
+		}
+		b.reloadAndEmit(chat, id)
+		return nil
+	}
 	raw, err := b.loadRaw(ctx, chat, id)
 	if err != nil || len(raw) == 0 {
 		return errors.New("message not found")

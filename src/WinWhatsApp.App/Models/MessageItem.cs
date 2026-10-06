@@ -252,7 +252,7 @@ public sealed class MessageItem : Observable
 
     // ---- Photos, videos and stickers ----
 
-    public bool HasVisual => _data.Kind is "image" or "video" or "gif" || (_data.Kind == "location" && _data.Media?.Thumb is not null);
+    public bool HasVisual => _data.Kind is "image" or "video" or "gif" || (_data.Kind == "location" && _data.Media is not null);
     public bool IsSticker => _data.Kind == "sticker";
     public bool IsPlayable => _data.Kind is "video" or "gif";
     public Visibility PlayVisibility => IsPlayable && !_isBusy ? Visibility.Visible : Visibility.Collapsed;
