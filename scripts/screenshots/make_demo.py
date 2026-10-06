@@ -230,6 +230,10 @@ def main() -> None:
                               "Next meeting at mine?", "Bringing cake 🍰"]):
         add(books, ["priya", "sam", "tom", "lena", "priya", "lena"][i], 2 * hour - i * 5 * minute, text=line)
     add(people["tom"][0], "tom", 3 * hour + 10 * minute, text="Dinner on Friday?")
+    # A link whose page has no picture, with an address longer than the preview.
+    url = "https://en.wikipedia.org/wiki/List_of_restaurants_in_the_Michelin_Guide_in_Berlin_and_their_history"
+    add(people["tom"][0], "tom", 3 * hour + 5 * minute, text=url,
+        link={"url": url, "title": "en.wikipedia.org", "description": url})
     add(people["tom"][0], "me", 3 * hour, text="Sure, Friday works", status=2)
     add(people["lena"][0], "lena", 4 * hour, "voice", media=voice(42, 4))
     add(pizza, "me", 5 * hour + 30 * minute, text="Pizza at mine this Friday?")
