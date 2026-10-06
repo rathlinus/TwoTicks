@@ -11,6 +11,7 @@ chats or the pictures.
 import base64
 import io
 import json
+import random
 import re
 import time
 from pathlib import Path
@@ -36,6 +37,7 @@ PICTURES = {
     "beach": "File:Sunset at Livadhi Beach, Himare - 2020 July (2).jpg",
     "gate": "File:Brandenburger Tor morgens.jpg",
     "keyboard": "File:Backlit keyboard.jpg",
+    "fox": "File:Vulpes vulpes Mallnitz 01.jpg",
 }
 
 
@@ -94,6 +96,20 @@ def photo(key: str, thumb_size: int = 96, keep: bool = True) -> dict:
     thumb.save(buffer, "JPEG", quality=70)
     media["thumb"] = base64.b64encode(buffer.getvalue()).decode()
     return media
+
+
+def voice(seconds: int, seed: int) -> dict:
+    """Media of a voice message with a waveform: 64 loudness values from 0 to 100, as
+    WhatsApp sends them, in bursts like words with short pauses between."""
+    rng = random.Random(seed)
+    wave = []
+    while len(wave) < 64:
+        word = rng.randint(3, 9)
+        peak = rng.uniform(40, 100)
+        wave += [int(peak * (0.2 + 0.8 * rng.random())) for _ in range(word)]
+        wave += [rng.randint(3, 15) for _ in range(rng.randint(1, 3))]
+    return {"mime": "audio/ogg; codecs=opus", "size": seconds * 1700, "secs": seconds,
+            "wave": base64.b64encode(bytes(wave[:64])).decode()}
 
 
 def main() -> None:
@@ -164,12 +180,7 @@ def main() -> None:
     hut = messages[hiking][-1]
     add(hiking, "priya", 90 * minute, text="@447700900104 don't forget the snacks 😄",
         mentions={"447700900104": "Sam Okafor"})
-    add(hiking, "me", 80 * minute, "voice",
-        media={"mime": "audio/ogg; codecs=opus", "size": 31_000, "secs": 18,
-               "wave": base64.b64encode(bytes([12, 30, 55, 80, 62, 40, 70, 95, 88, 60, 35, 20, 45, 75, 90, 66, 38, 25, 50, 85,
-                                               92, 70, 44, 30, 58, 82, 76, 52, 33, 18, 40, 68, 94, 86, 61, 37, 22, 48, 72, 89,
-                                               64, 41, 27, 53, 79, 91, 67, 43, 29, 56, 81, 74, 50, 32, 20, 45, 70, 60, 38, 22,
-                                               15, 30, 20, 10])).decode()}, status=4)
+    add(hiking, "me", 80 * minute, "voice", media=voice(18, 1), status=4)
     add(hiking, "sam", 40 * minute, text="Weather looks perfect https://en.wikipedia.org/wiki/Lago_di_Braies",
         quote=quote(hut),
         link={"url": "https://en.wikipedia.org/wiki/Lago_di_Braies", "title": "Lago di Braies - Wikipedia",
@@ -204,8 +215,8 @@ def main() -> None:
     add(noah, "me", 4 * hour, "document",
         media={"mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "size": 48_128,
                "name": "Budget 2026.xlsx"}, status=3)
-    add(noah, "noah", 3 * hour, "voice", media={"mime": "audio/ogg; codecs=opus", "size": 120_000, "secs": 72})
-    add(noah, "me", 2 * hour, "voice", media={"mime": "audio/ogg; codecs=opus", "size": 52_000, "secs": 31}, status=4)
+    add(noah, "noah", 3 * hour, "voice", media=voice(72, 2), status=4)
+    add(noah, "me", 2 * hour, "voice", media=voice(31, 3))
     add(noah, "noah", 90 * minute, text="Can you look at this before I merge? The `retry` loop never stops when the server is down")
     add(noah, "noah", 90 * minute - 30, text="```\nasync function fetchWithRetry(url, tries = 3) {\n"
         "  for (let i = 0; i < tries; i++) {\n    try {\n      return await fetch(url);\n"
@@ -220,8 +231,7 @@ def main() -> None:
         add(books, ["priya", "sam", "tom", "lena", "priya", "lena"][i], 2 * hour - i * 5 * minute, text=line)
     add(people["tom"][0], "tom", 3 * hour + 10 * minute, text="Dinner on Friday?")
     add(people["tom"][0], "me", 3 * hour, text="Sure, Friday works", status=2)
-    add(people["lena"][0], "lena", 4 * hour, "voice",
-        media={"mime": "audio/ogg; codecs=opus", "size": 70_000, "secs": 42})
+    add(people["lena"][0], "lena", 4 * hour, "voice", media=voice(42, 4))
     add(pizza, "me", 5 * hour + 30 * minute, text="Pizza at mine this Friday?")
     add(pizza, "sam", 5 * hour, "image", "Practising 👨‍🍳", media=photo("pizza"))
     add(people["daniel"][0], "daniel", day + 2 * hour, "document",
@@ -252,7 +262,8 @@ def main() -> None:
         c.update(extra)
         return c
 
-    avatars: dict[str, str] = {}
+    # Your own picture, as beside your voice messages.
+    avatars: dict[str, str] = {me["jid"]: avatar("fox")}
     chats = [
         chat(hiking, "Hiking crew 🏔️", "peaks", pinned=now - 10 * day, members=4),
         chat(people["mia"][0], "Mia Schneider", "dog", pinned=now - 20 * day),

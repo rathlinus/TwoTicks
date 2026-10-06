@@ -1,5 +1,5 @@
 {
- "now": 1791304895,
+ "now": 1791305650,
  "qr": "2@WinWhatsAppDemo,ThisCodeLinksNothing,OnlyForScreenshots==,0123456789abcdef",
  "me": {
   "jid": "447700900100@s.whatsapp.net",
@@ -9,7 +9,7 @@
   {
    "jid": "120363000000000001@g.us",
    "name": "Hiking crew 🏔️",
-   "ts": 1791304775,
+   "ts": 1791305530,
    "last": {
     "id": "DEMO0011",
     "fromMe": false,
@@ -20,13 +20,13 @@
    },
    "group": true,
    "avatar": "avatars/peaks.jpg",
-   "pinned": 1790440895,
+   "pinned": 1790441650,
    "members": 4
   },
   {
    "jid": "447700900101@s.whatsapp.net",
    "name": "Mia Schneider",
-   "ts": 1791303695,
+   "ts": 1791304450,
    "last": {
     "id": "DEMO0019",
     "fromMe": false,
@@ -35,12 +35,12 @@
     "text": "Wait, you're in *Berlin*?!"
    },
    "avatar": "avatars/dog.jpg",
-   "pinned": 1789576895
+   "pinned": 1789577650
   },
   {
    "jid": "447700900105@s.whatsapp.net",
    "name": "Mum",
-   "ts": 1791301895,
+   "ts": 1791302650,
    "last": {
     "id": "DEMO0029",
     "fromMe": false,
@@ -54,7 +54,7 @@
   {
    "jid": "120363000000000002@g.us",
    "name": "Book club 📚",
-   "ts": 1791299195,
+   "ts": 1791299950,
    "last": {
     "id": "DEMO0035",
     "fromMe": false,
@@ -72,7 +72,7 @@
   {
    "jid": "447700900110@s.whatsapp.net",
    "name": "Noah Fischer",
-   "ts": 1791300695,
+   "ts": 1791301450,
    "last": {
     "id": "DEMO0028",
     "fromMe": true,
@@ -85,7 +85,7 @@
   {
    "jid": "447700900106@s.whatsapp.net",
    "name": "Tom Becker",
-   "ts": 1791294095,
+   "ts": 1791294850,
    "last": {
     "id": "DEMO0037",
     "fromMe": true,
@@ -98,7 +98,7 @@
   {
    "jid": "447700900107@s.whatsapp.net",
    "name": "Lena",
-   "ts": 1791290495,
+   "ts": 1791291250,
    "last": {
     "id": "DEMO0038",
     "fromMe": false,
@@ -112,7 +112,7 @@
   {
    "jid": "120363000000000003@g.us",
    "name": "Pizza Friday 🍕",
-   "ts": 1791286895,
+   "ts": 1791287650,
    "last": {
     "id": "DEMO0040",
     "fromMe": false,
@@ -127,7 +127,7 @@
   {
    "jid": "447700900108@s.whatsapp.net",
    "name": "Daniel",
-   "ts": 1791211295,
+   "ts": 1791212050,
    "last": {
     "id": "DEMO0041",
     "fromMe": false,
@@ -139,7 +139,7 @@
   {
    "jid": "120363000000000004@g.us",
    "name": "Office lunch",
-   "ts": 1791196895,
+   "ts": 1791197650,
    "last": {
     "id": "DEMO0042",
     "fromMe": false,
@@ -150,12 +150,12 @@
    },
    "group": true,
    "members": 12,
-   "mutedUntil": 1791333695
+   "mutedUntil": 1791334450
   },
   {
    "jid": "447700900109@s.whatsapp.net",
    "name": "Grandpa",
-   "ts": 1791121295,
+   "ts": 1791122050,
    "last": {
     "id": "DEMO0043",
     "fromMe": false,
@@ -167,7 +167,7 @@
   {
    "jid": "120363000000000005@g.us",
    "name": "Running club",
-   "ts": 1791045695,
+   "ts": 1791046450,
    "last": {
     "id": "DEMO0044",
     "fromMe": false,
@@ -189,7 +189,7 @@
     "seq": 1,
     "sender": "447700900103@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791200495,
+    "ts": 1791201250,
     "kind": "text",
     "status": 0,
     "senderName": "Priya Nair",
@@ -201,7 +201,7 @@
     "seq": 2,
     "sender": "447700900100@s.whatsapp.net",
     "fromMe": true,
-    "ts": 1791200735,
+    "ts": 1791201490,
     "kind": "text",
     "status": 3,
     "text": "I can take 4 people 🚗"
@@ -212,7 +212,7 @@
     "seq": 3,
     "sender": "447700900104@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791200855,
+    "ts": 1791201610,
     "kind": "text",
     "status": 0,
     "senderName": "Sam Okafor",
@@ -246,7 +246,7 @@
     "seq": 4,
     "sender": "447700900102@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791294095,
+    "ts": 1791294850,
     "kind": "document",
     "status": 0,
     "senderName": "Jonas Weber",
@@ -263,7 +263,7 @@
     "seq": 5,
     "sender": "447700900102@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791294155,
+    "ts": 1791294910,
     "kind": "text",
     "status": 0,
     "senderName": "Jonas Weber",
@@ -295,7 +295,7 @@
     "seq": 6,
     "sender": "447700900103@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791299495,
+    "ts": 1791300250,
     "kind": "text",
     "status": 0,
     "senderName": "Priya Nair",
@@ -310,14 +310,14 @@
     "seq": 7,
     "sender": "447700900100@s.whatsapp.net",
     "fromMe": true,
-    "ts": 1791300095,
+    "ts": 1791300850,
     "kind": "voice",
     "status": 4,
     "media": {
      "mime": "audio/ogg; codecs=opus",
-     "size": 31000,
+     "size": 30600,
      "secs": 18,
-     "wave": "DB43UD4oRl9YPCMULUtaQiYZMlVcRiweOlJMNCESKEReVj0lFjBIWUApGzVPW0MrHThRSjIgFC1GPCYWDx4UCg=="
+     "wave": "PhIVOw0JHzAaJConFSwjCB0IJQYJDjpELgYNUlAtTwQFDRsqR0ZWMU9DBww2PBQjTDAITEkZQxoeUQoOHjsvCQ=="
     }
    },
    {
@@ -326,7 +326,7 @@
     "seq": 8,
     "sender": "447700900104@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791302495,
+    "ts": 1791303250,
     "kind": "text",
     "status": 0,
     "senderName": "Sam Okafor",
@@ -352,7 +352,7 @@
     "seq": 9,
     "sender": "447700900102@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791303995,
+    "ts": 1791304750,
     "kind": "image",
     "status": 0,
     "senderName": "Jonas Weber",
@@ -386,7 +386,7 @@
     "seq": 10,
     "sender": "447700900100@s.whatsapp.net",
     "fromMe": true,
-    "ts": 1791304535,
+    "ts": 1791305290,
     "kind": "text",
     "status": 2,
     "text": "Alarm set for 05:45. See you there! 👋",
@@ -398,7 +398,7 @@
     "seq": 11,
     "sender": "447700900102@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791304775,
+    "ts": 1791305530,
     "kind": "text",
     "status": 0,
     "senderName": "Jonas Weber",
@@ -412,7 +412,7 @@
     "seq": 12,
     "sender": "447700900101@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791283295,
+    "ts": 1791284050,
     "kind": "text",
     "status": 0,
     "text": "Are you still coming tonight?"
@@ -423,7 +423,7 @@
     "seq": 13,
     "sender": "447700900100@s.whatsapp.net",
     "fromMe": true,
-    "ts": 1791283415,
+    "ts": 1791284170,
     "kind": "text",
     "status": 3,
     "text": "Yes! Leaving in 10 min"
@@ -434,7 +434,7 @@
     "seq": 14,
     "sender": "447700900101@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791286895,
+    "ts": 1791287650,
     "kind": "image",
     "status": 0,
     "text": "Saved you a slice from our favourite pizza place 🍕",
@@ -453,7 +453,7 @@
     "seq": 15,
     "sender": "447700900100@s.whatsapp.net",
     "fromMe": true,
-    "ts": 1791286955,
+    "ts": 1791287710,
     "kind": "text",
     "status": 3,
     "text": "You're the best 😍",
@@ -479,7 +479,7 @@
     "seq": 16,
     "sender": "447700900101@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791297695,
+    "ts": 1791298450,
     "kind": "video",
     "status": 0,
     "text": "Last summer, still my favourite 🌅",
@@ -498,7 +498,7 @@
     "seq": 17,
     "sender": "447700900100@s.whatsapp.net",
     "fromMe": true,
-    "ts": 1791297875,
+    "ts": 1791298630,
     "kind": "text",
     "status": 3,
     "text": "We need to go back there"
@@ -509,7 +509,7 @@
     "seq": 18,
     "sender": "447700900100@s.whatsapp.net",
     "fromMe": true,
-    "ts": 1791303395,
+    "ts": 1791304150,
     "kind": "image",
     "status": 3,
     "text": "Guess where I am 😄",
@@ -528,7 +528,7 @@
     "seq": 19,
     "sender": "447700900101@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791303695,
+    "ts": 1791304450,
     "kind": "text",
     "status": 0,
     "text": "Wait, you're in *Berlin*?!"
@@ -541,7 +541,7 @@
     "seq": 20,
     "sender": "447700900110@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791286895,
+    "ts": 1791287650,
     "kind": "text",
     "status": 0,
     "text": "Here's the release 👇"
@@ -552,7 +552,7 @@
     "seq": 21,
     "sender": "447700900110@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791286955,
+    "ts": 1791287710,
     "kind": "document",
     "status": 0,
     "media": {
@@ -568,7 +568,7 @@
     "seq": 22,
     "sender": "447700900110@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791287015,
+    "ts": 1791287770,
     "kind": "document",
     "status": 0,
     "media": {
@@ -583,7 +583,7 @@
     "seq": 23,
     "sender": "447700900100@s.whatsapp.net",
     "fromMe": true,
-    "ts": 1791290495,
+    "ts": 1791291250,
     "kind": "document",
     "status": 3,
     "media": {
@@ -598,13 +598,14 @@
     "seq": 24,
     "sender": "447700900110@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791294095,
+    "ts": 1791294850,
     "kind": "voice",
-    "status": 0,
+    "status": 4,
     "media": {
      "mime": "audio/ogg; codecs=opus",
-     "size": 120000,
-     "secs": 72
+     "size": 122400,
+     "secs": 72,
+     "wave": "FxlUTEcrQkJACTE/PSgjGg4OCAk6PCQUKxwICw0uKigvKSoYBQ8vMzFNMUcNCi8nIiw6MwwyJkhKOA0MDBUjNw=="
     }
    },
    {
@@ -613,13 +614,14 @@
     "seq": 25,
     "sender": "447700900100@s.whatsapp.net",
     "fromMe": true,
-    "ts": 1791297695,
+    "ts": 1791298450,
     "kind": "voice",
-    "status": 4,
+    "status": 3,
     "media": {
      "mime": "audio/ogg; codecs=opus",
-     "size": 52000,
-     "secs": 31
+     "size": 52700,
+     "secs": 31,
+     "wave": "FkYrMgMKBzUfLh8mESYJDgMcUxRHSiQ6UQ4PNSM8ORETBy4dKCEfLCw9AwcMPiUzNRc7OVAHBDEoIAkWFQwcCQ=="
     }
    },
    {
@@ -628,7 +630,7 @@
     "seq": 26,
     "sender": "447700900110@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791299495,
+    "ts": 1791300250,
     "kind": "text",
     "status": 0,
     "text": "Can you look at this before I merge? The `retry` loop never stops when the server is down"
@@ -639,7 +641,7 @@
     "seq": 27,
     "sender": "447700900110@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791299525,
+    "ts": 1791300280,
     "kind": "text",
     "status": 0,
     "text": "```\nasync function fetchWithRetry(url, tries = 3) {\n  for (let i = 0; i < tries; i++) {\n    try {\n      return await fetch(url);\n    } catch {\n      await sleep(2 ** i * 1000);\n    }\n  }\n  throw new Error(`Gave up on ${url}`);\n}\n```"
@@ -650,7 +652,7 @@
     "seq": 28,
     "sender": "447700900100@s.whatsapp.net",
     "fromMe": true,
-    "ts": 1791300695,
+    "ts": 1791301450,
     "kind": "text",
     "status": 3,
     "text": "Looks good, ship it 🚀",
@@ -671,7 +673,7 @@
     "seq": 29,
     "sender": "447700900105@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791301895,
+    "ts": 1791302650,
     "kind": "text",
     "status": 0,
     "text": "Call me when you land ❤️"
@@ -684,7 +686,7 @@
     "seq": 30,
     "sender": "447700900103@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791297695,
+    "ts": 1791298450,
     "kind": "text",
     "status": 0,
     "senderName": "Priya Nair",
@@ -696,7 +698,7 @@
     "seq": 31,
     "sender": "447700900104@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791297995,
+    "ts": 1791298750,
     "kind": "text",
     "status": 0,
     "senderName": "Sam Okafor",
@@ -708,7 +710,7 @@
     "seq": 32,
     "sender": "447700900106@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791298295,
+    "ts": 1791299050,
     "kind": "text",
     "status": 0,
     "senderName": "Tom Becker",
@@ -720,7 +722,7 @@
     "seq": 33,
     "sender": "447700900107@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791298595,
+    "ts": 1791299350,
     "kind": "text",
     "status": 0,
     "senderName": "Lena",
@@ -732,7 +734,7 @@
     "seq": 34,
     "sender": "447700900103@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791298895,
+    "ts": 1791299650,
     "kind": "text",
     "status": 0,
     "senderName": "Priya Nair",
@@ -744,7 +746,7 @@
     "seq": 35,
     "sender": "447700900107@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791299195,
+    "ts": 1791299950,
     "kind": "text",
     "status": 0,
     "senderName": "Lena",
@@ -758,7 +760,7 @@
     "seq": 36,
     "sender": "447700900106@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791293495,
+    "ts": 1791294250,
     "kind": "text",
     "status": 0,
     "text": "Dinner on Friday?"
@@ -769,7 +771,7 @@
     "seq": 37,
     "sender": "447700900100@s.whatsapp.net",
     "fromMe": true,
-    "ts": 1791294095,
+    "ts": 1791294850,
     "kind": "text",
     "status": 2,
     "text": "Sure, Friday works"
@@ -782,13 +784,14 @@
     "seq": 38,
     "sender": "447700900107@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791290495,
+    "ts": 1791291250,
     "kind": "voice",
     "status": 0,
     "media": {
      "mime": "audio/ogg; codecs=opus",
-     "size": 70000,
-     "secs": 42
+     "size": 71400,
+     "secs": 42,
+     "wave": "LSEPDAcPDyEWEgcVRCcoBzxERhQ1CQsGFzQuNAMHJEIdLCMuHw8DHRIaDggjNCRGBQgmNk4XFSAMBgQpFS4ZXQ=="
     }
    }
   ],
@@ -799,7 +802,7 @@
     "seq": 39,
     "sender": "447700900100@s.whatsapp.net",
     "fromMe": true,
-    "ts": 1791285095,
+    "ts": 1791285850,
     "kind": "text",
     "status": 3,
     "text": "Pizza at mine this Friday?"
@@ -810,7 +813,7 @@
     "seq": 40,
     "sender": "447700900104@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791286895,
+    "ts": 1791287650,
     "kind": "image",
     "status": 0,
     "senderName": "Sam Okafor",
@@ -832,7 +835,7 @@
     "seq": 41,
     "sender": "447700900108@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791211295,
+    "ts": 1791212050,
     "kind": "document",
     "status": 0,
     "media": {
@@ -850,7 +853,7 @@
     "seq": 42,
     "sender": "447700900106@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791196895,
+    "ts": 1791197650,
     "kind": "text",
     "status": 0,
     "senderName": "Tom Becker",
@@ -864,7 +867,7 @@
     "seq": 43,
     "sender": "447700900109@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791121295,
+    "ts": 1791122050,
     "kind": "text",
     "status": 0,
     "text": "Thanks for the photos!"
@@ -877,7 +880,7 @@
     "seq": 44,
     "sender": "447700900102@s.whatsapp.net",
     "fromMe": false,
-    "ts": 1791045695,
+    "ts": 1791046450,
     "kind": "text",
     "status": 0,
     "senderName": "Jonas Weber",
@@ -886,6 +889,7 @@
   ]
  },
  "avatars": {
+  "447700900100@s.whatsapp.net": "avatars/fox.jpg",
   "120363000000000001@g.us": "avatars/peaks.jpg",
   "447700900101@s.whatsapp.net": "avatars/dog.jpg",
   "447700900105@s.whatsapp.net": "avatars/sunflower.jpg",
@@ -906,7 +910,7 @@
   "120363000000000001@g.us": {
    "name": "Hiking crew 🏔️",
    "topic": "Weekend hikes around the Dolomites. Photos welcome!",
-   "created": 1774024895,
+   "created": 1774025650,
    "createdBy": "Jonas Weber",
    "members": [
     {

@@ -15,3 +15,4 @@ The photos and profile pictures here are from Wikimedia Commons, cropped and sca
 | [Sunset at Livadhi Beach, Himare - 2020 July (2).jpg](https://commons.wikimedia.org/wiki/File:Sunset_at_Livadhi_Beach,_Himare_-_2020_July_(2).jpg) | Liridon | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) |
 | [Brandenburger Tor morgens.jpg](https://commons.wikimedia.org/wiki/File:Brandenburger_Tor_morgens.jpg) | Thomas Wolf, www.foto-tw.de | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0) |
 | [Backlit keyboard.jpg](https://commons.wikimedia.org/wiki/File:Backlit_keyboard.jpg) | Colin | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) |
+| [Vulpes vulpes Mallnitz 01.jpg](https://commons.wikimedia.org/wiki/File:Vulpes_vulpes_Mallnitz_01.jpg) | Uoaei1 | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) |
