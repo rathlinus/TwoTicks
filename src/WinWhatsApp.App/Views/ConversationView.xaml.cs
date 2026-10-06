@@ -635,7 +635,7 @@ public sealed partial class ConversationView : UserControl
         _replyTo = item;
         EmojiText.SetText(ReplyTitle, item.FromMe ? "You" : !string.IsNullOrEmpty(item.SenderName) ? item.SenderName : _shown?.Chat.Name ?? "");
         EmojiText.SetText(ReplyText, MessagePreview.Describe(item.Kind, item.Data.Text, item.Data.Media?.Name, item.Data.Media?.Seconds ?? 0, item.FromMe).Text);
-        ReplyBar.Visibility = Visibility.Visible;
+        ShowReplyBar(item.ReplyBrush);
         FocusComposer();
     }
 
@@ -645,7 +645,7 @@ public sealed partial class ConversationView : UserControl
         _editing = item;
         EmojiText.SetText(ReplyTitle, "Edit message");
         EmojiText.SetText(ReplyText, item.Data.Text ?? "");
-        ReplyBar.Visibility = Visibility.Visible;
+        ShowReplyBar((Brush)Application.Current.Resources["AccentGreenBrush"]);
         SetText(item.Data.Text ?? "");
         FocusComposer();
     }
@@ -655,6 +655,16 @@ public sealed partial class ConversationView : UserControl
         _replyTo = null;
         _editing = null;
         ReplyBar.Visibility = Visibility.Collapsed;
+        ComposerField.CornerRadius = new CornerRadius(24);
+    }
+
+    // The reply sits inside the field, which then trades its pill shape for a card.
+    private void ShowReplyBar(Brush accent)
+    {
+        ReplyAccent.Fill = accent;
+        ReplyTitle.Foreground = accent;
+        ReplyBar.Visibility = Visibility.Visible;
+        ComposerField.CornerRadius = new CornerRadius(16);
     }
 
     private void OnCancelReplyClick(object sender, RoutedEventArgs e)

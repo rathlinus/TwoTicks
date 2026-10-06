@@ -241,6 +241,8 @@ public sealed class MessageItem : Observable
 
     public bool HasQuote => _data.Quote is not null;
     public string QuoteName => _data.Quote?.SenderName ?? "";
+    // The colour this message's sender gets when someone quotes it.
+    public Brush ReplyBrush => BrushFor(_data.FromMe ? "me" : _data.Sender);
     public Brush QuoteBrush => _data.Quote is { FromMe: true } ? BrushFor("me") : BrushFor(_data.Quote?.Sender ?? "");
     public string QuoteText
     {

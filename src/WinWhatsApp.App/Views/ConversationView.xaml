@@ -305,7 +305,6 @@
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- The header: who the chat is with, and what they are doing. A click opens their info.
@@ -339,7 +338,7 @@
         </Grid>
 
         <!-- WhatsApp's wallpaper, behind the messages and the composer below them. -->
-        <c:ChatWallpaper Grid.Row="1" Grid.RowSpan="4" />
+        <c:ChatWallpaper Grid.Row="1" Grid.RowSpan="3" />
 
         <!-- The messages, newest at the bottom, under the pinned ones. -->
         <Grid Grid.Row="1">
@@ -414,31 +413,8 @@
             </Button>
         </Grid>
 
-        <!-- Replying to or editing a message. -->
-        <Grid x:Name="ReplyBar" Grid.Row="2" Padding="16,8,10,0" ColumnSpacing="8" Visibility="Collapsed">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <Grid CornerRadius="7" Background="{ThemeResource QuoteBackgroundBrush}">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="4" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Rectangle x:Name="ReplyAccent" Fill="{ThemeResource AccentGreenBrush}" />
-                <StackPanel Grid.Column="1" Padding="10,6,10,8">
-                    <RichTextBlock x:Name="ReplyTitle" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource AccentGreenBrush}" IsTextSelectionEnabled="False" MaxLines="1" />
-                    <RichTextBlock x:Name="ReplyText" FontSize="13.5" Foreground="{ThemeResource TextSecondaryBrush}" IsTextSelectionEnabled="False" MaxLines="2"
-                                   TextTrimming="CharacterEllipsis" TextWrapping="Wrap" />
-                </StackPanel>
-            </Grid>
-            <Button Grid.Column="1" VerticalAlignment="Center" AutomationProperties.Name="Cancel" Click="OnCancelReplyClick" Style="{StaticResource IconButtonStyle}">
-                <c:WaIcon Kind="Close" Size="22" />
-            </Button>
-        </Grid>
-
         <!-- The preview of the first link in the text, which goes along with it. -->
-        <Grid x:Name="LinkBar" Grid.Row="3" Padding="12,8,12,0" Visibility="Collapsed">
+        <Grid x:Name="LinkBar" Grid.Row="2" Padding="12,8,12,0" Visibility="Collapsed">
             <Grid MinHeight="60" Background="{ThemeResource ComposerBrush}" CornerRadius="10">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -464,56 +440,81 @@
         </Grid>
 
         <!-- Writing, in WhatsApp's field: attach and emoji inside it, send beside it. -->
-        <Grid x:Name="Composer" Grid.Row="4" Padding="12,8,12,10" ColumnSpacing="8">
+        <Grid x:Name="Composer" Grid.Row="3" Padding="12,8,12,10" ColumnSpacing="8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <Grid MinHeight="48" Padding="4,4,12,4" ColumnSpacing="2" Background="{ThemeResource ComposerBrush}" CornerRadius="24">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Grid.Resources>
-                    <SolidColorBrush x:Key="TextControlBackground" Color="Transparent" />
-                    <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="Transparent" />
-                    <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="Transparent" />
-                    <SolidColorBrush x:Key="TextControlBorderBrush" Color="Transparent" />
-                    <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="Transparent" />
-                    <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="Transparent" />
-                </Grid.Resources>
-                <Button VerticalAlignment="Bottom" AutomationProperties.Name="Attach" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="Attach">
-                    <c:WaIcon Kind="Add" Size="24" />
-                    <Button.Flyout>
-                        <MenuFlyout Placement="TopEdgeAlignedLeft">
-                            <MenuFlyoutItem x:Name="AttachPhotosItem" Click="OnAttachPhotosClick" Text="Photos and videos" />
-                            <MenuFlyoutItem x:Name="AttachFilesItem" Click="OnAttachFilesClick" Text="Document" />
-                        </MenuFlyout>
-                    </Button.Flyout>
-                </Button>
-                <Button x:Name="EmojiButton" Grid.Column="1" VerticalAlignment="Bottom" AutomationProperties.Name="Emoji" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="Emoji">
-                    <c:WaIcon Kind="Mood" Size="24" />
-                    <Button.Flyout>
-                        <Flyout x:Name="EmojiFlyout" Placement="TopEdgeAlignedLeft" Opened="OnEmojiFlyoutOpened">
-                            <c:EmojiPicker x:Name="EmojiPickerPanel" />
-                        </Flyout>
-                    </Button.Flyout>
-                </Button>
-                <c:EmojiTextBox
-                    x:Name="MessageBox"
-                    Grid.Column="2"
-                    MaxHeight="180"
-                    VerticalAlignment="Center"
-                    AcceptsReturn="True"
-                    BorderThickness="0"
-                    FontSize="15"
-                    Paste="OnPaste"
-                    PlaceholderText="Type a message"
-                    PreviewKeyDown="OnMessageBoxKeyDown"
-                    ScrollViewer.VerticalScrollBarVisibility="Auto"
-                    TextChanged="OnMessageBoxTextChanged"
-                    TextWrapping="Wrap" />
+            <Grid x:Name="ComposerField" MinHeight="48" Background="{ThemeResource ComposerBrush}" CornerRadius="24">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Replying to or editing a message, inside the field like in WhatsApp. -->
+                <Grid x:Name="ReplyBar" Margin="8,8,8,0" Background="{ThemeResource QuoteBackgroundBrush}" CornerRadius="8" Visibility="Collapsed">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="4" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Rectangle x:Name="ReplyAccent" Fill="{ThemeResource AccentGreenBrush}" />
+                    <StackPanel Grid.Column="1" Padding="10,8,10,10" Spacing="2">
+                        <RichTextBlock x:Name="ReplyTitle" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource AccentGreenBrush}" IsTextSelectionEnabled="False" MaxLines="1" />
+                        <RichTextBlock x:Name="ReplyText" FontSize="13.5" Foreground="{ThemeResource TextSecondaryBrush}" IsTextSelectionEnabled="False" MaxLines="2"
+                                       TextTrimming="CharacterEllipsis" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Button Grid.Column="2" Margin="0,0,6,0" VerticalAlignment="Center" AutomationProperties.Name="Cancel" Click="OnCancelReplyClick" Style="{StaticResource IconButtonStyle}">
+                        <c:WaIcon Kind="Close" Size="22" />
+                    </Button>
+                </Grid>
+
+                <Grid Grid.Row="1" Padding="4,4,12,4" ColumnSpacing="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.Resources>
+                        <SolidColorBrush x:Key="TextControlBackground" Color="Transparent" />
+                        <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="Transparent" />
+                        <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="Transparent" />
+                        <SolidColorBrush x:Key="TextControlBorderBrush" Color="Transparent" />
+                        <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="Transparent" />
+                        <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="Transparent" />
+                    </Grid.Resources>
+                    <Button VerticalAlignment="Bottom" AutomationProperties.Name="Attach" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="Attach">
+                        <c:WaIcon Kind="Add" Size="24" />
+                        <Button.Flyout>
+                            <MenuFlyout Placement="TopEdgeAlignedLeft">
+                                <MenuFlyoutItem x:Name="AttachPhotosItem" Click="OnAttachPhotosClick" Text="Photos and videos" />
+                                <MenuFlyoutItem x:Name="AttachFilesItem" Click="OnAttachFilesClick" Text="Document" />
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
+                    <Button x:Name="EmojiButton" Grid.Column="1" VerticalAlignment="Bottom" AutomationProperties.Name="Emoji" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="Emoji">
+                        <c:WaIcon Kind="Mood" Size="24" />
+                        <Button.Flyout>
+                            <Flyout x:Name="EmojiFlyout" Placement="TopEdgeAlignedLeft" Opened="OnEmojiFlyoutOpened">
+                                <c:EmojiPicker x:Name="EmojiPickerPanel" />
+                            </Flyout>
+                        </Button.Flyout>
+                    </Button>
+                    <c:EmojiTextBox
+                        x:Name="MessageBox"
+                        Grid.Column="2"
+                        MaxHeight="180"
+                        VerticalAlignment="Center"
+                        AcceptsReturn="True"
+                        BorderThickness="0"
+                        FontSize="15"
+                        Paste="OnPaste"
+                        PlaceholderText="Type a message"
+                        PreviewKeyDown="OnMessageBoxKeyDown"
+                        ScrollViewer.VerticalScrollBarVisibility="Auto"
+                        TextChanged="OnMessageBoxTextChanged"
+                        TextWrapping="Wrap" />
+                </Grid>
             </Grid>
             <Button x:Name="SendButton" Grid.Column="1" Width="48" Height="48" VerticalAlignment="Bottom" AutomationProperties.Name="Send" Background="{ThemeResource SendButtonBrush}"
                     Click="OnSendClick" CornerRadius="24" Padding="0" ToolTipService.ToolTip="Send (Enter)" Visibility="Collapsed">
@@ -535,14 +536,14 @@
             </Button>
         </Grid>
 
-        <Border x:Name="ReadOnlyNotice" Grid.Row="4" Padding="16" Visibility="Collapsed">
+        <Border x:Name="ReadOnlyNotice" Grid.Row="3" Padding="16" Visibility="Collapsed">
             <TextBlock HorizontalAlignment="Center" Foreground="{ThemeResource TextSecondaryBrush}" Text="Only admins can send messages to this group." />
         </Border>
 
         <!-- Files about to be sent, over the chat. -->
-        <local:SendMediaView x:Name="MediaPreview" Grid.Row="1" Grid.RowSpan="4" Visibility="Collapsed" />
+        <local:SendMediaView x:Name="MediaPreview" Grid.Row="1" Grid.RowSpan="3" Visibility="Collapsed" />
 
-        <Border x:Name="DropOverlay" Grid.Row="1" Grid.RowSpan="4" Margin="12" Background="{ThemeResource SmokeFillColorDefaultBrush}" BorderBrush="{ThemeResource AccentGreenBrush}"
+        <Border x:Name="DropOverlay" Grid.Row="1" Grid.RowSpan="3" Margin="12" Background="{ThemeResource SmokeFillColorDefaultBrush}" BorderBrush="{ThemeResource AccentGreenBrush}"
                 BorderThickness="2" CornerRadius="12" Visibility="Collapsed" IsHitTestVisible="False">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
                 <c:WaIcon HorizontalAlignment="Center" Kind="Media" Size="44" Foreground="White" />
