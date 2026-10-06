@@ -239,12 +239,63 @@ const audio = {
 };
 let workletUrl = 'audio-worklet.js';
 
+// The microphone and speaker picked in the app's settings, by their names in
+// Windows, which the browser uses as the labels of the devices; null for the
+// Windows default.
+const chosen = { microphone: null, speaker: null };
+
+// The browser's ID of the device with that name, or null for the default.
+async function findDevice(kind, name) {
+  if (!name) return null;
+  let devices = await navigator.mediaDevices.enumerateDevices();
+  if (!devices.some((d) => d.label)) {
+    // The names show only once the page may use the microphone.
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    for (const track of stream.getTracks()) track.stop();
+    devices = await navigator.mediaDevices.enumerateDevices();
+  }
+  const ofKind = devices.filter((d) => d.kind === kind && d.deviceId !== 'default' && d.deviceId !== 'communications');
+  const found = ofKind.find((d) => d.label === name) || ofKind.find((d) => d.label.includes(name));
+  if (!found) log(2, 'voip: no ' + kind + ' named ' + name + ', using the default');
+  return found ? found.deviceId : null;
+}
+
+async function openMicrophone() {
+  const id = await findDevice('audioinput', chosen.microphone);
+  const audio = { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 };
+  if (id) audio.deviceId = { exact: id };
+  return navigator.mediaDevices.getUserMedia({ audio });
+}
+
+async function applySpeaker(context) {
+  if (typeof context.setSinkId !== 'function') return;
+  const id = await findDevice('audiooutput', chosen.speaker);
+  await context.setSinkId(id || '');
+}
+
+// Moves a call that runs to the devices now picked.
+async function applyDevices() {
+  const capture = audio.capture;
+  if (capture && capture.context && capture.node) {
+    const stream = await openMicrophone();
+    if (audio.capture !== capture) {
+      for (const track of stream.getTracks()) track.stop();
+      return;
+    }
+    if (capture.source) capture.source.disconnect();
+    for (const track of capture.stream.getTracks()) track.stop();
+    capture.stream = stream;
+    capture.source = capture.context.createMediaStreamSource(stream);
+    capture.source.connect(capture.node);
+  }
+  const playback = audio.playback;
+  if (playback && playback.context) await applySpeaker(playback.context);
+}
+
 async function initCapture(p) {
   stopCapture();
   const params = { rate: p.sample_rate || 16000, channels: p.channels || 1, chunk: p.frames_per_chunk || 320 };
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 },
-  });
+  const stream = await openMicrophone();
   audio.capture = { params, stream, context: null, node: null, buffer: heapBuffer(), pending: new Float32Array(params.chunk * params.channels), filled: 0 };
 }
 
@@ -259,6 +310,7 @@ async function startCapture() {
   const node = new AudioWorkletNode(context, 'voip-capture', { numberOfInputs: 1, numberOfOutputs: 0 });
   node.port.onmessage = (e) => onCaptured(capture, e.data);
   source.connect(node);
+  capture.source = source;
   capture.node = node;
   if (context.state === 'suspended') await context.resume();
 }
@@ -318,6 +370,11 @@ async function startPlayback() {
   };
   node.connect(context.destination);
   playback.node = node;
+  try {
+    await applySpeaker(context);
+  } catch (e) {
+    log(2, 'voip: could not use the chosen speaker: ' + describe(e));
+  }
   if (context.state === 'suspended') await context.resume();
 }
 
@@ -544,6 +601,11 @@ const handlers = {
   },
   mute(m) {
     engine.setCallMute(m.muted === true);
+  },
+  async devices(m) {
+    chosen.microphone = m.microphone || null;
+    chosen.speaker = m.speaker || null;
+    await applyDevices();
   },
 };
 

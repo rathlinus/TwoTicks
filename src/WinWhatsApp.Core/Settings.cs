@@ -50,6 +50,12 @@ public sealed class AppSettings
 
     public double ChatListWidth { get; set; } = 380;
 
+    /// <summary>The microphone for calls, by its name in Windows; null for the Windows default.</summary>
+    public string? Microphone { get; set; }
+
+    /// <summary>The speakers or headphones for calls, by name; null for the Windows default.</summary>
+    public string? Speaker { get; set; }
+
     /// <summary>The emoji picked last, newest first.</summary>
     public List<string> RecentEmoji { get; set; } = [];
 }

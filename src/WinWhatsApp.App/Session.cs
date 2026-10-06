@@ -98,7 +98,7 @@ public sealed class Session : Observable
         Client.Failed += message => Post(() => ShowError(message));
 
         Chats.UnreadChanged += () => UnreadChanged?.Invoke(Chats.UnreadChats);
-        Calls = new CallManager(ui, Client, notifier, Chats.Get);
+        Calls = new CallManager(ui, Client, notifier, settings, Chats.Get);
     }
 
     public WhatsAppClient Client { get; }

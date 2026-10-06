@@ -102,6 +102,8 @@ internal sealed class VoipEngine : IDisposable
         {
             // The microphone, for calls; nothing else.
             e.State = e.PermissionKind == CoreWebView2PermissionKind.Microphone ? CoreWebView2PermissionState.Allow : CoreWebView2PermissionState.Deny;
+            // Kept, so that the page also sees the names of the microphones and speakers.
+            e.SavesInProfile = true;
         };
         web.WebMessageReceived += OnMessage;
         web.ProcessFailed += (_, e) =>

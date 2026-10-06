@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Windows.Devices.Enumeration;
 using WinWhatsApp.Core;
 
 namespace WinWhatsApp.App.Views;
@@ -56,6 +57,18 @@ internal sealed partial class SettingsDialog : ContentDialog
             App.Current.ApplyIcon();
         };
         panel.Children.Add(icon);
+
+        panel.Children.Add(Heading("Calls"));
+        panel.Children.Add(DevicePicker("Microphone", DeviceClass.AudioCapture, settings.Microphone, name =>
+        {
+            settings.Microphone = name;
+            session.Calls.ApplyDevices();
+        }));
+        panel.Children.Add(DevicePicker("Speaker", DeviceClass.AudioRender, settings.Speaker, name =>
+        {
+            settings.Speaker = name;
+            session.Calls.ApplyDevices();
+        }));
 
         panel.Children.Add(Heading("Account"));
         string who = session.Me is { } me ? $"{me.Name}  (+{me.Jid.Split('@')[0]})" : "Not linked";
@@ -125,6 +138,36 @@ internal sealed partial class SettingsDialog : ContentDialog
         Margin = new Thickness(0, 4, 0, 4),
         Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
     };
+
+    /// <summary>
+    /// A list of the microphones or speakers Windows has, by name, with the
+    /// Windows default first. A device picked earlier that is not connected now
+    /// stays in the list, so the choice is not lost.
+    /// </summary>
+    private static ComboBox DevicePicker(string header, DeviceClass kind, string? current, Action<string?> set)
+    {
+        const string Default = "Windows default";
+        var box = new ComboBox { Header = header, MinWidth = 300, Margin = new Thickness(0, 4, 0, 4) };
+        box.Items.Add(Default);
+        if (current is not null)
+        {
+            box.Items.Add(current);
+        }
+        box.SelectedIndex = current is null ? 0 : 1;
+        box.Loaded += async (_, _) =>
+        {
+            DeviceInformationCollection devices = await DeviceInformation.FindAllAsync(kind);
+            foreach (string name in devices.Where(d => d.IsEnabled).Select(d => d.Name).Distinct().Order(StringComparer.CurrentCultureIgnoreCase))
+            {
+                if (name != current)
+                {
+                    box.Items.Add(name);
+                }
+            }
+            box.SelectionChanged += (_, _) => set(box.SelectedIndex <= 0 ? null : box.SelectedItem as string);
+        };
+        return box;
+    }
 
     private static CheckBox Toggle(string text, bool value, Action<bool> set)
     {

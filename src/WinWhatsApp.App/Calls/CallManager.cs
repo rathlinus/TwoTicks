@@ -46,6 +46,7 @@ public sealed class CallManager : Observable
     private readonly DispatcherQueue _ui;
     private readonly WhatsAppClient _client;
     private readonly Notifier _notifier;
+    private readonly AppSettings _settings;
     private readonly Func<string, ChatItem?> _chatOf;
     private readonly VoipEngine _engine;
     private readonly List<JsonObject> _waiting = [];
@@ -68,11 +69,12 @@ public sealed class CallManager : Observable
     private DateTime _activeSince;
     private bool _wasActive;
 
-    internal CallManager(DispatcherQueue ui, WhatsAppClient client, Notifier notifier, Func<string, ChatItem?> chatOf)
+    internal CallManager(DispatcherQueue ui, WhatsAppClient client, Notifier notifier, AppSettings settings, Func<string, ChatItem?> chatOf)
     {
         _ui = ui;
         _client = client;
         _notifier = notifier;
+        _settings = settings;
         _chatOf = chatOf;
         _engine = new VoipEngine(ui);
         _engine.MessageReceived += OnEngineMessage;
@@ -258,8 +260,29 @@ public sealed class CallManager : Observable
     private void EnsureEngine()
     {
         _idle.Stop();
-        _starting ??= StartEngineAsync();
+        if (_starting is null)
+        {
+            _starting = StartEngineAsync();
+            // Goes to the engine once it is ready, before what is waiting for it.
+            _waiting.Insert(0, DevicesMessage());
+        }
     }
+
+    /// <summary>Uses the microphone and speaker picked in the settings, also in a call that runs.</summary>
+    public void ApplyDevices()
+    {
+        if (_ready)
+        {
+            _engine.Post(DevicesMessage());
+        }
+    }
+
+    private JsonObject DevicesMessage() => new()
+    {
+        ["type"] = "devices",
+        ["microphone"] = _settings.Microphone,
+        ["speaker"] = _settings.Speaker,
+    };
 
     private async Task StartEngineAsync()
     {
