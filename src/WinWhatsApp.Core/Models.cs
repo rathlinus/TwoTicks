@@ -265,6 +265,9 @@ public sealed class CallIdentityData
     public string Pn { get; set; } = "";
     public string PnUser { get; set; } = "";
     public string Lid { get; set; } = "";
+
+    /// <summary>The country calling code of this account's number, such as 49.</summary>
+    public string? CountryCode { get; set; }
 }
 
 /// <summary>What the calling engine needs to call someone.</summary>

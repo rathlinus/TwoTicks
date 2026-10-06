@@ -291,7 +291,7 @@ public sealed class CallManager : Observable
         try
         {
             CallIdentityData me = await _client.GetCallIdentityAsync();
-            await _engine.StartAsync(me, null);
+            await _engine.StartAsync(me, me.CountryCode);
             await Task.Delay(TimeSpan.FromSeconds(60));
             if (run == _engineRun && !_ready)
             {

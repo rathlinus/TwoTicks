@@ -8,12 +8,24 @@ import (
 	"go.mau.fi/whatsmeow/types"
 )
 
-// The engine cannot read an offer's ack whose <device> list has a main
-// device written as a person, as whatsmeow writes it back.
+func TestCallingCode(t *testing.T) {
+	for number, code := range map[string]string{"491701234567": "49", "14155550100": "1", "35312345678": "353", "": ""} {
+		if got := callingCode(number); got != code {
+			t.Errorf("callingCode(%q) = %q, want %q", number, got, code)
+		}
+	}
+}
+
+// The engine cannot read an offer's ack whose <device> list, relay
+// <participant>s or <voip_settings> have a main device written as a person,
+// as whatsmeow writes it back. The <user> stays a person.
 func TestMarshalForEngineWritesDevices(t *testing.T) {
 	lid := types.JID{User: "133358801658027", Server: types.HiddenUserServer}
-	node := waBinary.Node{Tag: "ack", Content: []waBinary.Node{{Tag: "user", Attrs: waBinary.Attrs{"jid": lid},
-		Content: []waBinary.Node{{Tag: "device", Attrs: waBinary.Attrs{"jid": lid}}}}}}
+	node := waBinary.Node{Tag: "ack", Content: []waBinary.Node{
+		{Tag: "relay", Content: []waBinary.Node{{Tag: "participant", Attrs: waBinary.Attrs{"jid": lid, "pid": "0"}}}},
+		{Tag: "user", Attrs: waBinary.Attrs{"jid": lid}, Content: []waBinary.Node{{Tag: "device", Attrs: waBinary.Attrs{"jid": lid}}}},
+		{Tag: "voip_settings", Attrs: waBinary.Attrs{"jid": lid}, Content: []byte("{}")},
+	}}
 	data, err := marshalForEngine(node)
 	if err != nil {
 		t.Fatal(err)
@@ -24,8 +36,8 @@ func TestMarshalForEngineWritesDevices(t *testing.T) {
 			devices++
 		}
 	}
-	if devices != 1 {
-		t.Fatalf("want the device and only it in the device form, got %d", devices)
+	if devices != 3 {
+		t.Fatalf("want the device, the participant and the settings and only them in the device form, got %d", devices)
 	}
 	back, err := waBinary.Unmarshal(data[1:])
 	if err != nil {
