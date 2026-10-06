@@ -754,6 +754,21 @@ public sealed class Session : Observable
     public async Task DeleteForMeAsync(MessageItem item) => await Try(() => Client.DeleteForMeAsync(item.Chat, item.Id));
     public async Task RetryAsync(MessageItem item) => await Try(() => Client.RetryAsync(item.Chat, item.Id));
 
+    public async Task ForwardAsync(MessageItem item, IReadOnlyList<string> to)
+    {
+        try
+        {
+            foreach (MessageData message in await Client.ForwardAsync(item.Chat, item.Id, to))
+            {
+                OnSent(message);
+            }
+        }
+        catch (BridgeException e)
+        {
+            ShowError(e.Message);
+        }
+    }
+
     /// <summary>Downloads the file of a message, or returns it when it is already here.</summary>
     public async Task<string?> DownloadAsync(MessageItem item)
     {

@@ -12,6 +12,7 @@ import (
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 type sendParams struct {
@@ -420,4 +421,101 @@ func (b *Bridge) revokeOwn(ctx context.Context, chatText, id string) error {
 	}
 	b.revoke(chatText, id)
 	return nil
+}
+
+// forward sends a copy of a message to other chats, marked as forwarded.
+// Media goes along without uploading it again.
+func (b *Bridge) forward(ctx context.Context, chatText, id string, to []string) ([]*Message, error) {
+	source, err := b.loadMessage(ctx, chatText, id)
+	if err != nil || source == nil {
+		return nil, errors.New("message not found")
+	}
+	switch source.Kind {
+	case "revoked", "system", "pending", "viewonce", "unsupported", "poll":
+		return nil, errors.New("this message can't be forwarded")
+	}
+	raw, err := b.loadRaw(ctx, chatText, id)
+	if err != nil || len(raw) == 0 {
+		return nil, errors.New("this message can't be forwarded")
+	}
+	var original waE2E.Message
+	if err := proto.Unmarshal(raw, &original); err != nil {
+		return nil, err
+	}
+	// WhatsApp counts how often a message travelled, to mark ones forwarded many times.
+	score := uint32(0)
+	if source.Forwarded > 0 {
+		score = uint32(source.Forwarded)
+	}
+	if !source.FromMe || source.Forwarded > 0 {
+		score++
+	}
+
+	var sent []*Message
+	for _, target := range to {
+		chat, err := types.ParseJID(target)
+		if err != nil {
+			return sent, err
+		}
+		ci, _ := b.replyContext(ctx, chat, "")
+		if ci == nil {
+			ci = &waE2E.ContextInfo{}
+		}
+		if score > 0 {
+			ci.IsForwarded = proto.Bool(true)
+			ci.ForwardingScore = proto.Uint32(score)
+		}
+		msg := forwardCopy(&original, ci)
+
+		m := b.newOutgoing(chat, source.Kind, source.Text)
+		m.Media = source.Media
+		if m.Media != nil {
+			m.Media.Path = ""
+		}
+		m.localPath = source.localPath
+		m.Link = source.Link
+		m.Forwarded = int(score)
+		stored, err := b.dispatch(ctx, chat, m, func(context.Context, *Message) (*waE2E.Message, error) { return msg, nil })
+		if err != nil {
+			return sent, err
+		}
+		sent = append(sent, stored)
+	}
+	return sent, nil
+}
+
+// forwardCopy copies a message to send it on: without the message it replied
+// to, the people it mentioned and its secret, and with the given context.
+func forwardCopy(original *waE2E.Message, ci *waE2E.ContextInfo) *waE2E.Message {
+	msg := proto.Clone(original).(*waE2E.Message)
+	msg.MessageContextInfo = nil
+	if msg.Conversation != nil {
+		// Plain text has no room for the context.
+		msg = &waE2E.Message{ExtendedTextMessage: &waE2E.ExtendedTextMessage{Text: msg.Conversation}}
+	}
+	setContext(msg.ProtoReflect(), ci)
+	return msg
+}
+
+// setContext replaces the context of the content of a message, also of
+// content wrapped in another message, as a document with a caption is.
+func setContext(msg protoreflect.Message, ci *waE2E.ContextInfo) bool {
+	done := false
+	msg.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+		if fd.Kind() != protoreflect.MessageKind || fd.IsList() || fd.IsMap() {
+			return true
+		}
+		inner := v.Message()
+		if field := inner.Descriptor().Fields().ByName("contextInfo"); field != nil {
+			inner.Set(field, protoreflect.ValueOfMessage(proto.Clone(ci).ProtoReflect()))
+			done = true
+			return false
+		}
+		if field := inner.Descriptor().Fields().ByName("message"); field != nil && inner.Has(field) {
+			done = setContext(inner.Get(field).Message(), ci)
+			return !done
+		}
+		return true
+	})
+	return done
 }

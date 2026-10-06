@@ -238,6 +238,18 @@ func (b *Bridge) methods() map[string]handler {
 			return true, b.edit(ctx, p.Chat, p.ID, p.Text)
 		},
 
+		"forward": func(ctx context.Context, raw json.RawMessage) (any, error) {
+			p, err := params[struct {
+				Chat string   `json:"chat"`
+				ID   string   `json:"id"`
+				To   []string `json:"to"`
+			}](raw)
+			if err != nil {
+				return nil, err
+			}
+			return b.forward(ctx, p.Chat, p.ID, p.To)
+		},
+
 		"revoke": func(ctx context.Context, raw json.RawMessage) (any, error) {
 			p, err := params[messageParams](raw)
 			if err != nil {

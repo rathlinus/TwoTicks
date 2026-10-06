@@ -39,6 +39,11 @@
                             <c:EmojiLabel Text="{x:Bind SenderName}" FontSize="13" FontWeight="SemiBold" Foreground="{x:Bind SenderBrush}" />
                         </c:PlainButton>
 
+                        <StackPanel x:Name="ForwardedLabel" x:Load="{x:Bind IsForwarded, Mode=OneWay}" Margin="6,2,6,0" Orientation="Horizontal" Spacing="4">
+                            <c:WaIcon VerticalAlignment="Center" Kind="Forward" Size="16" Foreground="{ThemeResource MetaTextBrush}" />
+                            <TextBlock FontSize="13" FontStyle="Italic" Foreground="{ThemeResource MetaTextBrush}" Text="{x:Bind ForwardedText, Mode=OneWay}" />
+                        </StackPanel>
+
                         <Grid x:Name="QuoteBox" x:Load="{x:Bind HasQuote, Mode=OneWay}" MinWidth="180" CornerRadius="7"
                               Background="{ThemeResource QuoteBackgroundBrush}" Tapped="OnQuoteTapped">
                             <Grid.ColumnDefinitions>

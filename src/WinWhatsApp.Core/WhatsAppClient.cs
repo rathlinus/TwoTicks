@@ -277,6 +277,11 @@ public sealed class WhatsAppClient : IDisposable
     public Task EditAsync(string chat, string id, string text) =>
         CallAsync("edit", new JsonObject { ["chat"] = chat, ["id"] = id, ["text"] = text });
 
+    /// <summary>Sends a copy of a message to other chats; returns the copies.</summary>
+    public Task<List<MessageData>> ForwardAsync(string chat, string id, IEnumerable<string> to) =>
+        CallAsync("forward", new JsonObject { ["chat"] = chat, ["id"] = id, ["to"] = new JsonArray(to.Select(t => (JsonNode)t).ToArray()) },
+            BridgeJson.Default.ListMessageData);
+
     public Task RevokeAsync(string chat, string id) => CallAsync("revoke", new JsonObject { ["chat"] = chat, ["id"] = id });
 
     public Task DeleteForMeAsync(string chat, string id) => CallAsync("deleteForMe", new JsonObject { ["chat"] = chat, ["id"] = id });

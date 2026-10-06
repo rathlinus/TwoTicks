@@ -999,6 +999,10 @@ public sealed partial class ConversationView : UserControl
         {
             Add("React", "React", () => ShowEmojiPicker(item, point));
         }
+        if (item.CanForward)
+        {
+            Add("Forward", "Forward", () => _ = ForwardAsync(item));
+        }
         if (item.CanEdit)
         {
             Add("Edit", "Edit", () => StartEdit(item));
@@ -1089,6 +1093,15 @@ public sealed partial class ConversationView : UserControl
             _ = Session.ReactAsync(item, emoji);
         };
         ShowFlyout(pickerFlyout, point);
+    }
+
+    private async Task ForwardAsync(MessageItem item)
+    {
+        var dialog = new ForwardDialog(Session) { XamlRoot = XamlRoot, RequestedTheme = ActualTheme };
+        if (await dialog.ShowAsync() == ContentDialogResult.Primary && dialog.Chosen is { Count: > 0 } chosen)
+        {
+            await Session.ForwardAsync(item, chosen);
+        }
     }
 
     private void ShowFlyout(Flyout flyout, Point? point)

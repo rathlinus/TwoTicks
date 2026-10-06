@@ -91,6 +91,9 @@ func (b *Bridge) convert(ctx context.Context, evt *events.Message) *Message {
 		m.Link = &Link{URL: ext.GetMatchedText(), Title: ext.GetTitle(), Description: ext.GetDescription(), Thumb: ext.GetJPEGThumbnail()}
 	}
 	if ci != nil {
+		if ci.GetIsForwarded() {
+			m.Forwarded = max(1, int(ci.GetForwardingScore()))
+		}
 		m.mentionJIDs = ci.GetMentionedJID()
 		if id := ci.GetStanzaID(); id != "" && ci.GetQuotedMessage() != nil {
 			qKind, qText, qMedia, _ := describe(ci.GetQuotedMessage())

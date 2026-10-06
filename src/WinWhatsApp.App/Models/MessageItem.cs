@@ -156,6 +156,11 @@ public sealed class MessageItem : Observable
 
     public bool HasSender => IsGroup && !FromMe && _isFirstInRun && !string.IsNullOrEmpty(_data.SenderName);
 
+    public bool IsForwarded => _data.Forwarded > 0;
+
+    /// <summary>WhatsApp marks a message that went through five or more forwards.</summary>
+    public string ForwardedText => _data.Forwarded >= 5 ? "Forwarded many times" : "Forwarded";
+
     public string SenderName => _data.SenderName ?? "";
     public Brush SenderBrush => BrushFor(_data.Sender);
 
@@ -523,5 +528,11 @@ public sealed class MessageItem : Observable
     public bool CanEdit => FromMe && _data.Kind == "text" && DateTimeOffset.UtcNow - DateTimeOffset.FromUnixTimeSeconds(_data.Ts) < TimeSpan.FromMinutes(20);
     public bool CanRevoke => FromMe && _data.Kind is not ("revoked" or "system" or "pending");
     public bool CanReact => _data.Kind is not ("revoked" or "system" or "pending" or "viewonce") && _data.Status != MessageStatus.Failed;
+
+    /// <summary>A message that is there to see and was sent, which can be forwarded, pinned or kept.</summary>
+    public bool CanAddOn => _data.Kind is not ("revoked" or "system" or "pending" or "viewonce" or "unsupported")
+        && !(FromMe && _data.Status <= MessageStatus.Pending);
+
+    public bool CanForward => CanAddOn && _data.Kind != "poll";
     public bool HasMedia => _data.Kind is "image" or "video" or "gif" or "voice" or "audio" or "document" or "sticker";
 }

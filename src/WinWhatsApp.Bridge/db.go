@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS messages (
 	raw_sender TEXT NOT NULL DEFAULT '',
 	raw        BLOB,
 	local_path TEXT NOT NULL DEFAULT '',
+	forwarded  INTEGER NOT NULL DEFAULT 0,
 	PRIMARY KEY (chat, id)
 );
 CREATE INDEX IF NOT EXISTS messages_by_time ON messages (chat, ts);
@@ -84,6 +85,11 @@ CREATE TABLE IF NOT EXISTS avatars (
 );
 `
 
+// Columns added since the first version, for databases made before them.
+var migrations = []string{
+	`ALTER TABLE messages ADD COLUMN forwarded INTEGER NOT NULL DEFAULT 0`,
+}
+
 // Message status, as the ticks show it.
 const (
 	statusFailed    = -1
@@ -112,7 +118,9 @@ type Message struct {
 	Reactions  []Reaction        `json:"reactions,omitempty"`
 	Status     int               `json:"status"`
 	Edited     bool              `json:"edited,omitempty"`
-	Notify     bool              `json:"notify,omitempty"`
+	// How often the message was forwarded before it got here; 0 when it was not.
+	Forwarded int  `json:"forwarded,omitempty"`
+	Notify    bool `json:"notify,omitempty"`
 
 	mentionJIDs []string
 	unread      bool
@@ -214,6 +222,12 @@ func openDatabases(ctx context.Context, dataDir string) (writer, reader *sql.DB,
 		writer.Close()
 		return nil, nil, fmt.Errorf("failed to create the chats database: %w", err)
 	}
+	for _, stmt := range migrations {
+		if _, err = writer.ExecContext(ctx, stmt); err != nil && !strings.Contains(err.Error(), "duplicate column") {
+			writer.Close()
+			return nil, nil, fmt.Errorf("failed to update the chats database: %w", err)
+		}
+	}
 
 	reader, err = sql.Open("sqlite", dsn+"&_pragma=query_only(1)")
 	if err != nil {
@@ -249,16 +263,16 @@ func saveMessage(ctx context.Context, db execer, m *Message) (bool, error) {
 		mentions = marshalOrNil(m.mentionJIDs, false)
 	}
 	res, err := db.ExecContext(ctx, `
-		INSERT INTO messages (chat, id, sender, from_me, ts, kind, text, media, quote, mentions, link, status, edited, unread, push_name, raw_chat, raw_sender, raw, local_path)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO messages (chat, id, sender, from_me, ts, kind, text, media, quote, mentions, link, status, edited, unread, push_name, raw_chat, raw_sender, raw, local_path, forwarded)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT (chat, id) DO UPDATE SET
 			kind = excluded.kind, text = excluded.text, media = excluded.media, quote = excluded.quote,
-			mentions = excluded.mentions, link = excluded.link, raw = excluded.raw, sender = excluded.sender,
+			mentions = excluded.mentions, link = excluded.link, raw = excluded.raw, sender = excluded.sender, forwarded = excluded.forwarded,
 			push_name = excluded.push_name, unread = excluded.unread, status = MAX(messages.status, excluded.status)
 		WHERE messages.kind = 'pending'`,
 		m.Chat, m.ID, m.Sender, m.FromMe, m.TS, m.Kind, m.Text,
 		marshalOrNil(m.Media, m.Media == nil), marshalOrNil(m.Quote, m.Quote == nil), mentions, marshalOrNil(m.Link, m.Link == nil),
-		m.Status, m.Edited, m.unread, m.pushName, m.rawChat, m.rawSender, m.raw, m.localPath)
+		m.Status, m.Edited, m.unread, m.pushName, m.rawChat, m.rawSender, m.raw, m.localPath, m.Forwarded)
 	if err != nil {
 		return false, err
 	}
@@ -279,7 +293,8 @@ func bumpChat(ctx context.Context, db execer, chat string, isGroup bool, ts int6
 	return err
 }
 
-const messageColumns = `m.rowid, m.chat, m.id, m.sender, m.from_me, m.ts, m.kind, m.text, m.media, m.quote, m.mentions, m.link, m.status, m.edited, m.unread, m.push_name, m.raw_chat, m.raw_sender, m.local_path`
+const messageColumns = `m.rowid, m.chat, m.id, m.sender, m.from_me, m.ts, m.kind, m.text, m.media, m.quote, m.mentions, m.link, m.status, m.edited, m.unread, m.push_name, m.raw_chat, m.raw_sender, m.local_path,
+	m.forwarded`
 
 type scanner interface {
 	Scan(dest ...any) error
@@ -289,7 +304,7 @@ func scanMessage(row scanner) (*Message, error) {
 	var m Message
 	var media, quote, mentions, link sql.NullString
 	err := row.Scan(&m.Seq, &m.Chat, &m.ID, &m.Sender, &m.FromMe, &m.TS, &m.Kind, &m.Text, &media, &quote, &mentions, &link,
-		&m.Status, &m.Edited, &m.unread, &m.pushName, &m.rawChat, &m.rawSender, &m.localPath)
+		&m.Status, &m.Edited, &m.unread, &m.pushName, &m.rawChat, &m.rawSender, &m.localPath, &m.Forwarded)
 	if err != nil {
 		return nil, err
 	}
