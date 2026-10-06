@@ -183,8 +183,7 @@
                     <ToggleButton x:Name="GroupsFilter" Click="OnFilterClick" Content="Groups" Style="{StaticResource FilterChipStyle}" Tag="Groups" />
                 </StackPanel>
 
-                <Button x:Name="ArchivedButton" Grid.Row="4" Height="52" Margin="8,0,8,0" Padding="16,0,12,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
-                        Background="Transparent" BorderThickness="0" Click="OnArchivedClick" CornerRadius="10" Visibility="Collapsed">
+                <Button x:Name="ArchivedButton" Grid.Row="4" Height="52" Padding="16,0,12,0" Click="OnArchivedClick" Style="{StaticResource ChatRowButtonStyle}" Visibility="Collapsed">
                     <Grid ColumnSpacing="26">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
