@@ -5,6 +5,7 @@ using Microsoft.UI.Dispatching;
 using Microsoft.UI.Input;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
@@ -87,6 +88,7 @@ public sealed partial class MainWindow : Window
         ChatColumn.Width = new GridLength(_chatListWidth);
         ApplyTheme();
         RestorePlacement();
+        UpdateMaximizeButton();
 
         Session.PropertyChanged += OnSessionChanged;
         Session.Chats.PropertyChanged += (_, e) =>
@@ -144,11 +146,20 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private void OnActivated(object sender, WindowActivatedEventArgs args) =>
-        Session.SetWindowActive(args.WindowActivationState != WindowActivationState.Deactivated);
+    private void OnActivated(object sender, WindowActivatedEventArgs args)
+    {
+        bool active = args.WindowActivationState != WindowActivationState.Deactivated;
+        Session.SetWindowActive(active);
+        // Dimmed while another window is in front, as Windows does.
+        CaptionButtons.Opacity = active ? 1 : 0.5;
+    }
 
     private void OnWindowChanged(AppWindow sender, AppWindowChangedEventArgs args)
     {
+        if (args.DidPresenterChange || args.DidSizeChange)
+        {
+            UpdateMaximizeButton();
+        }
         if ((args.DidPositionChange || args.DidSizeChange) && sender.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Restored })
         {
             _normalBounds = new RectInt32(sender.Position.X, sender.Position.Y, sender.Size.Width, sender.Size.Height);
@@ -210,16 +221,15 @@ public sealed partial class MainWindow : Window
     // ---- The title bar ----
 
     /// <summary>
-    /// Lets the app draw up to the top of the window. Only minimize, maximize and
-    /// close stay, over the top right corner; the headers move the window.
+    /// Lets the app draw up to the top of the window, and hides the window's own
+    /// minimize, maximize and close: Windows draws them at most 48 px tall, so the app
+    /// draws its own, as tall as the headers. The headers move the window.
     /// </summary>
     private void ExtendTitleBar()
     {
         AppWindowTitleBar titleBar = AppWindow.TitleBar;
         titleBar.ExtendsContentIntoTitleBar = true;
-        titleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
-        titleBar.ButtonBackgroundColor = Colors.Transparent;
-        titleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
+        titleBar.PreferredHeightOption = TitleBarHeightOption.Collapsed;
         Root.LayoutUpdated += (_, _) => QueueTitleBarUpdate();
         Root.ActualThemeChanged += (_, _) => DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, SetCaptionColor);
         SetCaptionColor();
@@ -261,9 +271,8 @@ public sealed partial class MainWindow : Window
             return;
         }
         double scale = root.RasterizationScale;
-        int rightInset = AppWindow.TitleBar.RightInset;
-        double inset = (rightInset > 0 ? rightInset : 138 * scale) / scale;
-        double strip = AppWindow.TitleBar.Height > 0 ? AppWindow.TitleBar.Height / scale : 48;
+        double inset = CaptionButtons.ActualWidth;
+        double strip = CaptionButtons.ActualHeight;
 
         bool viewer = Viewer.IsOpen;
         bool login = LoginPane.Visibility == Visibility.Visible;
@@ -273,6 +282,12 @@ public sealed partial class MainWindow : Window
         // When the chat beside the list is narrower than the window's buttons.
         SetPadding(PaneHeader, new Thickness(20, 0, 10 + Math.Max(0, inset - ChatArea.ActualWidth), 0));
         Viewer.CaptionInset = inset;
+        // Light on the dark viewer.
+        ElementTheme captionTheme = viewer ? ElementTheme.Dark : ElementTheme.Default;
+        if (CaptionButtons.RequestedTheme != captionTheme)
+        {
+            CaptionButtons.RequestedTheme = captionTheme;
+        }
 
         var caption = new List<RectInt32>();
         var passthrough = new List<RectInt32>();
@@ -318,6 +333,11 @@ public sealed partial class MainWindow : Window
             }
         }
 
+        foreach (Button button in (Button[])[MinimizeButton, MaximizeButton, CloseButton])
+        {
+            passthrough.Add(ToWindow(button, button.ActualHeight));
+        }
+
         if (!caption.SequenceEqual(_captionRects) || !passthrough.SequenceEqual(_passthroughRects))
         {
             _captionRects = [.. caption];
@@ -325,6 +345,47 @@ public sealed partial class MainWindow : Window
             InputNonClientPointerSource source = InputNonClientPointerSource.GetForWindowId(AppWindow.Id);
             source.SetRegionRects(NonClientRegionKind.Caption, _captionRects);
             source.SetRegionRects(NonClientRegionKind.Passthrough, _passthroughRects);
+        }
+    }
+
+    private void OnMinimizeClick(object sender, RoutedEventArgs e)
+    {
+        if (AppWindow.Presenter is OverlappedPresenter presenter)
+        {
+            presenter.Minimize();
+        }
+    }
+
+    private void OnMaximizeClick(object sender, RoutedEventArgs e)
+    {
+        if (AppWindow.Presenter is OverlappedPresenter presenter)
+        {
+            if (presenter.State == OverlappedPresenterState.Maximized)
+            {
+                presenter.Restore();
+            }
+            else
+            {
+                presenter.Maximize();
+            }
+        }
+    }
+
+    /// <summary>Closes as the window's own close button does, so closing to the tray still applies.</summary>
+    private void OnCloseClick(object sender, RoutedEventArgs e) =>
+        Native.PostMessage(App.Current.WindowHandleOf(this), Native.WM_CLOSE, 0, 0);
+
+    /// <summary>Shows restore instead of maximize while the window fills the screen.</summary>
+    private void UpdateMaximizeButton()
+    {
+        bool maximized = AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Maximized };
+        string glyph = maximized ? "" : "";
+        if (MaximizeIcon.Glyph != glyph)
+        {
+            MaximizeIcon.Glyph = glyph;
+            string name = maximized ? "Restore" : "Maximize";
+            AutomationProperties.SetName(MaximizeButton, name);
+            ToolTipService.SetToolTip(MaximizeButton, name);
         }
     }
 

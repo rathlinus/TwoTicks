@@ -42,7 +42,7 @@
         </Grid.RowDefinitions>
 
         <!-- Who sent it and when, and what can be done with it. -->
-        <Grid x:Name="HeaderBar" Height="48" Padding="16,0" ColumnSpacing="4">
+        <Grid x:Name="HeaderBar" Height="60" Padding="16,0" ColumnSpacing="4">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />

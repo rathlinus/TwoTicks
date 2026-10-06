@@ -124,7 +124,7 @@
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
-                <Grid x:Name="PaneHeader" Height="48" Margin="0,0,0,6" Padding="20,0,10,0" ColumnSpacing="2">
+                <Grid x:Name="PaneHeader" Height="60" Padding="20,0,10,0" ColumnSpacing="2">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
@@ -253,6 +253,19 @@
 
         <!-- Photos and videos, over everything. -->
         <v:MediaViewer x:Name="Viewer" Visibility="Collapsed" />
+
+        <!-- Minimize, maximize and close, drawn here so they are as tall as the headers. -->
+        <StackPanel x:Name="CaptionButtons" HorizontalAlignment="Right" VerticalAlignment="Top" Orientation="Horizontal">
+            <Button x:Name="MinimizeButton" AutomationProperties.Name="Minimize" Click="OnMinimizeClick" Style="{StaticResource CaptionButtonStyle}" ToolTipService.ToolTip="Minimize">
+                <FontIcon FontSize="10" Glyph="&#xE921;" />
+            </Button>
+            <Button x:Name="MaximizeButton" AutomationProperties.Name="Maximize" Click="OnMaximizeClick" Style="{StaticResource CaptionButtonStyle}" ToolTipService.ToolTip="Maximize">
+                <FontIcon x:Name="MaximizeIcon" FontSize="10" Glyph="&#xE922;" />
+            </Button>
+            <Button x:Name="CloseButton" AutomationProperties.Name="Close" Click="OnCloseClick" Style="{StaticResource CloseCaptionButtonStyle}" ToolTipService.ToolTip="Close">
+                <FontIcon FontSize="10" Glyph="&#xE8BB;" />
+            </Button>
+        </StackPanel>
 
         <InfoBar x:Name="ErrorBar" MaxWidth="560" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Bottom"
                  Closed="OnErrorClosed" IsOpen="False" Severity="Error" />

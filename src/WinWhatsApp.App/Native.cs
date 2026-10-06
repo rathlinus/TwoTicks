@@ -7,6 +7,7 @@ internal static partial class Native
 {
     public const int WM_APP = 0x8000;
     public const int WM_COMMAND = 0x0111;
+    public const int WM_CLOSE = 0x0010;
     public const int WM_LBUTTONUP = 0x0202;
     public const int WM_RBUTTONUP = 0x0205;
     public const int WM_CONTEXTMENU = 0x007B;
@@ -122,6 +123,10 @@ internal static partial class Native
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool SetForegroundWindow(nint hwnd);
+
+    [LibraryImport("user32.dll", EntryPoint = "PostMessageW")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool PostMessage(nint hwnd, int message, nint wParam, nint lParam);
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
