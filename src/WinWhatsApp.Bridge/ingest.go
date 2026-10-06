@@ -133,12 +133,27 @@ func (b *Bridge) onMessage(evt *events.Message, live bool) {
 				b.revoke(chat.String(), target)
 			}
 		case waE2E.ProtocolMessage_MESSAGE_EDIT:
-			if b.isSenderOf(ctx, chat.String(), target, sender, info.IsFromMe) {
-				b.applyEdit(chat.String(), target, pm.GetEditedMessage())
-			}
+			b.receiveEdit(ctx, chat, sender, info.IsFromMe, target, pm.GetEditedMessage())
 		case waE2E.ProtocolMessage_EPHEMERAL_SETTING:
 			b.updateChat(info.Chat, `ephemeral = ?`, pm.GetEphemeralExpiration())
 		}
+		return
+	}
+	// Newer WhatsApp versions send some edits encrypted with the secret of the
+	// message they change, instead of as a protocol message.
+	if enc := msg.GetSecretEncryptedMessage(); enc != nil {
+		if enc.GetSecretEncType() != waE2E.SecretEncryptedMessage_MESSAGE_EDIT {
+			return
+		}
+		edited, err := b.decryptEdit(ctx, evt)
+		if err != nil {
+			return
+		}
+		sender := b.canonical(ctx, info.Sender)
+		if info.IsFromMe {
+			sender = b.ownJID()
+		}
+		b.receiveEdit(ctx, chat, sender, info.IsFromMe, enc.GetTargetMessageKey().GetID(), edited)
 		return
 	}
 	if r := msg.GetReactionMessage(); r != nil {
@@ -298,6 +313,34 @@ func (b *Bridge) revoke(chat, id string) {
 	_, _ = b.w.ExecContext(b.ctx, `DELETE FROM reactions WHERE chat = ? AND msg_id = ?`, chat, id)
 	b.reloadAndEmit(chat, id)
 	b.emitChat(chat)
+}
+
+// decryptEdit returns the new content of an edit sent encrypted with the
+// secret of the message it changes.
+func (b *Bridge) decryptEdit(ctx context.Context, evt *events.Message) (*waE2E.Message, error) {
+	enc := evt.Message.GetSecretEncryptedMessage()
+	edited, err := b.cli.DecryptSecretEncryptedMessage(ctx, evt)
+	if err != nil {
+		b.log.Warnf("Failed to decrypt the edit %s of %s: %v", evt.Info.ID, enc.GetTargetMessageKey().GetID(), err)
+		return nil, err
+	}
+	// The content may come wrapped as the edit it is.
+	if inner := edited.GetEditedMessage().GetMessage(); inner != nil {
+		edited = inner
+	}
+	if pm := edited.GetProtocolMessage(); pm != nil && pm.GetEditedMessage() != nil {
+		edited = pm.GetEditedMessage()
+	}
+	return edited, nil
+}
+
+// receiveEdit changes the text of a message, if the edit comes from who sent it.
+func (b *Bridge) receiveEdit(ctx context.Context, chat, sender types.JID, fromMe bool, id string, edited *waE2E.Message) {
+	if !b.isSenderOf(ctx, chat.String(), id, sender, fromMe) {
+		b.log.Warnf("Ignoring an edit of %s in %s by %s, who did not send it or it is not stored", id, chat, sender)
+		return
+	}
+	b.applyEdit(chat.String(), id, edited)
 }
 
 func (b *Bridge) applyEdit(chat, id string, edited *waE2E.Message) {
@@ -637,6 +680,18 @@ func (b *Bridge) convertHistory(ctx context.Context, chat types.JID, web *waWeb.
 	}
 	if evt.Message.GetProtocolMessage() != nil || evt.Message.GetReactionMessage() != nil {
 		return nil
+	}
+	if enc := evt.Message.GetSecretEncryptedMessage(); enc != nil {
+		if enc.GetSecretEncType() != waE2E.SecretEncryptedMessage_MESSAGE_EDIT {
+			return nil
+		}
+		edited, err := b.decryptEdit(ctx, evt)
+		if err != nil {
+			return nil
+		}
+		// As ParseWebMessage does with a plain edit: the new content under the original ID.
+		evt.Info.ID = enc.GetTargetMessageKey().GetID()
+		evt.Message = edited
 	}
 	m := b.convert(ctx, evt)
 	if m == nil {
