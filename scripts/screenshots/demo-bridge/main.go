@@ -1,6 +1,9 @@
-// A stand-in for WinWhatsApp.Bridge that serves made-up chats from demo.json,
-// for screenshots. It speaks the same line protocol as the real helper but
-// never connects to WhatsApp. See ../README.md.
+// A stand-in for WinWhatsApp.Bridge that serves made-up chats, for
+// screenshots. It speaks the same line protocol as the real helper but never
+// connects to WhatsApp. See ../README.md.
+//
+// WINWHATSAPP_DEMO is the folder with demo.json and its pictures.
+// WINWHATSAPP_DEMO_QR=1 shows the linking screen instead of the chats.
 package main
 
 import (
@@ -18,17 +21,18 @@ import (
 )
 
 type demo struct {
-	State    string                       `json:"state"`
-	QR       string                       `json:"qr"`
-	Me       map[string]string            `json:"me"`
-	Chats    []map[string]any             `json:"chats"`
-	Messages map[string][]map[string]any  `json:"messages"`
-	Avatars  map[string]string            `json:"avatars"`
-	Profiles map[string]map[string]any    `json:"profiles"`
-	Groups   map[string]map[string]any    `json:"groups"`
-	Contacts []map[string]string          `json:"contacts"`
-	Presence map[string]map[string]any    `json:"presence"`
-	Typing   []map[string]any             `json:"typing"`
+	Now      int64                       `json:"now"`
+	State    string                      `json:"state"`
+	QR       string                      `json:"qr"`
+	Me       map[string]string           `json:"me"`
+	Chats    []map[string]any            `json:"chats"`
+	Messages map[string][]map[string]any `json:"messages"`
+	Avatars  map[string]string           `json:"avatars"`
+	Profiles map[string]map[string]any   `json:"profiles"`
+	Groups   map[string]map[string]any   `json:"groups"`
+	Contacts []map[string]string         `json:"contacts"`
+	Presence map[string]map[string]any   `json:"presence"`
+	Typing   []map[string]any            `json:"typing"`
 }
 
 var (
@@ -48,11 +52,12 @@ func write(v any) {
 func event(name string, data any) { write(map[string]any{"event": name, "data": data}) }
 
 func main() {
-	dataDir := flag.String("data", "", "the folder with demo.json")
+	flag.String("data", "", "ignored: the app's data folder")
 	flag.Bool("debug", false, "ignored")
 	flag.Parse()
 
-	raw, err := os.ReadFile(filepath.Join(*dataDir, "demo.json"))
+	dir, _ := filepath.Abs(os.Getenv("WINWHATSAPP_DEMO"))
+	raw, err := os.ReadFile(filepath.Join(dir, "demo.json"))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -62,9 +67,11 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	if d.State == "" {
-		d.State = "connected"
+	d.State = "connected"
+	if os.Getenv("WINWHATSAPP_DEMO_QR") == "1" {
+		d.State = "qr"
 	}
+	fix(dir, time.Now().Unix()-d.Now, &d)
 
 	state := map[string]any{"state": d.State}
 	if d.State != "qr" {
@@ -102,6 +109,49 @@ func main() {
 		if err != nil {
 			return
 		}
+	}
+}
+
+// fix moves every time forward to now and makes every picture's path absolute.
+func fix(dir string, shift int64, d *demo) {
+	var walk func(v any)
+	walk = func(v any) {
+		switch v := v.(type) {
+		case map[string]any:
+			for key, value := range v {
+				switch value := value.(type) {
+				case float64:
+					// mutedUntil -1 means for ever.
+					if (key == "ts" || key == "pinned" || key == "created" || key == "mutedUntil") && value > 0 {
+						v[key] = value + float64(shift)
+					}
+				case string:
+					if (key == "path" || key == "avatar") && value != "" && !filepath.IsAbs(value) {
+						v[key] = filepath.Join(dir, value)
+					}
+				default:
+					walk(value)
+				}
+			}
+		case []any:
+			for _, item := range v {
+				walk(item)
+			}
+		}
+	}
+	for _, c := range d.Chats {
+		walk(c)
+	}
+	for _, messages := range d.Messages {
+		for _, m := range messages {
+			walk(m)
+		}
+	}
+	for _, g := range d.Groups {
+		walk(g)
+	}
+	for jid, path := range d.Avatars {
+		d.Avatars[jid] = filepath.Join(dir, path)
 	}
 }
 

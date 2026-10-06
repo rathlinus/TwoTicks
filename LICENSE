@@ -23,4 +23,6 @@ SOFTWARE.
 This license covers WinWhatsApp's own code. WhatsApp's name, logo, emoji,
 icons, wallpapers and notification sounds in src/WinWhatsApp.App/Assets belong
 to WhatsApp and Meta and are not covered by it. whatsmeow is under the Mozilla
-Public License 2.0 and Roboto under the Apache License 2.0.
+Public License 2.0 and Roboto under the Apache License 2.0. The photos in
+scripts/screenshots/demo are under their own licenses, listed in CREDITS.md
+there.

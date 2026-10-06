@@ -1,16 +1,17 @@
 """Writes the made-up chats the demo helper serves, for the screenshots in the README.
 
 Downloads the pictures from Wikimedia Commons once (to artifacts/demo/cache) and
-writes artifacts/demo/data: demo.json for the demo helper and settings.json for
-the app. Times are relative to now, so run it right before taking screenshots.
+writes scripts/screenshots/demo: demo.json, the photos and profile pictures, and
+their credits. The result is kept in the repository; run this only to change the
+chats or the pictures.
 
-    python scripts/screenshots/make_demo.py [--theme Light|Dark] [--qr]
+    python scripts/screenshots/make_demo.py
 """
 
-import argparse
 import base64
 import io
 import json
+import re
 import time
 from pathlib import Path
 
@@ -18,9 +19,8 @@ import requests
 from PIL import Image, ImageOps
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / "artifacts" / "demo"
-CACHE = OUT / "cache"
-DATA = OUT / "data"
+CACHE = ROOT / "artifacts" / "demo" / "cache"
+DEMO = Path(__file__).resolve().parent / "demo"
 UA = {"User-Agent": "WinWhatsApp-readme-screenshots/1.0 (https://github.com/rathlinus/WinWhatsApp)"}
 
 # Every picture, with where it is from. The README credits them from credits.json.
@@ -35,6 +35,7 @@ PICTURES = {
     "pizza": "File:Pizza Tradición Napolitana.jpg",
     "beach": "File:Sunset at Livadhi Beach, Himare - 2020 July (2).jpg",
     "gate": "File:Brandenburger Tor morgens.jpg",
+    "keyboard": "File:Backlit keyboard.jpg",
 }
 
 
@@ -67,36 +68,35 @@ def fetch(key: str) -> tuple[Path, dict]:
 
 
 def avatar(key: str) -> str:
+    """A profile picture, by its path in the demo folder; the helper makes it absolute."""
     source, _ = fetch(key)
-    target = DATA / "avatars" / f"{key}.jpg"
+    target = DEMO / "avatars" / f"{key}.jpg"
     target.parent.mkdir(parents=True, exist_ok=True)
-    ImageOps.fit(Image.open(source).convert("RGB"), (640, 640)).save(target, quality=90)
-    return str(target)
+    ImageOps.fit(Image.open(source).convert("RGB"), (480, 480)).save(target, quality=85)
+    return f"avatars/{key}.jpg"
 
 
-def photo(key: str, thumb_size: int = 96) -> dict:
-    """Media of a photo: the file, its size and a small preview, as WhatsApp sends them."""
+def photo(key: str, thumb_size: int = 96, keep: bool = True) -> dict:
+    """Media of a photo: the file, its size and a small preview, as WhatsApp sends them.
+    Without keep, only the preview, as for a video that is not downloaded."""
     source, _ = fetch(key)
     image = Image.open(source).convert("RGB")
-    target = DATA / "media" / f"{key}.jpg"
-    target.parent.mkdir(parents=True, exist_ok=True)
-    image.save(target, quality=90)
+    image.thumbnail((1280, 1280))
+    media = {"mime": "image/jpeg", "w": image.width, "h": image.height}
+    if keep:
+        target = DEMO / "photos" / f"{key}.jpg"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        image.save(target, quality=85)
+        media.update(size=target.stat().st_size, path=f"photos/{key}.jpg")
     thumb = image.copy()
     thumb.thumbnail((thumb_size, thumb_size))
     buffer = io.BytesIO()
     thumb.save(buffer, "JPEG", quality=70)
-    return {
-        "mime": "image/jpeg", "size": target.stat().st_size, "w": image.width, "h": image.height,
-        "thumb": base64.b64encode(buffer.getvalue()).decode(), "path": str(target),
-    }
+    media["thumb"] = base64.b64encode(buffer.getvalue()).decode()
+    return media
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--theme", default="Light")
-    parser.add_argument("--qr", action="store_true", help="show the linking screen instead")
-    args = parser.parse_args()
-
     now = int(time.time())
     minute, hour, day = 60, 3600, 86400
 
@@ -111,6 +111,7 @@ def main() -> None:
         "lena": ("447700900107@s.whatsapp.net", "Lena"),
         "daniel": ("447700900108@s.whatsapp.net", "Daniel"),
         "grandpa": ("447700900109@s.whatsapp.net", "Grandpa"),
+        "noah": ("447700900110@s.whatsapp.net", "Noah Fischer"),
     }
     hiking = "120363000000000001@g.us"
     books = "120363000000000002@g.us"
@@ -176,7 +177,7 @@ def main() -> None:
               "thumb": photo("lake")["thumb"]})
     add(hiking, "jonas", 15 * minute, "image", "This is where we start. 06:30 at the parking lot ⏰", media=photo("lake"),
         reactions=react("😍", "priya", "me"))
-    add(hiking, "me", 6 * minute, text="Alarm set for ```05:45```. See you there! 👋", edited=True, status=2)
+    add(hiking, "me", 6 * minute, text="Alarm set for 05:45. See you there! 👋", edited=True, status=2)
     add(hiking, "jonas", 2 * minute, text="Can't wait 🙌")
 
     # A chat with one person: photos, a video, a reply.
@@ -186,12 +187,32 @@ def main() -> None:
     slice_ = messages[people["mia"][0]][-1]
     add(people["mia"][0], "me", 5 * hour - minute, text="You're the best 😍", quote=quote(slice_),
         reactions=react("❤️", "mia"))
-    beach = photo("beach", 480)  # a sharp preview, since a video is never downloaded here
+    beach = photo("beach", 480, keep=False)  # a sharp preview, since a video is never downloaded here
     add(people["mia"][0], "mia", 2 * hour, "video", "Last summer, still my favourite 🌅",
         media={"mime": "video/mp4", "size": 6_400_000, "w": beach["w"], "h": beach["h"], "secs": 24, "thumb": beach["thumb"]})
     add(people["mia"][0], "me", 2 * hour - 3 * minute, text="We need to go back there")
     add(people["mia"][0], "me", 25 * minute, "image", "Guess where I am 😄", media=photo("gate"), status=3)
     add(people["mia"][0], "mia", 20 * minute, text="Wait, you're in *Berlin*?!")
+
+    # A chat about work: files, voice messages and, last so it shows, code.
+    noah = people["noah"][0]
+    add(noah, "noah", 5 * hour, text="Here's the release 👇")
+    add(noah, "noah", 5 * hour - minute, "document",
+        media={"mime": "application/pdf", "size": 241_664, "name": "Release notes 2.4.pdf", "pages": 3})
+    add(noah, "noah", 5 * hour - 2 * minute, "document",
+        media={"mime": "application/zip", "size": 2_516_582, "name": "screenshots.zip"})
+    add(noah, "me", 4 * hour, "document",
+        media={"mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "size": 48_128,
+               "name": "Budget 2026.xlsx"}, status=3)
+    add(noah, "noah", 3 * hour, "voice", media={"mime": "audio/ogg; codecs=opus", "size": 120_000, "secs": 72})
+    add(noah, "me", 2 * hour, "voice", media={"mime": "audio/ogg; codecs=opus", "size": 52_000, "secs": 31}, status=4)
+    add(noah, "noah", 90 * minute, text="Can you look at this before I merge? The `retry` loop never stops when the server is down")
+    add(noah, "noah", 90 * minute - 30, text="```\nasync function fetchWithRetry(url, tries = 3) {\n"
+        "  for (let i = 0; i < tries; i++) {\n    try {\n      return await fetch(url);\n"
+        "    } catch {\n      await sleep(2 ** i * 1000);\n    }\n  }\n"
+        "  throw new Error(`Gave up on ${url}`);\n}\n```")
+    add(noah, "me", 70 * minute, text="Looks good, ship it 🚀", status=3,
+        reactions=react("👍", "noah"))
 
     add(people["mum"][0], "mum", 50 * minute, text="Call me when you land ❤️")
     for i, line in enumerate(["Chapter 12 was wild", "No spoilers please!!", "I'm only on chapter 9 😭", "Same",
@@ -237,6 +258,7 @@ def main() -> None:
         chat(people["mia"][0], "Mia Schneider", "dog", pinned=now - 20 * day),
         chat(people["mum"][0], "Mum", "sunflower", unread=1),
         chat(books, "Book club 📚", "books", unread=14, mutedUntil=-1, members=9),
+        chat(noah, "Noah Fischer", "keyboard"),
         chat(people["tom"][0], "Tom Becker", "boat"),
         chat(people["lena"][0], "Lena", "cat", unread=1),
         chat(pizza, "Pizza Friday 🍕", None, members=5),
@@ -247,7 +269,8 @@ def main() -> None:
     ]
 
     demo = {
-        "state": "qr" if args.qr else "connected",
+        # The helper moves every time by the time since then, so the chats look as recent as now.
+        "now": now,
         "qr": "2@WinWhatsAppDemo,ThisCodeLinksNothing,OnlyForScreenshots==,0123456789abcdef",
         "me": me,
         "chats": chats,
@@ -273,15 +296,18 @@ def main() -> None:
         "typing": [{"chat": people["mia"][0], "sender": people["mia"][0], "typing": True}],
     }
 
-    DATA.mkdir(parents=True, exist_ok=True)
-    (DATA / "demo.json").write_text(json.dumps(demo, ensure_ascii=False), "utf-8")
-    (DATA / "settings.json").write_text(json.dumps({
-        "Notifications": False, "CloseToTray": False, "Theme": args.theme,
-        "Window": {"X": 100, "Y": 60, "Width": 1400, "Height": 900, "Maximized": False}, "ChatListWidth": 400,
-    }, indent=2), "utf-8")
-    credits = [fetch(key)[1] for key in PICTURES]
-    (OUT / "credits.json").write_text(json.dumps(credits, indent=2, ensure_ascii=False), "utf-8")
-    print(f"Wrote {DATA}")
+    DEMO.mkdir(parents=True, exist_ok=True)
+    (DEMO / "demo.json").write_text(json.dumps(demo, ensure_ascii=False, indent=1), "utf-8")
+    lines = ["# Credits", "", "The photos and profile pictures here are from Wikimedia Commons, cropped and scaled.", "",
+             "| Photo | By | License |", "|---|---|---|"]
+    for key in PICTURES:
+        meta = fetch(key)[1]
+        # Commons gives the author as HTML, sometimes with where the photo was posted first.
+        artist = re.sub(r"<[^>]+>", "", meta["artist"]).replace(" ", " ").split(":")[0].strip()
+        license_ = f"[{meta['license']}]({meta['licenseUrl']})" if meta["licenseUrl"] else meta["license"]
+        lines.append(f"| [{meta['title'][5:]}]({meta['page']}) | {artist} | {license_} |")
+    (DEMO / "CREDITS.md").write_text("\n".join(lines) + "\n", "utf-8")
+    print(f"Wrote {DEMO}")
 
 
 if __name__ == "__main__":

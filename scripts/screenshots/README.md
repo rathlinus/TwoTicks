@@ -1,44 +1,28 @@
 # Screenshots
 
-The screenshots in the README show made-up chats. The app runs on `demo-bridge`, a stand-in for `WinWhatsApp.Bridge.exe` that speaks the same protocol but never connects to WhatsApp. It serves the chats `make_demo.py` writes, with photos from Wikimedia Commons.
+The screenshots in the README show made-up chats. The app runs on `demo-bridge`, a stand-in for `WinWhatsApp.Bridge.exe` that speaks the same protocol but never connects to WhatsApp. It serves the chats in `demo`.
 
-Everything goes to `artifacts\demo`, with its own data folder, so your own WinWhatsApp keeps running beside it.
+| Path | What it is |
+|---|---|
+| `Take-Screenshots.ps1` | Takes every screenshot in the light and the dark theme and saves them to `docs\screenshots` as `<theme>-<name>.webp`. |
+| `Capture.ps1` | The helpers it uses: start the demo, open a chat, click, save the window. |
+| `demo-bridge` | The stand-in helper, in Go. |
+| `demo` | The made-up chats (`demo.json`), their photos and profile pictures, and [their credits](demo/CREDITS.md). |
+| `make_demo.py` | Writes `demo`. Run it only to change the chats or the pictures. |
 
 ## Take them again
 
-Build the app first (`scripts\build.ps1`), then:
+Build the app, then run the script:
 
 ```powershell
-# A copy of the app with the stand-in in place of the helper.
-Remove-Item -Recurse -Force artifacts\demo\app -ErrorAction SilentlyContinue
-Copy-Item -Recurse artifacts\app artifacts\demo\app
-go build -C scripts\screenshots\demo-bridge -o ..\..\..\artifacts\demo\app\WinWhatsApp.Bridge.exe .
-
-pip install requests pillow
-$env:PYTHONIOENCODING = 'utf-8'
-. scripts\screenshots\Capture.ps1
-$out = 'docs\screenshots'
-
-python scripts\screenshots\make_demo.py --theme Light
-Start-Demo
-Select-Chat 'Hiking crew'; Save-Window "$out\chat.png"
-Invoke-Element 'HeaderButton'; Start-Sleep 2; Save-Window "$out\group-info.png"
-Invoke-Element 'Close'
-Invoke-Point 765 467; Start-Sleep 2; Save-Window "$out\viewer.png"   # the lake photo
-Invoke-Element 'Close'
-Set-Field 'Search or start a new chat' 'pizza'; Save-Window "$out\search.png"
-
-python scripts\screenshots\make_demo.py --theme Dark
-Start-Demo
-Select-Chat 'Mia'; Start-Sleep 2; Save-Window "$out\chat-dark.png"
-
-python scripts\screenshots\make_demo.py --qr
-Start-Demo; Save-Window "$out\link.png"
-Stop-Demo
+scripts\build.ps1
+scripts\screenshots\Take-Screenshots.ps1
 ```
 
-The README uses `viewer.jpg`: convert `viewer.png` to JPEG, since the photo makes the PNG large. `Invoke-Point` clicks in window pixels, so the photo's position holds only for the window size `make_demo.py` sets (1400 × 900) at 100 % display scaling.
+It needs Go, and Python with Pillow (`pip install pillow`) for the WebP files. It copies the app to `artifacts\demo\app` with its own data folder, so your own WinWhatsApp keeps running beside it. Leave the mouse alone while it runs: opening a photo is a real click, at a position that holds for the window size it sets (1400 × 900) at 100 % display scaling.
 
-`make_demo.py` downloads the photos once to `artifacts\demo\cache` and writes their authors and licenses to `artifacts\demo\credits.json`. When you change a photo, update the credits at the end of the README.
+The stand-in moves every time in `demo.json` forward to now, so the chats always look recent. `WINWHATSAPP_DEMO_QR=1` makes it show the linking screen.
 
-The phone numbers are from +44 7700 900xxx, a range the UK keeps for fiction.
+## Change the chats
+
+Edit `make_demo.py` and run it (`pip install requests pillow`). It downloads the photos from Wikimedia Commons once, to `artifacts\demo\cache`, and writes `demo` with the credits. Use only photos under a free license, and none of identifiable people. The phone numbers are from +44 7700 900xxx, a range the UK keeps for fiction.

@@ -9,7 +9,9 @@ A native WhatsApp app for Windows 11. It replaces the official app, which since 
 WinWhatsApp is a WinUI 3 app. It opens in about half a second and uses around 180 MB with a few hundred chats. It links to your phone the way WhatsApp Web does, so the phone keeps your account and WinWhatsApp is one of its linked devices.
 
 <p align="center">
-  <img src="docs/screenshots/chat.png" width="900" alt="WinWhatsApp with the chat list on the left and a group chat on the right: a reply with a link preview, a photo of a mountain lake with reactions, an edited message and read ticks">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark-chat.webp" /><img src="docs/screenshots/light-chat.webp" alt="WinWhatsApp with the chat list on the left and a group chat on the right: a reply with a link preview, a photo of a mountain lake with reactions, an edited message and read ticks" width="100%" /></picture>
+  <br />
+  <sub>A group chat with a link preview, a photo, reactions and an edited message</sub>
 </p>
 
 It looks like WhatsApp because it draws with WhatsApp Web's own emoji, icons, colours, chat wallpaper and font, in the light and the dark theme.
@@ -24,7 +26,7 @@ It looks like WhatsApp because it draws with WhatsApp Web's own emoji, icons, co
 
 ## Messages
 
-- WhatsApp's formatting: \*bold\*, \_italic\_, \~strikethrough\~ and \`\`\`monospace\`\`\`
+- WhatsApp's formatting: \*bold\*, \_italic\_, \~strikethrough\~, \`inline code\` and \`\`\`code blocks\`\`\`
 - Replies, @mentions, reactions and link previews
 - Editing your messages, and deleting for everyone or for you; press Up in an empty message box to edit your last one
 - Photos, videos, GIFs, stickers, documents, voice messages and locations
@@ -32,32 +34,30 @@ It looks like WhatsApp because it draws with WhatsApp Web's own emoji, icons, co
 - Send photos, videos and files with a caption each: pick them, paste them or drop them on the chat
 
 <p align="center">
-  <img src="docs/screenshots/chat-dark.png" width="900" alt="The dark theme: a chat with a video, a photo of the Brandenburg Gate and the other person typing">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark-media.webp" /><img src="docs/screenshots/light-media.webp" alt="A chat with a video, a photo of the Brandenburg Gate and the other person typing" width="49%" /></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark-files.webp" /><img src="docs/screenshots/light-files.webp" alt="A chat with a PDF, a zip file, a spreadsheet, two voice messages and a block of code" width="49%" /></picture>
+  <br />
+  <sub>Photos, a video and someone typing&nbsp;&nbsp;·&nbsp;&nbsp;Files, voice messages and code</sub>
 </p>
 
 ## Photos and videos
 
 Click a photo or video to open the viewer. It zooms, saves the file, opens it in another app and steps through every photo and video of the chat with the arrow keys.
 
-<p align="center">
-  <img src="docs/screenshots/viewer.jpg" width="900" alt="The viewer showing a photo of Lago di Braies with its caption, zoom controls and buttons to save and open it">
-</p>
-
 ## Search
 
 The search field finds chats by name and messages by their text, across all chats. Click a message to jump to it.
 
 <p align="center">
-  <img src="docs/screenshots/search.png" width="900" alt="A search for pizza: one chat whose name matches and two messages that contain the word">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark-viewer.webp" /><img src="docs/screenshots/light-viewer.webp" alt="The viewer showing a photo of Lago di Braies with its caption, zoom controls and buttons to save and open it" width="49%" /></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark-search.webp" /><img src="docs/screenshots/light-search.webp" alt="A search for pizza: one chat whose name matches and two messages that contain the word" width="49%" /></picture>
+  <br />
+  <sub>The photo and video viewer&nbsp;&nbsp;·&nbsp;&nbsp;Search across chats and messages</sub>
 </p>
 
 ## Contact and group info
 
 Click the name at the top of a chat to see who it is: the profile picture, the about text and the phone number of a person, or the description, the members and the admins of a group.
-
-<p align="center">
-  <img src="docs/screenshots/group-info.png" width="900" alt="The info of a group beside the chat: its picture, description, who created it and the list of members">
-</p>
 
 ## On your desktop
 
@@ -66,6 +66,13 @@ Click the name at the top of a chat to see who it is: the profile picture, the a
 - Keeps running in the notification area when you close the window, so messages keep arriving
 - Starts when you sign in to Windows, if you want
 - Light, dark or the system's theme, and WinWhatsApp's own icon or WhatsApp's
+
+<p align="center">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark-group-info.webp" /><img src="docs/screenshots/light-group-info.webp" alt="The info of a group beside the chat: its picture, description, who created it and the list of members" width="49%" /></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark-settings.webp" /><img src="docs/screenshots/light-settings.webp" alt="The settings: notifications, running in the notification area, starting with Windows, theme, app icon and the account" width="49%" /></picture>
+  <br />
+  <sub>Group info&nbsp;&nbsp;·&nbsp;&nbsp;Settings</sub>
+</p>
 
 | Keys | What they do |
 |---|---|
@@ -97,7 +104,7 @@ The release also has `WinWhatsApp-<version>-x64.zip` for running without install
 Open WinWhatsApp, then on your phone open WhatsApp, go to Linked devices, tap Link a device and scan the code. If you can't scan, choose **Link with phone number instead** and type the code WinWhatsApp shows into your phone.
 
 <p align="center">
-  <img src="docs/screenshots/link.png" width="760" alt="The linking screen: four steps to link the phone and a QR code">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark-link.webp" /><img src="docs/screenshots/light-link.webp" alt="The linking screen: four steps to link the phone and a QR code" width="70%" /></picture>
 </p>
 
 ## A word of warning
@@ -127,19 +134,6 @@ It includes work by others, under their own terms:
 
 ## Screenshots
 
-The screenshots show made-up chats: the app runs on a stand-in for its WhatsApp helper that serves them, so no real account or person is in them. [scripts/screenshots](scripts/screenshots) has the stand-in and the steps to take them again.
+The screenshots show made-up chats: the app runs on a stand-in for its WhatsApp helper that serves them, so no real account or person is in them. `scripts\screenshots\Take-Screenshots.ps1` takes them all again, in both themes; see [scripts/screenshots](scripts/screenshots).
 
-The photos in them are from Wikimedia Commons, cropped and scaled:
-
-| Photo | By | License |
-|---|---|---|
-| [Golden Retriever with a stick (Barras).jpg](https://commons.wikimedia.org/wiki/File:Golden_Retriever_with_a_stick_(Barras).jpg) | Barras | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0) |
-| [Domestic Cat Face Shot.jpg](https://commons.wikimedia.org/wiki/File:Domestic_Cat_Face_Shot.jpg) | Augustus Binu | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0) |
-| [Sunflower head 2015 G1.jpg](https://commons.wikimedia.org/wiki/File:Sunflower_head_2015_G1.jpg) | George Chernilevsky | Public domain |
-| [Sailing boat at sunset, Ionian Sea, Albania.jpg](https://commons.wikimedia.org/wiki/File:Sailing_boat_at_sunset,_Ionian_Sea,_Albania.jpg) | Liridon | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) |
-| [Schneespitze (Stubaier Alpen).jpg](https://commons.wikimedia.org/wiki/File:Schneespitze_(Stubaier_Alpen).jpg) | Jörg Braukmann | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) |
-| [International books at Kent Library.jpg](https://commons.wikimedia.org/wiki/File:International_books_at_Kent_Library.jpg) | Roc0ast3r | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
-| [Lago di Braies South Tyrol 3.jpg](https://commons.wikimedia.org/wiki/File:Lago_di_Braies_South_Tyrol_3.jpg) | kallerna | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) |
-| [Pizza Tradición Napolitana.jpg](https://commons.wikimedia.org/wiki/File:Pizza_Tradici%C3%B3n_Napolitana.jpg) | Rjcastillo | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) |
-| [Sunset at Livadhi Beach, Himare - 2020 July (2).jpg](https://commons.wikimedia.org/wiki/File:Sunset_at_Livadhi_Beach,_Himare_-_2020_July_(2).jpg) | Liridon | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) |
-| [Brandenburger Tor morgens.jpg](https://commons.wikimedia.org/wiki/File:Brandenburger_Tor_morgens.jpg) | Thomas Wolf, www.foto-tw.de | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0) |
+The photos in them are from Wikimedia Commons, under CC0, public domain, CC BY-SA 3.0 and CC BY-SA 4.0. [CREDITS.md](scripts/screenshots/demo/CREDITS.md) lists each one with its author and license.

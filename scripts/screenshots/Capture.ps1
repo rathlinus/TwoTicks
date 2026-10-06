@@ -5,12 +5,13 @@
 .DESCRIPTION
     Dot-source it, then:
 
-        Start-Demo                      # starts artifacts\demo\app on artifacts\demo\data
-        Invoke-Element 'Hiking crew'    # clicks a chat, a button, anything with that name
-        Save-Window docs\screenshots\chats.png
+        Start-Demo -Theme Dark          # starts artifacts\demo\app on the chats in demo
+        Select-Chat 'Hiking crew'       # opens a chat
+        Invoke-Element 'HeaderButton'   # clicks a button by its name or automation id
+        Save-Window artifacts\demo\shots\info.png
         Stop-Demo
 
-    See README.md next to this script for the whole procedure.
+    Take-Screenshots.ps1 uses these to take all of the README's screenshots.
 #>
 
 Add-Type -AssemblyName System.Drawing, UIAutomationClient, UIAutomationTypes
@@ -24,7 +25,6 @@ public static class DemoWin {
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
     [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr hwnd, IntPtr hdc, uint flags);
     [DllImport("user32.dll")] public static extern bool SetProcessDpiAwarenessContext(IntPtr context);
-    [DllImport("user32.dll")] public static extern void keybd_event(byte key, byte scan, uint flags, UIntPtr extra);
     [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
     [DllImport("user32.dll")] public static extern void mouse_event(uint flags, int x, int y, uint data, UIntPtr extra);
 }
@@ -33,11 +33,25 @@ public static class DemoWin {
 [DemoWin]::SetProcessDpiAwarenessContext([IntPtr]-4) | Out-Null
 
 $script:Root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-function Start-Demo {
+
+# Starts the demo with a fresh data folder, in the light or the dark theme.
+# -Link shows the screen for linking a phone instead of the chats.
+function Start-Demo([ValidateSet('Light', 'Dark')][string]$Theme = 'Light', [switch]$Link) {
     Stop-Demo
-    $env:WINWHATSAPP_DATA = Join-Path $script:Root 'artifacts\demo\data'
+    $data = Join-Path $script:Root 'artifacts\demo\data'
+    Remove-Item -Recurse -Force $data -ErrorAction SilentlyContinue
+    New-Item -ItemType Directory -Force $data | Out-Null
+    # The window size fixes where Invoke-Point clicks.
+    @{
+        Notifications = $true; CloseToTray = $false; Theme = $Theme; ChatListWidth = 400
+        Window = @{ X = 100; Y = 60; Width = 1400; Height = 900; Maximized = $false }
+    } | ConvertTo-Json | Set-Content -Encoding utf8 (Join-Path $data 'settings.json')
+
+    $env:WINWHATSAPP_DATA = $data
+    $env:WINWHATSAPP_DEMO = Join-Path $PSScriptRoot 'demo'
+    $env:WINWHATSAPP_DEMO_QR = if ($Link) { '1' } else { '' }
     $process = Start-Process (Join-Path $script:Root 'artifacts/demo/app/WinWhatsApp.exe') -PassThru
-    Remove-Item Env:\WINWHATSAPP_DATA
+    Remove-Item Env:\WINWHATSAPP_DATA, Env:\WINWHATSAPP_DEMO, Env:\WINWHATSAPP_DEMO_QR -ErrorAction SilentlyContinue
     for ($i = 0; $i -lt 50 -and $process.MainWindowHandle -eq 0; $i++) {
         Start-Sleep -Milliseconds 200
         $process.Refresh()
@@ -58,7 +72,17 @@ function Stop-Demo {
     }
 }
 
-function Get-DemoWindow { [System.Windows.Automation.AutomationElement]::FromHandle((Get-DemoProcess).MainWindowHandle) }
+# The demo's window handle, once it has a window.
+function Get-DemoHandle {
+    for ($i = 0; $i -lt 50; $i++) {
+        $p = Get-DemoProcess
+        if ($p -and $p.MainWindowHandle -ne 0) { return $p.MainWindowHandle }
+        Start-Sleep -Milliseconds 200
+    }
+    throw 'The demo has no window.'
+}
+
+function Get-DemoWindow { [System.Windows.Automation.AutomationElement]::FromHandle((Get-DemoHandle)) }
 
 # Clicks the first element with this name or automation id: a button, a menu item.
 function Invoke-Element([string]$Name, [int]$Index = 0) {
@@ -79,13 +103,33 @@ function Invoke-Element([string]$Name, [int]$Index = 0) {
     throw "'$Name' cannot be clicked."
 }
 
+# Brings the demo to the front, so its window buttons are not dimmed, and
+# returns its handle. Windows allows that only right after some input, so
+# this nudges the mouse first; a key press would make buttons show focus rings.
+function Show-DemoWindow {
+    $hwnd = Get-DemoHandle
+    [DemoWin]::mouse_event(1, 1, 0, 0, [UIntPtr]::Zero)    # move by one pixel
+    [DemoWin]::mouse_event(1, -1, 0, 0, [UIntPtr]::Zero)   # and back
+    [DemoWin]::SetForegroundWindow($hwnd) | Out-Null
+    $hwnd
+}
+
+# Waits until something with this name or automation id shows; false if it does not.
+function Wait-Element([string]$Name, [int]$Seconds = 5) {
+    $condition = New-Object System.Windows.Automation.OrCondition `
+        (New-Object System.Windows.Automation.PropertyCondition ([System.Windows.Automation.AutomationElement]::NameProperty), $Name),
+        (New-Object System.Windows.Automation.PropertyCondition ([System.Windows.Automation.AutomationElement]::AutomationIdProperty), $Name)
+    for ($i = 0; $i -lt $Seconds * 5; $i++) {
+        if ((Get-DemoWindow).FindFirst([System.Windows.Automation.TreeScope]::Descendants, $condition)) { return $true }
+        Start-Sleep -Milliseconds 200
+    }
+    $false
+}
+
 # Clicks a point of the window, in pixels from its top left corner, for what
 # UI Automation cannot click, such as a photo in a chat.
 function Invoke-Point([int]$X, [int]$Y) {
-    $hwnd = (Get-DemoProcess).MainWindowHandle
-    [DemoWin]::keybd_event(0x12, 0, 0, [UIntPtr]::Zero)
-    [DemoWin]::keybd_event(0x12, 0, 2, [UIntPtr]::Zero)
-    [DemoWin]::SetForegroundWindow($hwnd) | Out-Null
+    $hwnd = Show-DemoWindow
     $r = New-Object DemoWin+RECT
     [DemoWin]::DwmGetWindowAttribute($hwnd, 9, [ref]$r, 16) | Out-Null
     [DemoWin]::SetCursorPos($r.Left + $X, $r.Top + $Y) | Out-Null
@@ -119,12 +163,7 @@ function Select-Chat([string]$Name) {
 # Saves the window, without the shadow around it, as a PNG. Works while
 # other windows cover it.
 function Save-Window([string]$Path) {
-    $hwnd = (Get-DemoProcess).MainWindowHandle
-    # Windows lets a program bring another to the front only right after a key
-    # press, so press Alt first. Without it the window buttons show dimmed.
-    [DemoWin]::keybd_event(0x12, 0, 0, [UIntPtr]::Zero)
-    [DemoWin]::keybd_event(0x12, 0, 2, [UIntPtr]::Zero)
-    [DemoWin]::SetForegroundWindow($hwnd) | Out-Null
+    $hwnd = Show-DemoWindow
     Start-Sleep -Milliseconds 500
     $w = New-Object DemoWin+RECT
     [DemoWin]::GetWindowRect($hwnd, [ref]$w) | Out-Null
