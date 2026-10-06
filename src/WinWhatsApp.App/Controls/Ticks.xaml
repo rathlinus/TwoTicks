@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="WinWhatsApp.App.Controls.Ticks"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:c="using:WinWhatsApp.App.Controls"
+    IsTabStop="False">
+    <!-- The marks after one's own message, WhatsApp's: a clock while sending, one tick
+         when sent, two when delivered, two blue ones when read. -->
+    <Grid Width="16" Height="16" VerticalAlignment="Center">
+        <c:WaIcon x:Name="Grey" Size="16" Foreground="{ThemeResource MetaTextBrush}" Visibility="Collapsed" />
+        <c:WaIcon x:Name="Read" Kind="Read" Size="16" Foreground="{ThemeResource ReadTicksBrush}" Visibility="Collapsed" />
+        <c:WaIcon x:Name="Failed" Kind="Failed" Size="14" Foreground="{ThemeResource FailedBrush}" Visibility="Collapsed" />
+    </Grid>
+</UserControl>

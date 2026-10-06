@@ -1,0 +1,48 @@
+name: Release
+
+# Pushing a tag such as v1.2.0 builds and publishes that version.
+# docs/releasing.md describes the process.
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: src/WinWhatsApp.Bridge/go.mod
+          cache-dependency-path: src/WinWhatsApp.Bridge/go.sum
+
+      # Inno Setup compiles the setup program.
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Test
+        run: dotnet test tests/WinWhatsApp.Core.Tests
+
+      # Windows PowerShell, because that is what the scripts are written for and tested with.
+      - name: Build
+        shell: powershell
+        run: scripts\release.ps1 -Version ($env:GITHUB_REF_NAME.TrimStart('v'))
+
+      - name: Publish the release
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = $env:GITHUB_REF_NAME.TrimStart('v')
+          $files = (Get-ChildItem artifacts\release -File).FullName
+          $notes = "Download ``WinWhatsApp-$version-Setup.exe`` and run it. It is not signed, so Windows SmartScreen may warn about it; choose **More info**, then **Run anyway**. The README has the details and the zip for running without installing."
+          gh release create $env:GITHUB_REF_NAME $files --title "WinWhatsApp $version" --notes $notes --generate-notes --verify-tag
+          if ($LASTEXITCODE -ne 0) { throw 'Creating the release failed.' }

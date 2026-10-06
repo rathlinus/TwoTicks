@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/WinWhatsApp.App/WinWhatsApp.App.csproj" />
+    <Project Path="src/WinWhatsApp.Core/WinWhatsApp.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/WinWhatsApp.Core.Tests/WinWhatsApp.Core.Tests.csproj" />
+  </Folder>
+</Solution>

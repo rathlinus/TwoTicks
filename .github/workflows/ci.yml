@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# A newer push to the same branch makes the older run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      # The WhatsApp helper is written in Go.
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: src/WinWhatsApp.Bridge/go.mod
+          cache-dependency-path: src/WinWhatsApp.Bridge/go.sum
+
+      # Inno Setup compiles the setup program.
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Test
+        run: dotnet test tests/WinWhatsApp.Core.Tests
+
+      - name: Vet the helper
+        working-directory: src/WinWhatsApp.Bridge
+        run: go vet ./...
+
+      # The same script the release workflow runs, so a broken release shows up here
+      # and not after a tag is pushed. The version is a placeholder.
+      # Windows PowerShell, because that is what the scripts are written for and tested with.
+      - name: Build the release files
+        shell: powershell
+        run: scripts\release.ps1 -Version 0.0.1
+
+      # Enough to try out what a change produced: run the setup program, or unpack
+      # the zip and start WinWhatsApp.exe.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: WinWhatsApp
+          path: artifacts/release/
+          if-no-files-found: error

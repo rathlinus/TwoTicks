@@ -1,0 +1,35 @@
+# Build output: the app, the helper and the releases go to artifacts.
+bin/
+obj/
+artifacts/
+TestResults/
+*.binlog
+
+# Executables, including the helper from a plain `go build` and the
+# official WhatsApp installer that used to live here.
+*.exe
+
+# Signing certificates.
+*.pfx
+
+# WhatsApp data from a test run with WINWHATSAPP_DATA: session.db holds the
+# device keys of a linked account and must never be pushed.
+*.db
+*.db-shm
+*.db-wal
+*.log
+
+# Python and Node, for scripts/whatsapp-assets.
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+
+# Editors and Windows.
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+Thumbs.db
+desktop.ini

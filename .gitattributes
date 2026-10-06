@@ -1,0 +1,7 @@
+* text=auto
+
+# Windows PowerShell scripts keep Windows line endings on every platform.
+*.ps1 text eol=crlf
+
+*.png binary
+*.ico binary

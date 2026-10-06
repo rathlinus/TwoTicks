@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="WinWhatsApp.App.Views.LoginView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:c="using:WinWhatsApp.App.Controls">
+
+    <Grid Background="{ThemeResource ConversationBackgroundBrush}">
+        <Border MaxWidth="900" Margin="24" Padding="48,40" HorizontalAlignment="Center" VerticalAlignment="Center"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1" CornerRadius="12">
+            <Grid ColumnSpacing="48">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Spacing="18" MaxWidth="420">
+                    <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="Use WhatsApp on your PC" TextWrapping="Wrap" />
+                    <StackPanel x:Name="QrSteps" Spacing="10">
+                        <TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="1." /><Run Text="  Open WhatsApp on your phone." /></TextBlock>
+                        <TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="2." /><Run Text="  On Android tap Menu ⋮, on iPhone tap Settings." /></TextBlock>
+                        <TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="3." /><Run Text="  Tap Linked devices, then Link a device." /></TextBlock>
+                        <TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="4." /><Run Text="  Point your phone at this screen to scan the code." /></TextBlock>
+                    </StackPanel>
+
+                    <StackPanel x:Name="PhonePanel" Spacing="10" Visibility="Collapsed">
+                        <TextBlock Text="Enter the phone number of your WhatsApp account, with the country code." TextWrapping="Wrap" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBox x:Name="PhoneBox" Width="220" InputScope="TelephoneNumber" PlaceholderText="+49 170 1234567" KeyDown="OnPhoneKeyDown" />
+                            <Button x:Name="CodeButton" Click="OnGetCodeClick" Content="Get code" Style="{StaticResource AccentButtonStyle}" />
+                        </StackPanel>
+                        <StackPanel x:Name="CodePanel" Spacing="8" Visibility="Collapsed">
+                            <TextBlock Text="On your phone, open Linked devices, tap Link a device, then Link with phone number instead, and enter:" TextWrapping="Wrap" />
+                            <TextBlock x:Name="CodeText" FontFamily="{StaticResource MonoFont}" FontSize="32" FontWeight="SemiBold" CharacterSpacing="200" IsTextSelectionEnabled="True" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <HyperlinkButton x:Name="SwitchButton" Padding="0" Click="OnSwitchClick" Content="Link with phone number instead" />
+
+                    <TextBlock x:Name="StatusText" Foreground="{ThemeResource SystemFillColorCriticalBrush}" TextWrapping="Wrap" Visibility="Collapsed" />
+
+                    <TextBlock Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"
+                               Text="WinWhatsApp links to your phone the way WhatsApp Web does. Your messages are kept on this PC only." />
+                </StackPanel>
+
+                <Grid Grid.Column="1" Width="276" Height="276" Padding="14" VerticalAlignment="Center" Background="White" CornerRadius="10">
+                    <Image x:Name="QrImage" Stretch="Uniform" />
+                    <ProgressRing x:Name="QrProgress" Width="48" Height="48" IsActive="True" Foreground="{ThemeResource AccentGreenBrush}" />
+                    <Button x:Name="ReloadButton" Width="120" Height="120" HorizontalAlignment="Center" VerticalAlignment="Center" Background="{ThemeResource AccentGreenBrush}"
+                            Click="OnReloadClick" CornerRadius="60" Foreground="White" Visibility="Collapsed">
+                        <StackPanel Spacing="6">
+                            <c:WaIcon HorizontalAlignment="Center" Kind="Refresh" Size="26" Foreground="White" />
+                            <TextBlock FontSize="12" Foreground="White" Text="Reload code" TextAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

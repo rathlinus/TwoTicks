@@ -1,0 +1,412 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="WinWhatsApp.App.Views.ConversationView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:c="using:WinWhatsApp.App.Controls"
+    xmlns:m="using:WinWhatsApp.App.Models"
+    AllowDrop="True"
+    DragOver="OnDragOver"
+    DragLeave="OnDragLeave"
+    Drop="OnDrop">
+
+    <UserControl.Resources>
+        <!-- A message in a bubble, incoming on the left and one's own on the right. -->
+        <DataTemplate x:Key="BubbleTemplate" x:DataType="m:MessageItem">
+            <Grid Padding="{x:Bind RowPadding, Mode=OneWay}">
+                <!-- Across the whole row for a moment when the chat jumps to this message. -->
+                <Border Margin="{x:Bind HighlightMargin, Mode=OneWay}" Background="{ThemeResource MessageHighlightBrush}" IsHitTestVisible="False"
+                        Opacity="{x:Bind HighlightOpacity, Mode=OneWay}">
+                    <Border.OpacityTransition>
+                        <ScalarTransition Duration="0:0:0.3" />
+                    </Border.OpacityTransition>
+                </Border>
+
+                <Grid HorizontalAlignment="{x:Bind Alignment}" MaxWidth="600" Margin="{x:Bind BubbleMargin}">
+                    <!-- WhatsApp's tail on the first bubble of a run. -->
+                    <c:WaIcon Margin="-10.5,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Kind="TailIn" Size="13"
+                              Foreground="{ThemeResource IncomingBubbleBrush}" Visibility="{x:Bind TailInVisibility, Mode=OneWay}" />
+                    <c:WaIcon Margin="0,0,-10.5,0" HorizontalAlignment="Right" VerticalAlignment="Top" Kind="TailOut" Size="13"
+                              Foreground="{ThemeResource OutgoingBubbleBrush}" Visibility="{x:Bind TailOutVisibility, Mode=OneWay}" />
+                    <Border Background="{ThemeResource IncomingBubbleBrush}" BorderBrush="{ThemeResource BubbleBorderBrush}" BorderThickness="0,0,0,1"
+                            CornerRadius="{x:Bind BubbleCorners, Mode=OneWay}" Visibility="{x:Bind IncomingVisibility}" />
+                    <Border Background="{ThemeResource OutgoingBubbleBrush}" BorderBrush="{ThemeResource BubbleBorderBrush}" BorderThickness="0,0,0,1"
+                            CornerRadius="{x:Bind BubbleCorners, Mode=OneWay}" Visibility="{x:Bind OutgoingVisibility}" />
+
+                    <StackPanel Padding="4,3,4,4" Spacing="3">
+                        <c:EmojiLabel Text="{x:Bind SenderName}" Margin="6,2,6,0" FontSize="13" FontWeight="SemiBold" Foreground="{x:Bind SenderBrush}" Visibility="{x:Bind SenderVisibility, Mode=OneWay}" />
+
+                        <Grid x:Name="QuoteBox" x:Load="{x:Bind HasQuote, Mode=OneWay}" MinWidth="180" CornerRadius="7"
+                              Background="{ThemeResource QuoteBackgroundBrush}" Tapped="OnQuoteTapped">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="4" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Rectangle Fill="{x:Bind QuoteBrush, Mode=OneWay}" />
+                            <StackPanel Grid.Column="1" Padding="8,5,10,7" Spacing="1">
+                                <c:EmojiLabel Text="{x:Bind QuoteName, Mode=OneWay}" FontSize="13" FontWeight="SemiBold" Foreground="{x:Bind QuoteBrush, Mode=OneWay}" />
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <c:WaIcon VerticalAlignment="Top" Kind="{x:Bind QuoteGlyph, Mode=OneWay}" Size="16" Foreground="{ThemeResource MetaTextBrush}"
+                                              Visibility="{x:Bind QuoteGlyphVisibility, Mode=OneWay}" />
+                                    <RichTextBlock c:EmojiText.Text="{x:Bind QuoteText, Mode=OneWay}" FontSize="13.5" Foreground="{ThemeResource TextSecondaryBrush}"
+                                                   IsTextSelectionEnabled="False" MaxLines="3" TextTrimming="CharacterEllipsis" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid x:Name="VisualBox" x:Load="{x:Bind HasVisual, Mode=OneWay}" Width="{x:Bind VisualWidth, Mode=OneWay}" Height="{x:Bind VisualHeight, Mode=OneWay}"
+                              CornerRadius="6" Background="{ThemeResource QuoteBackgroundBrush}" Tapped="OnVisualTapped">
+                            <Image Source="{x:Bind Visual, Mode=OneWay}" Stretch="UniformToFill" />
+                            <Grid Width="54" Height="54" Visibility="{x:Bind PlayVisibility, Mode=OneWay}">
+                                <Ellipse Fill="#99000000" />
+                                <c:WaIcon HorizontalAlignment="Center" VerticalAlignment="Center" Kind="Play" Size="30" Foreground="White" />
+                            </Grid>
+                            <ProgressRing Width="40" Height="40" Foreground="White" IsActive="{x:Bind IsBusy, Mode=OneWay}" />
+                            <Border Margin="6" Padding="6,1" HorizontalAlignment="Left" VerticalAlignment="Bottom" Background="#80000000" CornerRadius="8"
+                                    Visibility="{x:Bind DurationVisibility, Mode=OneWay}">
+                                <TextBlock FontSize="11" Foreground="White" Text="{x:Bind DurationText, Mode=OneWay}" />
+                            </Border>
+                            <Border Margin="6" Padding="6,1,5,1" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="#80000000" CornerRadius="8"
+                                    Visibility="{x:Bind TimeOverVisualVisibility, Mode=OneWay}">
+                                <StackPanel Orientation="Horizontal" Spacing="3">
+                                    <TextBlock FontSize="11" Foreground="White" Text="{x:Bind TimeText}" />
+                                    <c:Ticks Status="{x:Bind Status, Mode=OneWay}" Visibility="{x:Bind TicksVisibility}" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <Grid x:Name="DocumentBox" x:Load="{x:Bind HasDocument, Mode=OneWay}" MinWidth="260" Padding="10,10" ColumnSpacing="10" CornerRadius="7"
+                              Background="{ThemeResource QuoteBackgroundBrush}" Tapped="OnDocumentTapped">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <c:WaIcon VerticalAlignment="Center" Kind="DocumentFilled" Size="34" Foreground="{ThemeResource MetaTextBrush}" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+                                <TextBlock MaxLines="2" FontSize="14" Foreground="{ThemeResource TextPrimaryBrush}" Text="{x:Bind DocumentName, Mode=OneWay}" TextTrimming="CharacterEllipsis" TextWrapping="Wrap" />
+                                <TextBlock Style="{StaticResource MetaTextStyle}" Text="{x:Bind DocumentInfo, Mode=OneWay}" />
+                            </StackPanel>
+                            <Grid Grid.Column="2" Width="34" Height="34">
+                                <Ellipse Stroke="{ThemeResource MetaTextBrush}" StrokeThickness="1.2" Visibility="{x:Bind DownloadVisibility, Mode=OneWay}" />
+                                <c:WaIcon HorizontalAlignment="Center" VerticalAlignment="Center" Kind="Download" Size="20" Foreground="{ThemeResource MetaTextBrush}"
+                                          Visibility="{x:Bind DownloadVisibility, Mode=OneWay}" />
+                                <ProgressRing Width="30" Height="30" IsActive="{x:Bind IsBusy, Mode=OneWay}" />
+                            </Grid>
+                        </Grid>
+
+                        <Grid x:Name="AudioBox" x:Load="{x:Bind HasAudio, Mode=OneWay}" Width="300" Padding="2,4,8,0" ColumnSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Button Width="40" Height="40" Padding="0" Click="OnPlayClick" CornerRadius="20" Style="{StaticResource IconButtonStyle}" AutomationProperties.Name="Play">
+                                <Grid>
+                                    <c:WaIcon Kind="{x:Bind PlayGlyph, Mode=OneWay}" Size="30" Foreground="{ThemeResource MetaTextBrush}" />
+                                    <ProgressRing Width="36" Height="36" IsActive="{x:Bind IsBusy, Mode=OneWay}" />
+                                </Grid>
+                            </Button>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="7">
+                                <ProgressBar MinHeight="4" Background="{ThemeResource QuoteBackgroundBrush}" Foreground="{ThemeResource AccentGreenBrush}" Maximum="100"
+                                             Tapped="OnAudioSeek" Value="{x:Bind Progress, Mode=OneWay}" />
+                                <TextBlock Style="{StaticResource MetaTextStyle}" Text="{x:Bind AudioTime, Mode=OneWay}" />
+                            </StackPanel>
+                            <c:WaIcon Grid.Column="2" VerticalAlignment="Center" Kind="{x:Bind AudioGlyph}" Size="22" Foreground="{ThemeResource AccentGreenBrush}" />
+                        </Grid>
+
+                        <Grid x:Name="LinkBox" x:Load="{x:Bind HasLink, Mode=OneWay}" MaxWidth="440" ColumnSpacing="10" CornerRadius="7"
+                              Background="{ThemeResource QuoteBackgroundBrush}" Tapped="OnLinkTapped">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Image Width="80" Height="80" Source="{x:Bind LinkThumb, Mode=OneWay}" Stretch="UniformToFill" Visibility="{x:Bind LinkThumbVisibility}" />
+                            <StackPanel Grid.Column="1" Padding="8,7,10,7" VerticalAlignment="Center" Spacing="2">
+                                <RichTextBlock c:EmojiText.Text="{x:Bind LinkTitle, Mode=OneWay}" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TextPrimaryBrush}"
+                                               IsTextSelectionEnabled="False" MaxLines="2" TextTrimming="CharacterEllipsis" TextWrapping="Wrap" />
+                                <RichTextBlock c:EmojiText.Text="{x:Bind LinkDescription, Mode=OneWay}" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" IsTextSelectionEnabled="False"
+                                               MaxLines="2" TextTrimming="CharacterEllipsis" TextWrapping="Wrap" Visibility="{x:Bind LinkDescriptionVisibility, Mode=OneWay}" />
+                                <TextBlock Style="{StaticResource MetaTextStyle}" Text="{x:Bind LinkHost, Mode=OneWay}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <HyperlinkButton x:Name="MapLink" x:Load="{x:Bind IsLocation, Mode=OneWay}" Margin="2,0" Padding="4,2" Click="OnMapClick">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <c:WaIcon Kind="Location" Size="18" />
+                                <TextBlock Text="Open in Maps" />
+                            </StackPanel>
+                        </HyperlinkButton>
+
+                        <c:MessageBodyPanel>
+                            <RichTextBlock x:Name="Body" x:Load="{x:Bind HasText, Mode=OneWay}" Margin="6,1,6,3" c:RichText.Spans="{x:Bind Spans, Mode=OneWay}"
+                                           ContextFlyout="{x:Null}" FontSize="14.5" Foreground="{ThemeResource TextPrimaryBrush}" IsTextSelectionEnabled="True"
+                                           TextWrapping="Wrap" Visibility="{x:Bind TextVisibility, Mode=OneWay}" />
+                            <StackPanel x:Name="Notice" x:Load="{x:Bind IsNotice, Mode=OneWay}" Margin="6,2,10,3" Orientation="Horizontal" Spacing="6">
+                                <c:WaIcon VerticalAlignment="Center" Kind="{x:Bind NoticeGlyph, Mode=OneWay}" Size="16" Foreground="{ThemeResource MetaTextBrush}" />
+                                <TextBlock FontSize="14" FontStyle="Italic" Foreground="{ThemeResource MetaTextBrush}" Text="{x:Bind NoticeText, Mode=OneWay}" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <StackPanel Margin="0,0,6,3" Orientation="Horizontal" Spacing="3" Visibility="{x:Bind TimeInTextVisibility, Mode=OneWay}">
+                                <TextBlock Style="{StaticResource MetaTextStyle}" Text="Edited" Visibility="{x:Bind EditedVisibility, Mode=OneWay}" />
+                                <TextBlock Style="{StaticResource MetaTextStyle}" Text="{x:Bind TimeText}" />
+                                <c:Ticks Status="{x:Bind Status, Mode=OneWay}" Visibility="{x:Bind TicksVisibility}" />
+                            </StackPanel>
+                        </c:MessageBodyPanel>
+                    </StackPanel>
+
+                    <Border x:Name="ReactionsPill" x:Load="{x:Bind HasReactions, Mode=OneWay}" Margin="10,0,10,-18" Padding="6,2,8,2"
+                            HorizontalAlignment="{x:Bind Alignment}" VerticalAlignment="Bottom" Background="{ThemeResource ReactionPillBrush}"
+                            BorderBrush="{ThemeResource ConversationBackgroundBrush}" BorderThickness="2" CornerRadius="12"
+                            ToolTipService.ToolTip="{x:Bind ReactionsTooltip, Mode=OneWay}">
+                        <RichTextBlock c:EmojiText.Text="{x:Bind ReactionsText, Mode=OneWay}" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" IsTextSelectionEnabled="False" />
+                    </Border>
+                </Grid>
+            </Grid>
+        </DataTemplate>
+
+        <!-- Stickers and messages that are only a few emoji: no bubble. -->
+        <DataTemplate x:Key="BareTemplate" x:DataType="m:MessageItem">
+            <Grid Padding="{x:Bind RowPadding, Mode=OneWay}">
+                <Border Margin="{x:Bind HighlightMargin, Mode=OneWay}" Background="{ThemeResource MessageHighlightBrush}" IsHitTestVisible="False"
+                        Opacity="{x:Bind HighlightOpacity, Mode=OneWay}">
+                    <Border.OpacityTransition>
+                        <ScalarTransition Duration="0:0:0.3" />
+                    </Border.OpacityTransition>
+                </Border>
+
+                <Grid HorizontalAlignment="{x:Bind Alignment}" Margin="{x:Bind BubbleMargin}">
+                    <StackPanel Spacing="2">
+                        <RichTextBlock Margin="2,0" c:EmojiText.Text="{x:Bind SenderName}" FontSize="13" FontWeight="SemiBold" Foreground="{x:Bind SenderBrush}"
+                                       IsTextSelectionEnabled="False" Visibility="{x:Bind SenderVisibility, Mode=OneWay}" />
+                        <Image x:Name="StickerImage" x:Load="{x:Bind IsSticker}" Width="{x:Bind VisualWidth}" Height="{x:Bind VisualHeight}" Source="{x:Bind Visual, Mode=OneWay}" />
+                        <RichTextBlock x:Name="JumboText" x:Load="{x:Bind IsJumbo}" c:EmojiText.Text="{x:Bind Data.Text}" FontSize="{x:Bind JumboFontSize}"
+                                       IsTextSelectionEnabled="False" />
+                        <Border Padding="6,1,5,1" HorizontalAlignment="{x:Bind Alignment}" Background="{ThemeResource DayChipBrush}" CornerRadius="8">
+                            <StackPanel Orientation="Horizontal" Spacing="3">
+                                <TextBlock Style="{StaticResource MetaTextStyle}" Text="{x:Bind TimeText}" />
+                                <c:Ticks Status="{x:Bind Status, Mode=OneWay}" Visibility="{x:Bind TicksVisibility}" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                    <Border x:Name="BareReactions" x:Load="{x:Bind HasReactions, Mode=OneWay}" Margin="4,0,4,-18" Padding="6,2,8,2"
+                            HorizontalAlignment="{x:Bind Alignment}" VerticalAlignment="Bottom" Background="{ThemeResource ReactionPillBrush}"
+                            BorderBrush="{ThemeResource ConversationBackgroundBrush}" BorderThickness="2" CornerRadius="12"
+                            ToolTipService.ToolTip="{x:Bind ReactionsTooltip, Mode=OneWay}">
+                        <RichTextBlock c:EmojiText.Text="{x:Bind ReactionsText, Mode=OneWay}" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" IsTextSelectionEnabled="False" />
+                    </Border>
+                </Grid>
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="SystemTemplate" x:DataType="m:MessageItem">
+            <Border Margin="0,8,0,2" MaxWidth="520" Padding="12,6" HorizontalAlignment="Center" Background="{ThemeResource SystemChipBrush}" CornerRadius="8">
+                <RichTextBlock c:EmojiText.Text="{x:Bind Data.Text, Mode=OneWay}" FontSize="12.5" Foreground="{ThemeResource TextSecondaryBrush}" IsTextSelectionEnabled="False"
+                               TextAlignment="Center" TextWrapping="Wrap" />
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="DayTemplate" x:DataType="m:DayItem">
+            <Border Margin="0,14,0,4" Padding="12,5" HorizontalAlignment="Center" Background="{ThemeResource DayChipBrush}" CornerRadius="8">
+                <TextBlock FontSize="12.5" Foreground="{ThemeResource TextSecondaryBrush}" Text="{x:Bind Label}" />
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="UnreadTemplate" x:DataType="m:UnreadItem">
+            <Border Margin="0,12,0,4" Padding="0,5" Background="{ThemeResource DayChipBrush}">
+                <TextBlock HorizontalAlignment="Center" FontSize="12.5" FontWeight="SemiBold" Foreground="{ThemeResource UnreadTextBrush}" Text="{x:Bind Label}" />
+            </Border>
+        </DataTemplate>
+
+        <c:MessageTemplateSelector
+            x:Key="MessageTemplates"
+            Bare="{StaticResource BareTemplate}"
+            Day="{StaticResource DayTemplate}"
+            Incoming="{StaticResource BubbleTemplate}"
+            Outgoing="{StaticResource BubbleTemplate}"
+            System="{StaticResource SystemTemplate}"
+            Unread="{StaticResource UnreadTemplate}" />
+    </UserControl.Resources>
+
+    <Grid Background="{ThemeResource ConversationBackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- The header: who the chat is with, and what they are doing. -->
+        <Grid Height="60" Padding="16,0,10,0" ColumnSpacing="14" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource DividerBrush}" BorderThickness="0,0,0,1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <c:Avatar VerticalAlignment="Center" Size="40" IsGroup="{x:Bind Session.Current.Chat.IsGroup, Mode=OneWay}" Source="{x:Bind Session.Current.Chat.Avatar, Mode=OneWay}" />
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <c:EmojiLabel Text="{x:Bind Session.Current.Chat.Name, Mode=OneWay}" FontSize="16" FontWeight="Medium" Foreground="{ThemeResource TextPrimaryBrush}" />
+                <TextBlock x:Name="HeaderStatusText" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" MaxLines="1"
+                           Text="{x:Bind Session.HeaderStatus, Mode=OneWay}" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+            <Button Grid.Column="2" AutomationProperties.Name="More" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="More">
+                <c:WaIcon Kind="MoreVert" Size="22" />
+                <Button.Flyout>
+                    <MenuFlyout x:Name="ChatMenu" Opening="OnChatMenuOpening" Placement="BottomEdgeAlignedRight" />
+                </Button.Flyout>
+            </Button>
+        </Grid>
+
+        <!-- The messages, newest at the bottom, on WhatsApp's wallpaper. -->
+        <Grid Grid.Row="1">
+            <c:ChatWallpaper />
+            <ListView
+                x:Name="MessageList"
+                Padding="0,0,0,14"
+                ContainerContentChanging="OnContainerContentChanging"
+                ContextRequested="OnMessageContextRequested"
+                IsItemClickEnabled="False"
+                ItemContainerStyle="{StaticResource MessageContainerStyle}"
+                ItemTemplateSelector="{StaticResource MessageTemplates}"
+                SelectionMode="None"
+                ShowsScrollingPlaceholders="False">
+                <ListView.Resources>
+                    <SolidColorBrush x:Key="ListViewItemBackgroundPointerOver" Color="Transparent" />
+                    <SolidColorBrush x:Key="ListViewItemBackgroundPressed" Color="Transparent" />
+                </ListView.Resources>
+                <ListView.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <ItemsStackPanel ItemsUpdatingScrollMode="KeepItemsInView" VerticalAlignment="Bottom" />
+                    </ItemsPanelTemplate>
+                </ListView.ItemsPanel>
+                <ListView.Header>
+                    <StackPanel x:Name="OlderPanel" Margin="0,12,0,0" HorizontalAlignment="Center" Visibility="Collapsed">
+                        <Button x:Name="OlderButton" Background="{ThemeResource DayChipBrush}" BorderThickness="0" Click="OnRequestOlderClick" CornerRadius="8">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <c:WaIcon Kind="History" Size="18" />
+                                <TextBlock Text="Get older messages from your phone" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </ListView.Header>
+            </ListView>
+
+            <!-- Back to the newest messages. -->
+            <Button x:Name="ScrollDownButton" Width="44" Height="44" Margin="0,0,20,16" Padding="0" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                    Background="{ThemeResource ComposerBrush}" BorderBrush="{ThemeResource DividerBrush}" Click="OnScrollDownClick"
+                    CornerRadius="22" Visibility="Collapsed" AutomationProperties.Name="Scroll to the newest message">
+                <Grid>
+                    <c:WaIcon Kind="ChevronDown" Size="24" Foreground="{ThemeResource IconBrush}" />
+                    <InfoBadge x:Name="NewMessagesBadge" Margin="0,-24,-24,0" HorizontalAlignment="Right" VerticalAlignment="Top" Background="{ThemeResource UnreadBadgeBrush}"
+                               Visibility="Collapsed" />
+                </Grid>
+            </Button>
+
+            <Border x:Name="DropOverlay" Margin="12" Background="{ThemeResource SmokeFillColorDefaultBrush}" BorderBrush="{ThemeResource AccentGreenBrush}"
+                    BorderThickness="2" CornerRadius="12" Visibility="Collapsed" IsHitTestVisible="False">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+                    <c:WaIcon HorizontalAlignment="Center" Kind="Media" Size="44" Foreground="White" />
+                    <TextBlock FontSize="16" Foreground="White" Text="Drop files to send them" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Replying to or editing a message. -->
+        <Grid x:Name="ReplyBar" Grid.Row="2" Padding="16,8,10,0" ColumnSpacing="8" Background="{ThemeResource ComposerTrayBrush}" Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Grid CornerRadius="7" Background="{ThemeResource QuoteBackgroundBrush}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="4" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Rectangle x:Name="ReplyAccent" Fill="{ThemeResource AccentGreenBrush}" />
+                <StackPanel Grid.Column="1" Padding="10,6,10,8">
+                    <RichTextBlock x:Name="ReplyTitle" FontSize="13" FontWeight="SemiBold" Foreground="{ThemeResource AccentGreenBrush}" IsTextSelectionEnabled="False" MaxLines="1" />
+                    <RichTextBlock x:Name="ReplyText" FontSize="13.5" Foreground="{ThemeResource TextSecondaryBrush}" IsTextSelectionEnabled="False" MaxLines="2"
+                                   TextTrimming="CharacterEllipsis" TextWrapping="Wrap" />
+                </StackPanel>
+            </Grid>
+            <Button Grid.Column="1" VerticalAlignment="Center" AutomationProperties.Name="Cancel" Click="OnCancelReplyClick" Style="{StaticResource IconButtonStyle}">
+                <c:WaIcon Kind="Close" Size="22" />
+            </Button>
+        </Grid>
+
+        <!-- Writing, in WhatsApp's field: attach and emoji inside it, send beside it. -->
+        <Grid x:Name="Composer" Grid.Row="3" Padding="12,8,12,10" ColumnSpacing="8" Background="{ThemeResource ComposerTrayBrush}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Grid MinHeight="48" Padding="4,4,12,4" ColumnSpacing="2" Background="{ThemeResource ComposerBrush}" CornerRadius="24">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.Resources>
+                    <SolidColorBrush x:Key="TextControlBackground" Color="Transparent" />
+                    <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="Transparent" />
+                    <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="Transparent" />
+                    <SolidColorBrush x:Key="TextControlBorderBrush" Color="Transparent" />
+                    <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="Transparent" />
+                    <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="Transparent" />
+                </Grid.Resources>
+                <Button VerticalAlignment="Bottom" AutomationProperties.Name="Attach" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="Attach">
+                    <c:WaIcon Kind="Add" Size="24" />
+                    <Button.Flyout>
+                        <MenuFlyout Placement="TopEdgeAlignedLeft">
+                            <MenuFlyoutItem x:Name="AttachPhotosItem" Click="OnAttachPhotosClick" Text="Photos and videos" />
+                            <MenuFlyoutItem x:Name="AttachFilesItem" Click="OnAttachFilesClick" Text="Document" />
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+                <Button x:Name="EmojiButton" Grid.Column="1" VerticalAlignment="Bottom" AutomationProperties.Name="Emoji" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="Emoji">
+                    <c:WaIcon Kind="Mood" Size="24" />
+                    <Button.Flyout>
+                        <Flyout x:Name="EmojiFlyout" Placement="TopEdgeAlignedLeft" Opened="OnEmojiFlyoutOpened">
+                            <c:EmojiPicker x:Name="EmojiPickerPanel" />
+                        </Flyout>
+                    </Button.Flyout>
+                </Button>
+                <TextBox
+                    x:Name="MessageBox"
+                    Grid.Column="2"
+                    MaxHeight="180"
+                    VerticalAlignment="Center"
+                    AcceptsReturn="True"
+                    BorderThickness="0"
+                    FontSize="15"
+                    Paste="OnPaste"
+                    PlaceholderText="Type a message"
+                    PreviewKeyDown="OnMessageBoxKeyDown"
+                    ScrollViewer.VerticalScrollBarVisibility="Auto"
+                    TextChanged="OnMessageBoxTextChanged"
+                    TextWrapping="Wrap" />
+            </Grid>
+            <Button x:Name="SendButton" Grid.Column="1" Width="48" Height="48" VerticalAlignment="Bottom" AutomationProperties.Name="Send" Background="{ThemeResource SendButtonBrush}"
+                    Click="OnSendClick" CornerRadius="24" Padding="0" ToolTipService.ToolTip="Send (Enter)" Visibility="Collapsed">
+                <Button.Resources>
+                    <ResourceDictionary>
+                        <ResourceDictionary.ThemeDictionaries>
+                            <ResourceDictionary x:Key="Light">
+                                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#1B9A59" />
+                                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#1B8755" />
+                            </ResourceDictionary>
+                            <ResourceDictionary x:Key="Dark">
+                                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#25D366" />
+                                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#1DAA61" />
+                            </ResourceDictionary>
+                        </ResourceDictionary.ThemeDictionaries>
+                    </ResourceDictionary>
+                </Button.Resources>
+                <c:WaIcon Margin="2,0,0,0" Kind="Send" Size="22" Foreground="{ThemeResource SendButtonIconBrush}" />
+            </Button>
+        </Grid>
+
+        <Border x:Name="ReadOnlyNotice" Grid.Row="3" Padding="16" Background="{ThemeResource ComposerTrayBrush}" Visibility="Collapsed">
+            <TextBlock HorizontalAlignment="Center" Foreground="{ThemeResource TextSecondaryBrush}" Text="Only admins can send messages to this group." />
+        </Border>
+    </Grid>
+</UserControl>
