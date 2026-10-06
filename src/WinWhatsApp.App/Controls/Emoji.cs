@@ -135,13 +135,19 @@ internal static class Emoji
             return;
         }
         double size = Math.Round(fontSize * 1.33);
-        foreach (EmojiSegment segment in Set.Split(text))
+        List<EmojiSegment> segments = Set.Split(text);
+        // Only emoji: no letters to line up with, and moved down they hang out of their line.
+        bool hasLetters = segments.Exists(s => !s.IsEmoji && !string.IsNullOrWhiteSpace(s.Text));
+        foreach (EmojiSegment segment in segments)
         {
             if (segment.IsEmoji)
             {
                 FrameworkElement emoji = Create(segment.Emoji, size);
                 // The container puts it on the baseline; letters reach below that.
-                emoji.RenderTransform = new TranslateTransform { Y = size * 0.2 };
+                if (hasLetters)
+                {
+                    emoji.RenderTransform = new TranslateTransform { Y = size * 0.2 };
+                }
                 emoji.Margin = new Thickness(1, 0, 1, 0);
                 inlines.Add(new InlineUIContainer { Child = emoji });
             }
