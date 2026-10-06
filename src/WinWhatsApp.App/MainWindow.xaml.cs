@@ -38,6 +38,9 @@ public sealed partial class MainWindow : Window
 {
     private const int MinimumWidth = 720;
     private const int MinimumHeight = 480;
+    private const double MinChatListWidth = 280;
+    private const double MaxChatListWidth = 640;
+    private const double ChatListShare = 0.4;
 
     private readonly ObservableCollection<ChatItem> _searchChats = [];
     private readonly ObservableCollection<SearchResult> _searchMessages = [];
@@ -47,6 +50,7 @@ public sealed partial class MainWindow : Window
     private bool _dragging;
     private double _dragStartX;
     private double _dragStartWidth;
+    private double _chatListWidth;
     private RectInt32 _normalBounds;
     private bool _titleBarPending;
     private RectInt32[] _captionRects = [];
@@ -79,7 +83,8 @@ public sealed partial class MainWindow : Window
         _searchTimer.IsRepeating = false;
         _searchTimer.Tick += (_, _) => _ = SearchMessagesAsync();
 
-        ChatColumn.Width = new GridLength(Math.Clamp(Session.Settings.ChatListWidth, 280, 640));
+        _chatListWidth = Math.Clamp(Session.Settings.ChatListWidth, MinChatListWidth, MaxChatListWidth);
+        ChatColumn.Width = new GridLength(_chatListWidth);
         ApplyTheme();
         RestorePlacement();
 
@@ -195,7 +200,7 @@ public sealed partial class MainWindow : Window
                 Maximized = maximized,
             };
         }
-        Session.Settings.ChatListWidth = ChatColumn.ActualWidth;
+        Session.Settings.ChatListWidth = _chatListWidth;
         SettingsStore.Save(Session.Settings);
     }
 
@@ -714,7 +719,8 @@ public sealed partial class MainWindow : Window
         if (_dragging)
         {
             double x = e.GetCurrentPoint(MainArea).Position.X;
-            ChatColumn.Width = new GridLength(Math.Clamp(_dragStartWidth + x - _dragStartX, 280, Math.Min(640, MainArea.ActualWidth - 360)));
+            _chatListWidth = Math.Clamp(_dragStartWidth + x - _dragStartX, MinChatListWidth, ChatListLimit());
+            ChatColumn.Width = new GridLength(_chatListWidth);
         }
     }
 
@@ -724,9 +730,28 @@ public sealed partial class MainWindow : Window
         {
             _dragging = false;
             Splitter.ReleasePointerCaptures();
-            Session.Settings.ChatListWidth = ChatColumn.ActualWidth;
+            Session.Settings.ChatListWidth = _chatListWidth;
         }
     }
+
+    /// <summary>
+    /// The list takes at most a share of the window, as in WhatsApp Web, so the chat
+    /// keeps room in a narrow window. The width the user chose comes back when the
+    /// window is wide enough again.
+    /// </summary>
+    private void OnMainAreaSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        double width = Math.Min(_chatListWidth, ChatListLimit());
+        if (Math.Abs(ChatColumn.Width.Value - width) > 0.5)
+        {
+            ChatColumn.Width = new GridLength(width);
+        }
+    }
+
+    private double ChatListLimit() =>
+        MainArea.ActualWidth > 0
+            ? Math.Clamp(MainArea.ActualWidth * ChatListShare, MinChatListWidth, MaxChatListWidth)
+            : MaxChatListWidth;
 
     // ---- Contact and group info ----
 

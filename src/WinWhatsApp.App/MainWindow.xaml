@@ -100,7 +100,7 @@
 
         <!-- No title bar: the headers of the chat list and the chat move the window, and
              minimize, maximize and close sit in the top right corner, as in WhatsApp. -->
-        <Grid x:Name="MainArea">
+        <Grid x:Name="MainArea" SizeChanged="OnMainAreaSizeChanged">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition x:Name="ChatColumn" Width="380" MinWidth="280" MaxWidth="640" />
                 <ColumnDefinition Width="*" />
