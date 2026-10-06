@@ -107,6 +107,7 @@ public sealed class CallManager : Observable
 
     private void OnSignal(CallSignalData signal)
     {
+        Log.Info($"Call {signal.Kind} {signal.CallId} from {signal.Peer}");
         if (signal.Kind == "offer" && _phase == CallPhase.Idle)
         {
             _callId = signal.CallId;
@@ -149,6 +150,7 @@ public sealed class CallManager : Observable
             return;
         }
         _callId = NewCallId();
+        Log.Info($"Calling {chat}, call {_callId}");
         Show(chat, name);
         Phase = CallPhase.Outgoing;
         Status = "Calling…";
@@ -158,6 +160,7 @@ public sealed class CallManager : Observable
         {
             EnsureEngine();
             CallTargetData target = await _client.PrepareCallAsync(chat);
+            Log.Info($"Call target {target.Peer} with {target.Devices.Count} devices");
             if (_callId != callId || _phase != CallPhase.Outgoing)
             {
                 return;
@@ -261,6 +264,7 @@ public sealed class CallManager : Observable
     private async Task StartEngineAsync()
     {
         int run = _engineRun;
+        Log.Info("Starting the calling engine");
         try
         {
             CallIdentityData me = await _client.GetCallIdentityAsync();
@@ -330,6 +334,7 @@ public sealed class CallManager : Observable
         try
         {
             CallAckData ack = await _client.SendCallAsync(peer, payload);
+            Log.Info($"Call stanza to {peer} acked, error {ack.Error}");
             if (_engine.IsRunning)
             {
                 _engine.Post(new JsonObject
@@ -351,6 +356,7 @@ public sealed class CallManager : Observable
 
     private void OnState(int state, string callId)
     {
+        Log.Info($"Call {callId} is in state {state}");
         if (_callId is not null && callId.Length > 0 && !string.Equals(callId, _callId, StringComparison.OrdinalIgnoreCase))
         {
             // Another call, such as one that came in during this one.
@@ -448,6 +454,7 @@ public sealed class CallManager : Observable
 
     private void End(string status)
     {
+        Log.Info("Call ended: " + status);
         bool sound = _phase is CallPhase.Active or CallPhase.Connecting or CallPhase.Outgoing;
         StopSound();
         _notifier.ClearIncomingCall();

@@ -84,6 +84,7 @@ internal sealed class VoipEngine : IDisposable
                 "--disable-backgrounding-occluded-windows --autoplay-policy=no-user-gesture-required",
         };
         string profile = Path.Combine(AppPaths.DataFolder, "Calls");
+        Log.Info("Opening the calling engine's page");
         _environment = await CoreWebView2Environment.CreateWithOptionsAsync(null, profile, options);
         _controller = await _environment.CreateCoreWebView2ControllerAsync(CoreWebView2ControllerWindowReference.CreateFromWindowHandle((ulong)_window));
         _controller.IsVisible = true;
@@ -105,6 +106,7 @@ internal sealed class VoipEngine : IDisposable
             _ui.TryEnqueue(() => MessageReceived?.Invoke(failed));
         };
 
+        Log.Info("The calling engine's browser is up");
         _loaded = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         _server = new PageServer(path => path == WasmPath ? _wasmFile : SafeAsset(path));
         web.Navigate(_server.Origin + "/host.html");
