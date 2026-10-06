@@ -20,6 +20,7 @@ Inno Setup is only needed to compile the setup program.
 | `scripts\build.ps1 -Run` | Also starts it, replacing a running copy. |
 | `scripts\release.ps1 -Version 1.2.0` | Builds a release and collects the setup program and the zip in `artifacts\release`. |
 | `scripts\generate-assets.ps1` | Draws the icons and the pictures of the setup wizard. Run it only to change the logo. |
+| `scripts\screenshots` | Takes the README's screenshots on made-up chats; see its README. |
 | `scripts\copy-whatsapp-desktop.ps1` | Copies the icon and the sounds of WhatsApp from the Microsoft Store to `Assets\WhatsAppIcon` and `Assets\WhatsAppSounds`. Needs WhatsApp installed; run it only to take a newer version. |
 | `scripts\whatsapp-assetsuild.py` | Takes WhatsApp Web's emoji, icons, wallpapers and font; see below. |
 

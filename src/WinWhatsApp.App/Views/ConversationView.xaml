@@ -216,8 +216,11 @@
         </DataTemplate>
 
         <DataTemplate x:Key="UnreadTemplate" x:DataType="m:UnreadItem">
-            <Border Margin="0,12,0,4" Padding="0,5" Background="{ThemeResource DayChipBrush}">
-                <TextBlock HorizontalAlignment="Center" FontSize="12.5" FontWeight="SemiBold" Foreground="{ThemeResource UnreadTextBrush}" Text="{x:Bind Label}" />
+            <!-- A faint band across the chat with the count in a chip, like WhatsApp Web. -->
+            <Border Margin="0,12,0,4" Padding="0,6" Background="{ThemeResource UnreadBandBrush}">
+                <Border Padding="12,5" HorizontalAlignment="Center" Background="{ThemeResource DayChipBrush}" CornerRadius="8">
+                    <TextBlock FontSize="12.5" FontWeight="SemiBold" Foreground="{ThemeResource UnreadTextBrush}" Text="{x:Bind Label}" />
+                </Border>
             </Border>
         </DataTemplate>
 

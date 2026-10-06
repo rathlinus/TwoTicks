@@ -36,6 +36,7 @@
                     <SolidColorBrush x:Key="AccentGreenBrush" Color="#1DAA61" />
                     <SolidColorBrush x:Key="MutedBadgeBrush" Color="#99000000" />
                     <SolidColorBrush x:Key="DayChipBrush" Color="#E6FFFFFF" />
+                    <SolidColorBrush x:Key="UnreadBandBrush" Color="#40FFFFFF" />
                     <SolidColorBrush x:Key="SystemChipBrush" Color="#E6FFFFFF" />
                     <SolidColorBrush x:Key="MentionBrush" Color="#027EB5" />
                     <SolidColorBrush x:Key="ReactionPillBrush" Color="#FFFFFF" />
@@ -72,6 +73,7 @@
                     <SolidColorBrush x:Key="AccentGreenBrush" Color="#21C063" />
                     <SolidColorBrush x:Key="MutedBadgeBrush" Color="#99FFFFFF" />
                     <SolidColorBrush x:Key="DayChipBrush" Color="#1D1F1F" />
+                    <SolidColorBrush x:Key="UnreadBandBrush" Color="#0DFFFFFF" />
                     <SolidColorBrush x:Key="SystemChipBrush" Color="#1D1F1F" />
                     <SolidColorBrush x:Key="MentionBrush" Color="#53BDEB" />
                     <SolidColorBrush x:Key="ReactionPillBrush" Color="#242626" />
