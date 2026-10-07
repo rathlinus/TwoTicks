@@ -91,11 +91,16 @@ def units(pixels):
 
 
 def box_glyph(left, bottom, right, top):
-    """Nothing to draw, but with the bounds of the picture, which some renderers clip to."""
+    """
+    Nothing to draw, but with the bounds of the picture: a line from one
+    corner to the other, which has no inside to fill. The picture of a glyph
+    goes where the lower left corner of its outline is, and macOS draws
+    nothing at all for a glyph without bounds.
+    """
     pen = TTGlyphPen(None)
-    for point in ((left, bottom), (right, top)):
-        pen.moveTo(point)
-        pen.closePath()
+    pen.moveTo((left, bottom))
+    pen.lineTo((right, top))
+    pen.closePath()
     return pen.glyph()
 
 
@@ -132,7 +137,8 @@ def build_emoji(output):
             order.append(name)
 
     width = units(CELL + 2 * SIDE)
-    emoji_glyph = box_glyph(units(SIDE), units(-BELOW), units(SIDE + CELL), units(CELL - BELOW))
+    # The bottom a touch short of its place: renderers round it down to whole pixels.
+    emoji_glyph = box_glyph(units(SIDE), -math.floor(BELOW * UPM / PPEM), units(SIDE + CELL), units(CELL - BELOW))
     empty = TTGlyphPen(None).glyph()
     glyphs = {name: emoji_glyph if name.startswith('e') else empty for name in order}
     metrics = {name: (width, units(SIDE)) if name.startswith('e') else (0, 0) for name in order}
@@ -157,7 +163,8 @@ def build_emoji(output):
     strike = Strike(ppem=PPEM, resolution=72)
     for index, png in enumerate(pictures(count)):
         name = f'e{index}'
-        strike.glyphs[name] = SbixGlyph(glyphName=name, graphicType='png ', originOffsetX=SIDE, originOffsetY=-BELOW, imageData=png)
+        # No offsets of its own: the outline's corner already is where the picture belongs.
+        strike.glyphs[name] = SbixGlyph(glyphName=name, graphicType='png ', originOffsetX=0, originOffsetY=0, imageData=png)
     for name in order:
         if name not in strike.glyphs:
             strike.glyphs[name] = SbixGlyph(glyphName=name)

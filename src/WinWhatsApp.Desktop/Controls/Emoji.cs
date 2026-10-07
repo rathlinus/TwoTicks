@@ -20,8 +20,7 @@ namespace WinWhatsApp.App.Controls;
 /// <see cref="ToPlain"/>.
 ///
 /// The text keeps its own font. The emoji font comes in through
-/// <see cref="EmojiFontFallback"/>, as the font for what the text font lacks:
-/// named on a run of text, it drew nothing on macOS.
+/// <see cref="EmojiFontFallback"/>, as the font for what the text font lacks.
 /// </remarks>
 internal static partial class Emoji
 {

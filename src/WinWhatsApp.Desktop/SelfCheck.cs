@@ -123,13 +123,36 @@ internal static class SelfCheck
                     $"symbols font {await EngineFontAsync("GetFont", point, Uno.UI.FeatureConfiguration.Font.SymbolsFont)}, " +
                     $"fallback {await EngineFontAsync("GetFontForCodepoint", point, point)}");
 
-                using var bitmap = new SKBitmap(64, 64);
+            }
+            // Where the emoji font's picture lands, from a line to write on at
+            // x 20 and y 100. The picture is made for size 30: there it is 40
+            // wide and high, 2 right of the start and 8 below the line, which
+            // is from 22, 68 to 62, 108.
+            foreach (float size in (float[])[15, 30, 60])
+            {
+                using var bitmap = new SKBitmap(200, 200);
                 using var canvas = new SKCanvas(bitmap);
                 canvas.Clear(SKColors.Transparent);
-                using var font = new SKFont(emoji, 40);
+                using var font = new SKFont(emoji, size);
                 using var paint = new SKPaint();
-                canvas.DrawText(char.ConvertFromUtf32(point), 4, 48, font, paint);
-                Note($"Drawn for {name}", bitmap.Pixels.Count(pixel => pixel.Alpha > 0) + " pixels");
+                canvas.DrawText(char.ConvertFromUtf32(Controls.Emoji.PrivateUse + 500), 20, 100, font, paint);
+                int left = int.MaxValue, top = int.MaxValue, right = -1, bottom = -1;
+                for (int y = 0; y < bitmap.Height; y++)
+                {
+                    for (int x = 0; x < bitmap.Width; x++)
+                    {
+                        if (bitmap.GetPixel(x, y).Alpha > 0)
+                        {
+                            (left, top, right, bottom) = (Math.Min(left, x), Math.Min(top, y), Math.Max(right, x + 1), Math.Max(bottom, y + 1));
+                        }
+                    }
+                }
+                var widths = new float[1];
+                var bounds = new SKRect[1];
+                font.GetGlyphWidths([emoji?.GetGlyph(Controls.Emoji.PrivateUse + 500) ?? 0], widths, bounds);
+                Note($"Emoji picture at size {size}", right < 0
+                    ? $"nothing drawn; the font says {bounds[0]}, {widths[0]:0.#} wide"
+                    : $"{left}, {top} to {right}, {bottom}; the font says {bounds[0]}, {widths[0]:0.#} wide");
             }
         }
         catch (Exception e)
