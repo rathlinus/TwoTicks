@@ -1,0 +1,151 @@
+<Project Sdk="Uno.Sdk/6.7.30">
+
+  <!--
+    WinWhatsApp for macOS and Linux. The same app as src\WinWhatsApp.App, from
+    the same XAML and C#, drawn by Uno Platform with Skia in place of WinUI 3.
+    What Windows does for the app there (the icon in the notification area,
+    notifications, sound) is in this folder, once for each system.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-desktop</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>WinWhatsApp.App</RootNamespace>
+    <AssemblyName>WinWhatsApp</AssemblyName>
+    <UnoSingleProject>true</UnoSingleProject>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <ApplicationTitle>WinWhatsApp</ApplicationTitle>
+    <ApplicationId>io.github.rathlinus.WinWhatsApp</ApplicationId>
+    <ApplicationDisplayVersion>$(Version)</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationPublisher>WinWhatsApp</ApplicationPublisher>
+
+    <UnoFeatures>SkiaRenderer;</UnoFeatures>
+
+    <!-- What Uno does not have of WinUI is dealt with where it matters; the rest is noise. -->
+    <NoWarn>$(NoWarn);Uno0001;NU1507;NETSDK1201</NoWarn>
+
+    <Repo>$(MSBuildThisFileDirectory)..\..\</Repo>
+    <App>$(MSBuildThisFileDirectory)..\WinWhatsApp.App\</App>
+    <AdaptedXaml>$(MSBuildThisFileDirectory)obj\Xaml\</AdaptedXaml>
+    <Python Condition="'$(Python)' == '' and $([MSBuild]::IsOSPlatform('Windows'))">python</Python>
+    <Python Condition="'$(Python)' == ''">python3</Python>
+  </PropertyGroup>
+
+  <!-- The app's own sources. Windows\ holds what only the Windows app is made of. -->
+  <ItemGroup>
+    <Compile Include="$(App)**\*.cs" Exclude="$(App)bin\**;$(App)obj\**;$(App)Windows\**" Link="%(RecursiveDir)%(Filename)%(Extension)" />
+    <Content Include="$(App)Assets\**" Link="Assets\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!--
+    The app's XAML, with two changes for what Uno lacks. The changed copies go
+    to obj\Xaml and are compiled in place of the originals.
+
+    - Uno has no RichTextBlock. Its TextBlock does what the app needs of one,
+      so every RichTextBlock becomes a TextBlock.
+    - Uno's DefaultListViewItemStyle draws no hover and no selection; the
+      style it uses itself, ListViewItemExpanded, takes the same brushes.
+    - x:Load on the parts of a list row does not hold up here: a part stays
+      when the row goes on to show an item without it, and the placeholder of
+      a part that is not loaded takes its share of a StackPanel's spacing.
+      The parts are always made instead, and shown or hidden by the value
+      that would have loaded them.
+  -->
+  <ItemGroup>
+    <AppXaml Include="$(App)**\*.xaml" Exclude="$(App)bin\**;$(App)obj\**;$(App)Windows\**" />
+    <AppXaml Update="@(AppXaml)" Path="%(RecursiveDir)%(Filename)%(Extension)" />
+    <Page Include="@(AppXaml->'$(AdaptedXaml)%(Path)')" Exclude="$(AdaptedXaml)App.xaml" Link="%(Path)" />
+    <ApplicationDefinition Include="$(AdaptedXaml)App.xaml" Link="App.xaml" />
+  </ItemGroup>
+  <UsingTask TaskName="AdaptXaml" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Sources ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+      <Folder ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text.RegularExpressions" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        foreach (var source in Sources)
+        {
+            string target = Path.Combine(Folder, source.GetMetadata("Path"));
+            string text = File.ReadAllText(source.ItemSpec)
+                .Replace("RichTextBlock", "TextBlock")
+                .Replace("DefaultListViewItemStyle", "ListViewItemExpanded");
+            text = Regex.Replace(text, "<[^<>]*\\sx:Load=\"(\\{x:Bind [^\"]*\\})\"[^<>]*>", tag =>
+                tag.Value.Replace("x:Load=\"" + tag.Groups[1].Value + "\"", tag.Value.Contains(" Visibility=") ? "" : "Visibility=\"" + tag.Groups[1].Value + "\""));
+            Directory.CreateDirectory(Path.GetDirectoryName(target));
+            if (!File.Exists(target) || File.ReadAllText(target) != text)
+            {
+                File.WriteAllText(target, text);
+            }
+        }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="AdaptAppXaml" BeforeTargets="BeforeBuild;DispatchToInnerBuilds" Inputs="@(AppXaml);$(MSBuildProjectFullPath)" Outputs="@(AppXaml->'$(AdaptedXaml)%(Path)')">
+    <AdaptXaml Sources="@(AppXaml)" Folder="$(AdaptedXaml)" />
+  </Target>
+
+  <!--
+    The fonts: WhatsApp's emoji as a font, which is how text shows them here,
+    and the text font as one file for each weight. They are made with Python
+    (pip install fonttools pillow) whenever what they are made from changed;
+    see scripts\whatsapp-assets\desktop-fonts.py.
+  -->
+  <PropertyGroup>
+    <Fonts>$(Repo)artifacts\fonts\</Fonts>
+    <FontsScript>$(Repo)scripts\whatsapp-assets\desktop-fonts.py</FontsScript>
+  </PropertyGroup>
+  <ItemGroup>
+    <FontSource Include="$(FontsScript);$(App)Assets\Fonts\*.ttf;$(App)Assets\WhatsApp\emoji.json;$(App)Assets\WhatsApp\Emoji\*.webp" />
+    <!-- Named one by one: they do not exist yet when a first build reads this. -->
+    <MadeFont Include="WhatsAppEmoji.ttf;Roboto.ttf.manifest" />
+    <MadeFont Include="Roboto-Light.ttf;Roboto-Regular.ttf;Roboto-Medium.ttf;Roboto-SemiBold.ttf;Roboto-Bold.ttf" />
+    <MadeFont Include="Roboto-LightItalic.ttf;Roboto-RegularItalic.ttf;Roboto-MediumItalic.ttf;Roboto-SemiBoldItalic.ttf;Roboto-BoldItalic.ttf" />
+    <Content Include="@(MadeFont->'$(Fonts)%(Identity)')" Link="Assets\Fonts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="BuildFonts" BeforeTargets="BeforeBuild" Inputs="@(FontSource)" Outputs="$(Fonts)WhatsAppEmoji.ttf">
+    <Exec Command="$(Python) &quot;$(FontsScript)&quot; --output &quot;$(Fonts.TrimEnd('\'))&quot;" />
+  </Target>
+
+  <!--
+    The WhatsApp helper is built from src\WinWhatsApp.Bridge with Go for the
+    system the app is built for, whenever its sources changed, and copied next
+    to the app.
+  -->
+  <PropertyGroup>
+    <BridgeRid>$(RuntimeIdentifier)</BridgeRid>
+    <BridgeRid Condition="'$(BridgeRid)' == ''">$(NETCoreSdkRuntimeIdentifier)</BridgeRid>
+    <GoOs Condition="$(BridgeRid.StartsWith('win'))">windows</GoOs>
+    <GoOs Condition="$(BridgeRid.StartsWith('osx'))">darwin</GoOs>
+    <GoOs Condition="$(BridgeRid.StartsWith('linux'))">linux</GoOs>
+    <GoArch Condition="$(BridgeRid.EndsWith('-x64'))">amd64</GoArch>
+    <GoArch Condition="$(BridgeRid.EndsWith('-arm64'))">arm64</GoArch>
+    <BridgeName>WinWhatsApp.Bridge</BridgeName>
+    <BridgeName Condition="'$(GoOs)' == 'windows'">WinWhatsApp.Bridge.exe</BridgeName>
+    <BridgeFlags>-s -w -X main.version=$(Version)</BridgeFlags>
+    <BridgeFlags Condition="'$(GoOs)' == 'windows'">$(BridgeFlags) -H windowsgui</BridgeFlags>
+    <BridgeSourceFolder>$(Repo)src\WinWhatsApp.Bridge\</BridgeSourceFolder>
+    <BridgeExecutable>$(Repo)artifacts\bridge\$(GoOs)-$(GoArch)\$(BridgeName)</BridgeExecutable>
+  </PropertyGroup>
+  <ItemGroup>
+    <BridgeSource Include="$(BridgeSourceFolder)*.go;$(BridgeSourceFolder)go.mod;$(BridgeSourceFolder)go.sum" />
+    <Content Include="$(BridgeExecutable)" Link="$(BridgeName)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="BuildBridge" BeforeTargets="BeforeBuild" Inputs="@(BridgeSource)" Outputs="$(BridgeExecutable)">
+    <Exec Command="go build -trimpath -ldflags &quot;$(BridgeFlags)&quot; -o &quot;$(BridgeExecutable)&quot; ."
+          WorkingDirectory="$(BridgeSourceFolder)"
+          EnvironmentVariables="CGO_ENABLED=0;GOOS=$(GoOs);GOARCH=$(GoArch)" />
+  </Target>
+
+  <ItemGroup>
+    <PackageReference Include="QRCoder" Version="1.8.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WinWhatsApp.Core\WinWhatsApp.Core.csproj" />
+  </ItemGroup>
+
+</Project>
