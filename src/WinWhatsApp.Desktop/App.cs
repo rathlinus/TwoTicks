@@ -20,6 +20,8 @@ public partial class App
         Resources["MonoFont"] = new FontFamily(OperatingSystem.IsMacOS() ? "Menlo" : OperatingSystem.IsWindows() ? "Consolas" : "monospace");
     }
 
+    partial void Launched() => SelfCheck.Run(this);
+
     private partial void ListenForSecondStart(Action started) => SingleInstance.Started += started;
 
     private partial void RestartProcess()

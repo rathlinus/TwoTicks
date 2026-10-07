@@ -21,7 +21,9 @@ public static class Program
         Loc.Use(SettingsStore.Load().Language);
         CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.CurrentUICulture = Loc.Culture;
 
-        // Before any text is laid out: the text engine reads this once.
+        // Before any text is laid out: the text engine reads these once. Controls
+        // that name no font get WhatsApp's too, as App.xaml gives it to the rest.
+        Uno.UI.FeatureConfiguration.Font.DefaultTextFontFamily = "ms-appx:///Assets/Fonts/Roboto.ttf";
         Uno.UI.FeatureConfiguration.Font.FallbackService = new Controls.EmojiFontFallback();
 
         UnoPlatformHostBuilder.Create()

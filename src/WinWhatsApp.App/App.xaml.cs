@@ -119,7 +119,11 @@ public partial class App : Application
         {
             Window.ShowAndActivate();
         }
+        Launched();
     }
+
+    /// <summary>The app is up: what a system does once everything else is.</summary>
+    partial void Launched();
 
     /// <summary>Calls back, on any thread, when the app is started while it runs already.</summary>
     private partial void ListenForSecondStart(Action started);

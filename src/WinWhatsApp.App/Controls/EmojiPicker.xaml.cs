@@ -114,8 +114,13 @@ public sealed partial class EmojiPicker : UserControl
         {
             return;
         }
+        Fill(host, text);
+    }
+
+    private static void Fill(Grid host, string text)
+    {
         host.Children.Clear();
-        int index = Emoji.Set.Find(text);
+        int index = Emoji.Set?.Find(text) ?? -1;
         if (index >= 0)
         {
             host.Children.Add(Emoji.Create(index, 32));

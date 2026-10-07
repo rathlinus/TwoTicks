@@ -36,6 +36,8 @@
   <ItemGroup>
     <Compile Include="$(App)**\*.cs" Exclude="$(App)bin\**;$(App)obj\**;$(App)Windows\**" Link="%(RecursiveDir)%(Filename)%(Extension)" />
     <Content Include="$(App)Assets\**" Link="Assets\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The icon of the app bundle on macOS, which Uno makes in the sizes it needs; scripts\generate-assets.ps1 draws it. -->
+    <UnoIcon Include="$(Repo)packaging\macos\icon.png" />
   </ItemGroup>
 
   <!--
