@@ -59,6 +59,7 @@ func event(name string, data any) { write(map[string]any{"event": name, "data": 
 func main() {
 	data := flag.String("data", "", "the app's data folder, where demo-incoming is looked for")
 	flag.Bool("debug", false, "ignored")
+	flag.String("lang", "", "ignored")
 	flag.Parse()
 
 	dir, _ := filepath.Abs(os.Getenv("WINWHATSAPP_DEMO"))
