@@ -46,10 +46,6 @@ fi
 status=0
 "${run[@]}" > "$out/output.txt" 2>&1 &
 pid=$!
-if [ "$(uname -s)" = Darwin ]; then
-    # What the screen shows, beside what the app draws of itself.
-    (sleep 8 && screencapture -x "$out/screen.png") 2> /dev/null || true
-fi
 # It quits by itself; a hung start must not hold up the build.
 for _ in $(seq 1 120); do
     if ! kill -0 "$pid" 2> /dev/null; then

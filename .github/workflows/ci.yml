@@ -100,8 +100,10 @@ jobs:
         run: scripts/release.sh --version 0.0.1 --arch ${{ matrix.arch }}
 
       # Starts the app on made-up chats and has it save a picture of its window.
+      # Without the library folder setup-python adds: its libuuid is not the
+      # one the system's libraries expect, and the app would not start with it.
       - name: Check that the app starts
-        run: scripts/check.sh
+        run: env -u LD_LIBRARY_PATH scripts/check.sh
 
       - uses: actions/upload-artifact@v7
         with:

@@ -18,6 +18,12 @@ public static class Program
     {
         AppDomain.CurrentDomain.UnhandledException += (_, e) => Log.Error("Crashed", e.ExceptionObject as Exception);
 
+        if (!SingleInstance.TryBecomeFirst())
+        {
+            Log.Info("Handed over to the running instance");
+            return 0;
+        }
+
         Loc.Use(SettingsStore.Load().Language);
         CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.CurrentUICulture = Loc.Culture;
 

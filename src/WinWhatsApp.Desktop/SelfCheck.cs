@@ -60,6 +60,8 @@ internal static class SelfCheck
             if (session.Chats.Visible.FirstOrDefault() is ChatItem first)
             {
                 await session.OpenAsync(first.Jid);
+                await Task.Delay(400);
+                CaptureScreen("screen-opening.png");
                 await Task.Delay(3000);
                 Note("Open chat", session.Current is { } open ? $"{open.Chat.Name}, {open.Items.Count} rows" : "none");
                 ok = session.Current is { Items.Count: > 0 };
@@ -67,9 +69,12 @@ internal static class SelfCheck
             await Task.Delay(1000);
             if (app.Window.Content is FrameworkElement root)
             {
+                Note("Scale", (root.XamlRoot?.RasterizationScale ?? 0).ToString("0.##"));
+                Note("Theme", root.ActualTheme.ToString());
                 await SaveAsync(root, Path.Combine(s_folder, "window.png"));
                 Note("Picture", $"{root.ActualWidth:0} x {root.ActualHeight:0}");
             }
+            CaptureScreen("screen.png");
         }
         catch (Exception e)
         {
@@ -88,6 +93,27 @@ internal static class SelfCheck
         }
         Environment.ExitCode = ok ? 0 : 1;
         app.Quit();
+    }
+
+    /// <summary>
+    /// What the screen shows, beside what the app draws of itself: on a Mac,
+    /// where the system's own tool takes the picture.
+    /// </summary>
+    private static void CaptureScreen(string name)
+    {
+        if (!OperatingSystem.IsMacOS() || s_folder is null)
+        {
+            return;
+        }
+        try
+        {
+            using var capture = System.Diagnostics.Process.Start("screencapture", ["-x", Path.Combine(s_folder, name)]);
+            capture.WaitForExit(5000);
+        }
+        catch (Exception e)
+        {
+            Note("Screen capture", "failed: " + e.Message);
+        }
     }
 
     private static async Task SaveAsync(FrameworkElement element, string path)

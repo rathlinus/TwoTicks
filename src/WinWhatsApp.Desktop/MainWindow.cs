@@ -37,11 +37,24 @@ public sealed partial class MainWindow
         AppWindow.Show();
     }
 
-    /// <summary>Off the screen while the app keeps running; minimized where a window cannot be hidden.</summary>
+    /// <summary>
+    /// Off the screen while the app keeps running. Minimized instead where the
+    /// app has no icon to bring the window back with, or a window cannot be hidden.
+    /// </summary>
     private void HideWindow()
     {
-        _hidden = SystemWindow.Hide(this);
+        _hidden = App.Current.HasTray && SystemWindow.Hide(this);
         if (!_hidden && AppWindow.Presenter is OverlappedPresenter presenter)
+        {
+            presenter.Minimize();
+        }
+    }
+
+    /// <summary>Opens the window minimized, for a start in the background on a desktop without a notification area.</summary>
+    public void ShowMinimized()
+    {
+        AppWindow.Show(false);
+        if (AppWindow.Presenter is OverlappedPresenter presenter)
         {
             presenter.Minimize();
         }

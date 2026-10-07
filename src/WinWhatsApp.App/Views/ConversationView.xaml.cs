@@ -187,10 +187,30 @@ public sealed partial class ConversationView : UserControl
             _atBottom = false;
             ScrollTo(target);
         }
+#if HAS_UNO
+        // Uno's list only guesses how tall the rows it has not made are, and a
+        // row brought to the top near the end of the chat lands off the mark.
+        // A few unread messages fit on the screen with their line anyway.
+        else if (conversation.UnreadLine is { } nearEnd && conversation.Items.Count - conversation.Items.IndexOf(nearEnd) <= 6)
+        {
+            _atBottom = true;
+            ScrollToBottom();
+        }
+#endif
         else if (conversation.UnreadLine is { } line)
         {
             _atBottom = false;
             MessageList.ScrollIntoView(line, ScrollIntoViewAlignment.Leading);
+#if HAS_UNO
+            // Uno forgets what it is asked before the list is laid out; ask again after.
+            DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
+            {
+                if (_shown == conversation)
+                {
+                    MessageList.ScrollIntoView(line, ScrollIntoViewAlignment.Leading);
+                }
+            });
+#endif
         }
         else
         {
