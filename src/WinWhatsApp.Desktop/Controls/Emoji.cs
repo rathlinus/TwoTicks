@@ -1,7 +1,6 @@
 using System.Text;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Documents;
-using Microsoft.UI.Xaml.Media;
 using WinWhatsApp.Core;
 
 namespace WinWhatsApp.App.Controls;
@@ -19,6 +18,10 @@ namespace WinWhatsApp.App.Controls;
 /// its number in the list, which the font maps to the emoji. Text that leaves
 /// the app, to the clipboard or to WhatsApp, is changed back with
 /// <see cref="ToPlain"/>.
+///
+/// The text keeps its own font. The emoji font comes in through
+/// <see cref="EmojiFontFallback"/>, as the font for what the text font lacks:
+/// named on a run of text, it drew nothing on macOS.
 /// </remarks>
 internal static partial class Emoji
 {
@@ -28,8 +31,6 @@ internal static partial class Emoji
     public const string FontName = "WhatsApp Emoji";
 
     public static string FontFile => Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts", "WhatsAppEmoji.ttf");
-
-    private static readonly FontFamily s_font = new("ms-appx:///Assets/Fonts/WhatsAppEmoji.ttf#" + FontName);
 
     /// <summary>Skia reads WebP itself. Without the font, text keeps the emoji of the system.</summary>
     private static partial bool CanDrawSheets()
@@ -63,7 +64,7 @@ internal static partial class Emoji
         {
             if (emoji.Length > 0)
             {
-                inlines.Add(new Run { Text = emoji.ToString(), FontFamily = s_font });
+                inlines.Add(new Run { Text = emoji.ToString() });
                 emoji.Clear();
             }
         }
