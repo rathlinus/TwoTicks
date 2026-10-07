@@ -10,6 +10,7 @@
     of WhatsApp.svg on Wikimedia Commons; its soft grey shadow is left out.
 
     The tray icons are the logo without and with a small red dot for unread chats.
+    The icon for macOS, packaging\macos\icon.png, is the logo on a white tile.
 
     The generated files are checked in; run this only to change the logo.
     Needs Windows PowerShell, which draws with WPF.
@@ -179,5 +180,31 @@ New-Item -ItemType Directory -Force $packagingFolder | Out-Null
 $packagingFolder = (Resolve-Path $packagingFolder).Path
 Save-WizardBitmap 'installer-side.bmp' 328 628 168 150 '202020'
 Save-WizardBitmap 'installer-small.bmp' 110 110 94 8 'FFFFFF'
+
+# The icon of the app on macOS: the logo on a white tile with round corners,
+# in the size and with the margin macOS draws its icons in, so the Dock does
+# not put a tile of its own around it.
+function Save-MacIcon([string]$Path) {
+    $canvas = 1024
+    $tile = 824
+    $margin = ($canvas - $tile) / 2
+    $logoSize = 500
+    $visual = New-Object System.Windows.Media.DrawingVisual
+    $dc = $visual.RenderOpen()
+    $background = New-Object System.Windows.Media.LinearGradientBrush (Get-Color 'FFFFFF'), (Get-Color 'ECEFEC'),
+        (New-Object System.Windows.Point 0, 0), (New-Object System.Windows.Point 0, 1)
+    $background.Freeze()
+    $radius = $tile * 0.2237
+    $dc.DrawRoundedRectangle($background, $null, (New-Object System.Windows.Rect $margin, $margin, $tile, $tile), $radius, $radius)
+    $logo = New-IconBitmap $logoSize $logoSize $logoSize
+    $dc.DrawImage($logo, (New-Object System.Windows.Rect (($canvas - $logoSize) / 2), (($canvas - $logoSize) / 2), $logoSize, $logoSize))
+    $dc.Close()
+    $bitmap = New-Object System.Windows.Media.Imaging.RenderTargetBitmap $canvas, $canvas, 96, 96, ([System.Windows.Media.PixelFormats]::Pbgra32)
+    $bitmap.Render($visual)
+    [System.IO.File]::WriteAllBytes($Path, (ConvertTo-Png $bitmap))
+}
+
+New-Item -ItemType Directory -Force (Join-Path $packagingFolder 'macos') | Out-Null
+Save-MacIcon (Join-Path $packagingFolder 'macos\icon.png')
 
 Write-Host "Wrote assets to $OutputFolder"

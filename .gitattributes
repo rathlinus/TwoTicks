@@ -5,3 +5,7 @@
 
 *.png binary
 *.ico binary
+
+# Shell scripts and what goes into Linux packages keep Unix line endings.
+*.sh text eol=lf
+packaging/linux/* text eol=lf

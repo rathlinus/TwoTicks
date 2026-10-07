@@ -14,7 +14,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  windows:
+    name: Windows
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
@@ -51,6 +52,67 @@ jobs:
       # the zip and start WinWhatsApp.exe.
       - uses: actions/upload-artifact@v7
         with:
-          name: WinWhatsApp
+          name: WinWhatsApp-windows-x64
           path: artifacts/release/
           if-no-files-found: error
+
+  # The same app for macOS and Linux, built on each of them for both kinds of processor.
+  desktop:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: Linux x64, os: ubuntu-latest, system: linux, arch: x64 }
+          - { name: Linux arm64, os: ubuntu-24.04-arm, system: linux, arch: arm64 }
+          - { name: macOS arm64, os: macos-latest, system: macos, arch: arm64 }
+          - { name: macOS x64, os: macos-15-intel, system: macos, arch: x64 }
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: src/WinWhatsApp.Bridge/go.mod
+          cache-dependency-path: src/WinWhatsApp.Bridge/go.sum
+
+      # The fonts of the app are made with Python; see scripts/whatsapp-assets/desktop-fonts.py.
+      - uses: actions/setup-python@v7
+        with:
+          python-version: 3.x
+
+      - name: Install the font tools
+        run: python3 -m pip install fonttools pillow
+
+      - name: Test
+        run: dotnet test tests/WinWhatsApp.Core.Tests
+
+      - name: Vet the helper
+        working-directory: src/WinWhatsApp.Bridge
+        run: go vet ./...
+
+      # The same script the release workflow runs. The version is a placeholder.
+      - name: Build the release files
+        run: scripts/release.sh --version 0.0.1 --arch ${{ matrix.arch }}
+
+      # Starts the app on made-up chats and has it save a picture of its window.
+      - name: Check that the app starts
+        run: scripts/check.sh
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: WinWhatsApp-${{ matrix.system }}-${{ matrix.arch }}
+          path: artifacts/release/
+          if-no-files-found: error
+
+      # The picture and the report of the check, also when it failed.
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: check-${{ matrix.system }}-${{ matrix.arch }}
+          path: artifacts/check/
+          if-no-files-found: ignore
