@@ -1,6 +1,5 @@
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
-using Microsoft.Windows.AppLifecycle;
 using WinWhatsApp.Core;
 
 namespace WinWhatsApp.App;
@@ -16,6 +15,7 @@ public partial class App : Application
     public App()
     {
         InitializeComponent();
+        AdaptResources();
 
         // The app has no console; without this a failure would close the window
         // and leave no trace. A chat app should rather stay open.
@@ -26,15 +26,14 @@ public partial class App : Application
         };
     }
 
+    /// <summary>Changes what in App.xaml only holds on Windows, where the app runs elsewhere.</summary>
+    partial void AdaptResources();
+
     public static new App Current => (App)Application.Current;
 
     public Session Session { get; private set; } = null!;
     public MainWindow Window { get; private set; } = null!;
     internal Updater Updater { get; private set; } = null!;
-    public nint WindowHandle => WindowHandleOf(Window);
-
-    public nint WindowHandleOf(Window window) => WinRT.Interop.WindowNative.GetWindowHandle(window);
-
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
         try
@@ -87,7 +86,7 @@ public partial class App : Application
         _tray.OpenRequested += ShowWindow;
         _tray.QuitRequested += Quit;
         _tray.UpdateRequested += () => _ = Updater.InstallNowAsync();
-        _badge = new TaskbarBadge(WindowHandle);
+        _badge = new TaskbarBadge(Window);
         Session.UnreadChanged += unread =>
         {
             _tray?.SetUnread(unread);
@@ -97,7 +96,7 @@ public partial class App : Application
 
         // A second start of the app, or a click on a notification while it runs,
         // arrives here from Program.
-        AppInstance.GetCurrent().Activated += (_, e) => _ui.TryEnqueue(() => OnActivated(e));
+        ListenForSecondStart(() => _ui.TryEnqueue(ShowWindow));
 
         Updater = new Updater(_ui, settings, _notifier);
         Updater.Changed += () =>
@@ -122,7 +121,8 @@ public partial class App : Application
         }
     }
 
-    private void OnActivated(AppActivationArguments arguments) => ShowWindow();
+    /// <summary>Calls back, on any thread, when the app is started while it runs already.</summary>
+    private partial void ListenForSecondStart(Action started);
 
     public void ShowWindow() => Window.ShowAndActivate();
 
@@ -165,11 +165,12 @@ public partial class App : Application
         }
         Log.Info("Restarting");
         Shutdown();
-        // Ends this process when it works.
-        var failure = AppInstance.Restart("");
-        Log.Info($"Failed to restart: {failure}");
+        RestartProcess();
         Exit();
     }
+
+    /// <summary>Starts the app again; this process ends when that works, or right after.</summary>
+    private partial void RestartProcess();
 
     private void Shutdown()
     {

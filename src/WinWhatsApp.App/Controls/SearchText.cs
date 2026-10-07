@@ -29,24 +29,25 @@ public static class SearchText
         {
             return;
         }
-        block.Blocks.Clear();
         if (GetSnippet(block) is not { } snippet)
         {
+            Emoji.Fill(block, null);
             return;
         }
         Brush? brush = GetMatchBrush(block);
-        int end = snippet.MatchStart + snippet.MatchLength;
-        var paragraph = new Paragraph();
-        Emoji.AddText(paragraph.Inlines, snippet.Text[..snippet.MatchStart], block.FontSize);
-        Emoji.AddText(paragraph.Inlines, snippet.Text[snippet.MatchStart..end], block.FontSize, run =>
+        Emoji.Fill(block, inlines =>
         {
-            run.FontWeight = FontWeights.SemiBold;
-            if (brush is not null)
+            int end = snippet.MatchStart + snippet.MatchLength;
+            Emoji.AddText(inlines, snippet.Text[..snippet.MatchStart], block.FontSize);
+            Emoji.AddText(inlines, snippet.Text[snippet.MatchStart..end], block.FontSize, run =>
             {
-                run.Foreground = brush;
-            }
+                run.FontWeight = FontWeights.SemiBold;
+                if (brush is not null)
+                {
+                    run.Foreground = brush;
+                }
+            });
+            Emoji.AddText(inlines, snippet.Text[end..], block.FontSize);
         });
-        Emoji.AddText(paragraph.Inlines, snippet.Text[end..], block.FontSize);
-        block.Blocks.Add(paragraph);
     }
 }

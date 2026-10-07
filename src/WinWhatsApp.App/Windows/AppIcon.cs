@@ -3,24 +3,15 @@ using System.Text;
 
 namespace WinWhatsApp.App;
 
-/// <summary>
-/// The icon the app shows: the WinWhatsApp logo, or WhatsApp's own icon when
-/// the setting asks for it. Both come as the same set of files, the logo in
-/// Assets and WhatsApp's icon in Assets\WhatsAppIcon.
-/// </summary>
-internal static class AppIcon
+internal static partial class AppIcon
 {
-    public static string Folder(bool whatsApp) => whatsApp
-        ? Path.Combine(AppContext.BaseDirectory, "Assets", "WhatsAppIcon")
-        : Path.Combine(AppContext.BaseDirectory, "Assets");
-
     /// <summary>
     /// Points the Start menu entry and a pinned taskbar button at the icon.
     /// Windows takes the icon of a running app's taskbar button from the
     /// shortcut with the same AppUserModelID, so the window's icon alone does
     /// not change it once the app is installed.
     /// </summary>
-    public static void UpdateShortcuts(bool whatsApp)
+    public static partial void UpdateShortcuts(bool whatsApp)
     {
         string? exe = Environment.ProcessPath;
         if (exe is null)

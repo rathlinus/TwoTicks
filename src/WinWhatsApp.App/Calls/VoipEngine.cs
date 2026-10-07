@@ -3,7 +3,6 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.UI.Dispatching;
-using Microsoft.Web.WebView2.Core;
 using WinWhatsApp.Core;
 
 namespace WinWhatsApp.App.Calls;
@@ -20,21 +19,13 @@ namespace WinWhatsApp.App.Calls;
 /// and not shipped with the app: it is downloaded from WhatsApp the first
 /// time and checked against the hash its script was built for.
 /// </remarks>
-internal sealed class VoipEngine : IDisposable
+internal sealed partial class VoipEngine : IDisposable
 {
     private const string WasmPath = "wa-voip.wasm";
 
     private static readonly string s_assets = Path.Combine(AppContext.BaseDirectory, "Assets", "Voip");
 
     private readonly DispatcherQueue _ui;
-    private nint _window;
-    private CoreWebView2Environment? _environment;
-    private CoreWebView2Controller? _controller;
-
-    // Held for as long as the page lives: when the garbage collector takes the
-    // last reference, WebView2 destroys the object its events are wired to and
-    // crashes on the next message from the page.
-    private CoreWebView2? _web;
     private PageServer? _server;
     private TaskCompletionSource? _loaded;
     private string? _wasmFile;
@@ -45,14 +36,49 @@ internal sealed class VoipEngine : IDisposable
     /// <summary>A message from the page. Raised on the UI thread.</summary>
     public event Action<JsonElement>? MessageReceived;
 
-    public bool IsRunning => _controller is not null;
+    /// <summary>Whether the page is open.</summary>
+    public partial bool IsRunning { get; }
+
+    public void Post(JsonObject message) => PostToPage(message.ToJsonString());
+
+    /// <summary>
+    /// Opens the page where it runs on this system and waits until it loaded.
+    /// The page's messages go to <see cref="OnMessage(string)"/>.
+    /// </summary>
+    private partial Task OpenPageAsync();
+
+    private partial void PostToPage(string json);
+
+    /// <summary>Closes the page and what it ran in.</summary>
+    private partial void ClosePage();
+
+    /// <summary>Serves the page and waits for it to say that it loaded.</summary>
+    private async Task ServeAndWaitAsync(Action<string> navigate)
+    {
+        _loaded = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _server = new PageServer(path => path == WasmPath ? _wasmFile : SafeAsset(path));
+        navigate(_server.Origin + "/host.html");
+        Task finished = await Task.WhenAny(_loaded.Task, Task.Delay(TimeSpan.FromSeconds(30)));
+        if (finished != _loaded.Task)
+        {
+            throw new TimeoutException("The calling engine's page did not load.");
+        }
+    }
+
+    /// <summary>The page or what it runs in stopped by itself.</summary>
+    private void OnPageFailed(string reason)
+    {
+        Log.Error($"The calling engine's browser process failed: {reason}");
+        var failed = JsonDocument.Parse("""{"type":"failed","message":"The calling engine stopped."}""").RootElement.Clone();
+        _ui.TryEnqueue(() => MessageReceived?.Invoke(failed));
+    }
 
     /// <summary>Opens the page and starts the engine in it, downloading the engine first when needed.</summary>
     public async Task StartAsync(CallIdentityData me, string? countryCode)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         _wasmFile ??= await EnsureWasmAsync();
-        if (_controller is null)
+        if (!IsRunning)
         {
             await OpenPageAsync();
         }
@@ -68,68 +94,13 @@ internal sealed class VoipEngine : IDisposable
         Post(init);
     }
 
-    public void Post(JsonObject message)
-    {
-        _web?.PostWebMessageAsJson(message.ToJsonString());
-    }
-
-    private async Task OpenPageAsync()
-    {
-        _window = Native.CreateWindowEx(Native.WS_EX_TOOLWINDOW, "STATIC", "WinWhatsApp calls", Native.WS_POPUP, 0, 0, 1, 1, 0, 0, 0, 0);
-        if (_window == 0)
-        {
-            throw new InvalidOperationException("Could not create the window of the calling engine.");
-        }
-
-        var options = new CoreWebView2EnvironmentOptions
-        {
-            // The page is never visible, so the browser must not slow it down as
-            // it does background tabs, and it plays sound without a click.
-            AdditionalBrowserArguments = "--disable-background-timer-throttling --disable-renderer-backgrounding " +
-                "--disable-backgrounding-occluded-windows --autoplay-policy=no-user-gesture-required",
-        };
-        string profile = Path.Combine(AppPaths.DataFolder, "Calls");
-        Log.Info("Opening the calling engine's page");
-        _environment = await CoreWebView2Environment.CreateWithOptionsAsync(null, profile, options);
-        _controller = await _environment.CreateCoreWebView2ControllerAsync(CoreWebView2ControllerWindowReference.CreateFromWindowHandle((ulong)_window));
-        _controller.IsVisible = true;
-
-        CoreWebView2 web = _web = _controller.CoreWebView2;
-        web.Settings.AreDevToolsEnabled = Environment.GetEnvironmentVariable("WINWHATSAPP_DEBUG") == "1";
-        web.Settings.AreDefaultContextMenusEnabled = false;
-        web.Settings.IsStatusBarEnabled = false;
-        web.PermissionRequested += (_, e) =>
-        {
-            // The microphone, for calls; nothing else.
-            e.State = e.PermissionKind == CoreWebView2PermissionKind.Microphone ? CoreWebView2PermissionState.Allow : CoreWebView2PermissionState.Deny;
-            // Kept, so that the page also sees the names of the microphones and speakers.
-            e.SavesInProfile = true;
-        };
-        web.WebMessageReceived += OnMessage;
-        web.ProcessFailed += (_, e) =>
-        {
-            Log.Error($"The calling engine's browser process failed: {e.ProcessFailedKind}");
-            var failed = JsonDocument.Parse("""{"type":"failed","message":"The calling engine stopped."}""").RootElement.Clone();
-            _ui.TryEnqueue(() => MessageReceived?.Invoke(failed));
-        };
-
-        Log.Info("The calling engine's browser is up");
-        _loaded = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        _server = new PageServer(path => path == WasmPath ? _wasmFile : SafeAsset(path));
-        web.Navigate(_server.Origin + "/host.html");
-        Task finished = await Task.WhenAny(_loaded.Task, Task.Delay(TimeSpan.FromSeconds(30)));
-        if (finished != _loaded.Task)
-        {
-            throw new TimeoutException("The calling engine's page did not load.");
-        }
-    }
-
-    private void OnMessage(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs args)
+    /// <summary>Takes a message of the page, as JSON.</summary>
+    private void OnMessage(string json)
     {
         JsonElement message;
         try
         {
-            message = JsonDocument.Parse(args.WebMessageAsJson).RootElement.Clone();
+            message = JsonDocument.Parse(json).RootElement.Clone();
         }
         catch (JsonException)
         {
@@ -228,24 +199,9 @@ internal sealed class VoipEngine : IDisposable
     {
         _loaded?.TrySetCanceled();
         _loaded = null;
-        if (_controller is not null)
-        {
-            if (_web is not null)
-            {
-                _web.WebMessageReceived -= OnMessage;
-                _web = null;
-            }
-            _controller.Close();
-            _controller = null;
-        }
-        _environment = null;
+        ClosePage();
         _server?.Dispose();
         _server = null;
-        if (_window != 0)
-        {
-            Native.DestroyWindow(_window);
-            _window = 0;
-        }
     }
 
     public void Dispose()

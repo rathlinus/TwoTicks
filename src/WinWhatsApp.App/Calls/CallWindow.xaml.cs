@@ -27,7 +27,9 @@ public sealed partial class CallWindow : Window
         InitializeComponent();
         _call = call;
         AppWindow.SetIcon(Path.Combine(AppIcon.Folder(App.Current.Session.Settings.WhatsAppIcon), "AppIcon.ico"));
+#if !HAS_UNO
         AppWindow.TitleBar.PreferredTheme = TitleBarTheme.Dark;
+#endif
         if (AppWindow.Presenter is OverlappedPresenter presenter)
         {
             presenter.IsResizable = false;
@@ -44,12 +46,18 @@ public sealed partial class CallWindow : Window
     {
         if (!AppWindow.IsVisible)
         {
-            double scale = Native.GetDpiForWindow(WinRT.Interop.WindowNative.GetWindowHandle(this)) / 96.0;
+            double scale = App.Current.ScaleOf(this);
             int width = (int)(Width * scale);
             int height = (int)(Height * scale);
+#if HAS_UNO
+            // Where it goes is left to the system.
+            AppWindow.Resize(new SizeInt32 { Width = width, Height = height });
+            SystemWindow.Show(this);
+#else
             RectInt32 work = DisplayArea.GetFromWindowId(App.Current.Window.AppWindow.Id, DisplayAreaFallback.Primary).WorkArea;
             int margin = (int)(16 * scale);
-            AppWindow.MoveAndResize(new RectInt32(work.X + work.Width - width - margin, work.Y + work.Height - height - margin, width, height));
+            AppWindow.MoveAndResize(new RectInt32 { X = work.X + work.Width - width - margin, Y = work.Y + work.Height - height - margin, Width = width, Height = height });
+#endif
         }
         Refresh();
         AppWindow.Show(activate);
@@ -59,7 +67,17 @@ public sealed partial class CallWindow : Window
         }
     }
 
+#if HAS_UNO
+    public void Hide()
+    {
+        if (!SystemWindow.Hide(this) && AppWindow.Presenter is OverlappedPresenter presenter)
+        {
+            presenter.Minimize();
+        }
+    }
+#else
     public void Hide() => AppWindow.Hide();
+#endif
 
     /// <summary>Lets the window close for real, when the app quits.</summary>
     public void CloseForGood()
@@ -78,7 +96,7 @@ public sealed partial class CallWindow : Window
         // Closing the window ends the call; the window is kept for the next one.
         args.Cancel = true;
         _call.HangUp();
-        AppWindow.Hide();
+        Hide();
     }
 
     private void OnCallChanged(object? sender, PropertyChangedEventArgs e) => Refresh();

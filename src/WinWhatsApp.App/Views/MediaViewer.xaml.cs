@@ -614,7 +614,7 @@ public sealed partial class MediaViewer : UserControl
             name = Loc.T("media.profilePhoto");
         }
         var picker = new Windows.Storage.Pickers.FileSavePicker { SuggestedFileName = name };
-        WinRT.Interop.InitializeWithWindow.Initialize(picker, App.Current.WindowHandle);
+        App.Current.InitializePicker(picker);
         string extension = System.IO.Path.GetExtension(path);
         picker.FileTypeChoices.Add(extension.TrimStart('.').ToUpperInvariant(), [extension]);
         Windows.Storage.StorageFile? target = await picker.PickSaveFileAsync();

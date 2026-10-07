@@ -253,7 +253,7 @@ public sealed partial class SendMediaView : UserControl
     private async void OnAddClick(object sender, RoutedEventArgs e)
     {
         var picker = new Windows.Storage.Pickers.FileOpenPicker();
-        WinRT.Interop.InitializeWithWindow.Initialize(picker, App.Current.WindowHandle);
+        App.Current.InitializePicker(picker);
         foreach (string type in _documents ? ["*"] : PhotoAndVideoTypes)
         {
             picker.FileTypeFilter.Add(type);

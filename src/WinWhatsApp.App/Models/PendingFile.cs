@@ -85,7 +85,7 @@ public sealed class PendingFile : Observable
         try
         {
             StorageFile file = await StorageFile.GetFileFromPathAsync(Path);
-            using StorageItemThumbnail frame = await file.GetThumbnailAsync(ThumbnailMode.VideosView, 112);
+            using StorageItemThumbnail frame = await file.GetThumbnailAsync(Windows.Storage.FileProperties.ThumbnailMode.VideosView, 112);
             var image = new BitmapImage();
             await image.SetSourceAsync(frame);
             Thumb = image;

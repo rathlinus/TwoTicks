@@ -28,6 +28,9 @@ internal static class Images
     {
         try
         {
+#if HAS_UNO
+            using IRandomAccessStream stream = new MemoryStream(data).AsRandomAccessStream();
+#else
             using var stream = new InMemoryRandomAccessStream();
             using (var writer = new DataWriter(stream.GetOutputStreamAt(0)))
             {
@@ -37,6 +40,7 @@ internal static class Images
                 writer.DetachStream();
             }
             stream.Seek(0);
+#endif
             await image.SetSourceAsync(stream);
         }
         catch (Exception)

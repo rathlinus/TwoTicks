@@ -51,7 +51,7 @@ internal static class MediaInfo
                 (width, height) = (height, width);
             }
             seconds = (int)Math.Round(properties.Duration.TotalSeconds);
-            using StorageItemThumbnail frame = await file.GetThumbnailAsync(ThumbnailMode.VideosView, 320, ThumbnailOptions.ResizeThumbnail);
+            using StorageItemThumbnail frame = await file.GetThumbnailAsync(Windows.Storage.FileProperties.ThumbnailMode.VideosView, 320, ThumbnailOptions.ResizeThumbnail);
             thumbnail = await ToJpegAsync(frame);
         }
         catch (Exception e)

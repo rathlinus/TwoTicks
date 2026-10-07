@@ -17,9 +17,9 @@ internal sealed class TaskbarBadge : IDisposable
     private nint _icon;
     private int _shown = -1;
 
-    public TaskbarBadge(nint window)
+    public TaskbarBadge(Microsoft.UI.Xaml.Window window)
     {
-        _window = window;
+        _window = App.Current.WindowHandleOf(window);
     }
 
     public void Set(int count)

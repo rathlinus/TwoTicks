@@ -56,7 +56,7 @@ public sealed class Session : Observable
         _ui = ui;
         _notifier = notifier;
         Settings = settings;
-        Client = new WhatsAppClient(Path.Combine(AppContext.BaseDirectory, "WinWhatsApp.Bridge.exe"), AppPaths.DataFolder,
+        Client = new WhatsAppClient(Path.Combine(AppContext.BaseDirectory, OperatingSystem.IsWindows() ? "WinWhatsApp.Bridge.exe" : "WinWhatsApp.Bridge"), AppPaths.DataFolder,
             debug: Environment.GetEnvironmentVariable("WINWHATSAPP_DEBUG") == "1");
 
         _chatsReload = NewTimer(TimeSpan.FromMilliseconds(250), () => _ = ReloadChatsAsync());

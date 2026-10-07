@@ -704,7 +704,7 @@ public sealed partial class ConversationView : UserControl
     private async Task PickAndSendAsync(string[] types, bool asDocument = false)
     {
         var picker = new Windows.Storage.Pickers.FileOpenPicker();
-        WinRT.Interop.InitializeWithWindow.Initialize(picker, App.Current.WindowHandle);
+        App.Current.InitializePicker(picker);
         foreach (string type in types)
         {
             picker.FileTypeFilter.Add(type);
@@ -1013,7 +1013,7 @@ public sealed partial class ConversationView : UserControl
             Add(Loc.T("conversation.reply"), "Reply", () => StartReply(item));
         }
 
-        string selected = textBlock?.SelectedText ?? "";
+        string selected = Emoji.ToPlain(textBlock?.SelectedText);
         if (selected.Length > 0 || item.HasText && !item.IsNotice)
         {
             Add(selected.Length > 0 ? Loc.T("conversation.copySelection") : Loc.T("common.copy"), "Copy", () =>
@@ -1220,7 +1220,7 @@ public sealed partial class ConversationView : UserControl
             return;
         }
         var picker = new Windows.Storage.Pickers.FileSavePicker { SuggestedFileName = Path.GetFileNameWithoutExtension(path) };
-        WinRT.Interop.InitializeWithWindow.Initialize(picker, App.Current.WindowHandle);
+        App.Current.InitializePicker(picker);
         string extension = Path.GetExtension(path);
         picker.FileTypeChoices.Add(extension.Length > 1 ? Loc.T("conversation.fileType", ("type", extension.TrimStart('.').ToUpperInvariant())) : Loc.T("conversation.file"), [extension.Length > 1 ? extension : ".bin"]);
         if (item.Data.Media?.Name is { Length: > 0 } name)
@@ -1492,6 +1492,6 @@ public sealed partial class ConversationView : UserControl
                 return deeper;
             }
         }
-        return null;
+        return default;
     }
 }

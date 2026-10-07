@@ -18,7 +18,7 @@ public static class RichText
     public static readonly DependencyProperty SpansProperty = DependencyProperty.RegisterAttached(
         "Spans", typeof(IReadOnlyList<TextSpan>), typeof(RichText), new PropertyMetadata(null, OnChanged));
 
-    private static readonly FontFamily s_mono = new("Cascadia Mono, Consolas");
+    private static readonly FontFamily s_mono = (FontFamily)Application.Current.Resources["MonoFont"];
     private static readonly SolidColorBrush s_mention = new(Color.FromArgb(255, 0x1F, 0x9B, 0xD1));
 
     public static IReadOnlyList<TextSpan>? GetSpans(RichTextBlock block) => (IReadOnlyList<TextSpan>?)block.GetValue(SpansProperty);
@@ -34,12 +34,11 @@ public static class RichText
 
     private static void Build(RichTextBlock block, IReadOnlyList<TextSpan>? spans)
     {
-        block.Blocks.Clear();
-        if (spans is null)
-        {
-            return;
-        }
-        var paragraph = new Paragraph();
+        Emoji.Fill(block, spans is null ? null : inlines => Build(inlines, spans, block.FontSize));
+    }
+
+    private static void Build(InlineCollection inlines, IReadOnlyList<TextSpan> spans, double fontSize)
+    {
         foreach (TextSpan span in spans)
         {
             void Style(Run run)
@@ -75,13 +74,12 @@ public static class RichText
                 var link = new Hyperlink { NavigateUri = uri, UnderlineStyle = UnderlineStyle.None };
                 ToolTipService.SetToolTip(link, uri.ToString());
                 link.Inlines.Add(run);
-                paragraph.Inlines.Add(link);
+                inlines.Add(link);
             }
             else
             {
-                Emoji.AddText(paragraph.Inlines, span.Text, block.FontSize, Style);
+                Emoji.AddText(inlines, span.Text, fontSize, Style);
             }
         }
-        block.Blocks.Add(paragraph);
     }
 }
