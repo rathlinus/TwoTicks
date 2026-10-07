@@ -78,7 +78,8 @@ public static class Updates
     /// Downloads the setup program into <paramref name="folder"/> and returns its
     /// path. A file of the wrong size or hash is deleted and reported as an error.
     /// </summary>
-    public static async Task<string> DownloadAsync(HttpClient http, UpdateInfo update, string folder, CancellationToken cancellation)
+    /// <param name="progress">Gets how much of the file is there, from 0 to 1.</param>
+    public static async Task<string> DownloadAsync(HttpClient http, UpdateInfo update, string folder, IProgress<double>? progress, CancellationToken cancellation)
     {
         Directory.CreateDirectory(folder);
         string path = Path.Combine(folder, $"WinWhatsApp-{update.Version}-Setup.exe");
@@ -88,9 +89,21 @@ public static class Updates
             using (HttpResponseMessage response = await http.GetAsync(update.SetupUrl, HttpCompletionOption.ResponseHeadersRead, cancellation))
             {
                 response.EnsureSuccessStatusCode();
+                long total = update.SetupSize > 0 ? update.SetupSize : response.Content.Headers.ContentLength ?? 0;
                 await using Stream source = await response.Content.ReadAsStreamAsync(cancellation);
                 await using FileStream target = File.Create(partial);
-                await source.CopyToAsync(target, cancellation);
+                byte[] buffer = new byte[81920];
+                long received = 0;
+                int read;
+                while ((read = await source.ReadAsync(buffer, cancellation)) > 0)
+                {
+                    await target.WriteAsync(buffer.AsMemory(0, read), cancellation);
+                    received += read;
+                    if (total > 0)
+                    {
+                        progress?.Report(Math.Min(1, (double)received / total));
+                    }
+                }
             }
 
             long size = new FileInfo(partial).Length;

@@ -26,6 +26,7 @@ public enum UpdateState
 /// version is downloaded and installed while the window is closed and no call
 /// is going on, or when the app quits; setup then starts the new version the
 /// way the old one ran. Otherwise a notification tells about it once.
+/// Installing by hand shows <see cref="UpdateWindow"/> until the new version runs.
 /// </summary>
 /// <remarks>
 /// Only a copy that setup installed can update itself. A copy unpacked from the
@@ -48,6 +49,9 @@ internal sealed class Updater
     private readonly HttpClient _http;
     private DateTime _lastCheck;
     private bool _installing;
+    // The check or download going on, which a second one waits for instead of starting its own.
+    private Task? _work;
+    private UpdateWindow? _window;
 
     public Updater(DispatcherQueue ui, AppSettings settings, Notifier notifier)
     {
@@ -67,6 +71,9 @@ internal sealed class Updater
 
     private static string DownloadFolder => Path.Combine(AppPaths.DataFolder, "updates");
 
+    /// <summary>Setup's log of the last update, for when one went wrong.</summary>
+    private static string SetupLog => Path.Combine(AppPaths.DataFolder, "update.log");
+
     public UpdateState State { get; private set; }
 
     /// <summary>The newer version, once one was found.</summary>
@@ -74,6 +81,12 @@ internal sealed class Updater
 
     /// <summary>What went wrong in the last check or download.</summary>
     public string? Error { get; private set; }
+
+    /// <summary>How much of the new version is downloaded, from 0 to 1.</summary>
+    public double Progress { get; private set; }
+
+    /// <summary>Setup runs, and the app is about to quit for it.</summary>
+    public bool Installing => _installing;
 
     private string? _setupPath;
 
@@ -130,10 +143,21 @@ internal sealed class Updater
     /// <summary>Looks for a new version, and with automatic installing on downloads it.</summary>
     public async Task CheckAsync(bool manual)
     {
-        if (State is UpdateState.Checking or UpdateState.Downloading || _installing)
+        if (_installing)
         {
             return;
         }
+        if (_work is { IsCompleted: false })
+        {
+            await _work;
+            return;
+        }
+        _work = CheckCoreAsync(manual);
+        await _work;
+    }
+
+    private async Task CheckCoreAsync(bool manual)
+    {
         // Once found, a version stays found; there is no need to ask GitHub again soon.
         if (!manual && Update is not null && DateTime.UtcNow - _lastCheck < CheckInterval)
         {
@@ -188,10 +212,21 @@ internal sealed class Updater
         {
             return false;
         }
+        Progress = 0;
         SetState(UpdateState.Downloading);
+        // Created here, on the UI thread, so the reports arrive there.
+        var progress = new Progress<double>(value =>
+        {
+            // A step per percent is enough for the window.
+            if (State == UpdateState.Downloading && (int)(value * 100) != (int)(Progress * 100))
+            {
+                Progress = value;
+                Changed?.Invoke();
+            }
+        });
         try
         {
-            _setupPath = await Task.Run(() => Updates.DownloadAsync(_http, update, DownloadFolder, CancellationToken.None));
+            _setupPath = await Task.Run(() => Updates.DownloadAsync(_http, update, DownloadFolder, progress, CancellationToken.None));
             Log.Info($"Downloaded WinWhatsApp {update.Version}");
             SetState(UpdateState.Ready);
             return true;
@@ -237,7 +272,10 @@ internal sealed class Updater
         return Install(relaunch: true, background: true);
     }
 
-    /// <summary>The Install button in the settings, the menu of the tray icon or a notification.</summary>
+    /// <summary>
+    /// The Install button in the settings, the menu of the tray icon or a
+    /// notification. The update window shows how far it is.
+    /// </summary>
     public async Task InstallNowAsync()
     {
         if (!CanInstall)
@@ -245,16 +283,51 @@ internal sealed class Updater
             OpenReleasePage();
             return;
         }
+        if (_installing)
+        {
+            return;
+        }
+        ShowWindow();
+        // A check or a download that runs already is waited for, not started again.
+        if (_work is { IsCompleted: false })
+        {
+            await _work;
+        }
         if (State is UpdateState.Unknown or UpdateState.UpToDate or UpdateState.Failed)
         {
             await CheckAsync(manual: true);
         }
-        if (State == UpdateState.Available && !await DownloadAsync())
+        if (State == UpdateState.Available)
         {
-            return;
+            Task<bool> download = DownloadAsync();
+            _work = download;
+            if (!await download)
+            {
+                return;
+            }
         }
-        Install(relaunch: true, background: false);
+        if (State == UpdateState.Ready)
+        {
+            Install(relaunch: true, background: false);
+        }
     }
+
+    private void ShowWindow()
+    {
+        if (_window is null)
+        {
+            _window = new UpdateWindow(this, _settings.WhatsAppIcon);
+            _window.Closed += (_, _) => _window = null;
+            _window.ShowCentered();
+        }
+        else
+        {
+            _window.Activate();
+        }
+    }
+
+    /// <summary>Called when the app quits.</summary>
+    public void CloseWindow() => _window?.Close();
 
     /// <summary>Called when the app quits: a downloaded update is installed without starting the app again.</summary>
     public void InstallOnQuit()
@@ -283,11 +356,25 @@ internal sealed class Updater
             return false;
         }
         string mode = !relaunch ? "no" : background ? "background" : "window";
+        // Setup waits for this process to end; see the [Code] section of the script.
+        string arguments = $"/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /NOCANCEL /NOCLOSEAPPLICATIONS /SP- /RELAUNCH={mode} " +
+            $"/WAITPID={Environment.ProcessId} /LANG={Loc.Language} /LOG=\"{SetupLog}\"";
+        // Setup shows its copy of the window only when it starts the new version afterwards.
+        UpdateWindow? window = relaunch && !background ? _window : null;
+        if (window is not null && window.SaveLogoForSetup(DownloadFolder) is { } logo)
+        {
+            (Windows.Graphics.RectInt32 bounds, uint dpi) = window.Placement;
+            arguments += $" /UPDATEWINDOW={bounds.X},{bounds.Y},{bounds.Width},{bounds.Height},{dpi} /LOGO=\"{logo}\"";
+        }
+        else
+        {
+            window = null;
+        }
         try
         {
             Process.Start(new ProcessStartInfo(_setupPath)
             {
-                Arguments = $"/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /NOCANCEL /SP- /RELAUNCH={mode}",
+                Arguments = arguments,
                 UseShellExecute = false,
             });
         }
@@ -301,11 +388,32 @@ internal sealed class Updater
         }
         _installing = true;
         Log.Info($"Installing WinWhatsApp {Update?.Version}");
+        Changed?.Invoke();
         if (relaunch)
         {
-            _ui.TryEnqueue(App.Current.Quit);
+            _ = QuitForSetupAsync(handOver: window is not null);
         }
         return true;
+    }
+
+    /// <summary>
+    /// Quits so setup can replace the files. With the update window open, it
+    /// first waits until setup shows its copy of the window on top, so the
+    /// window never goes away in between.
+    /// </summary>
+    private async Task QuitForSetupAsync(bool handOver)
+    {
+        if (handOver)
+        {
+            var waited = Stopwatch.StartNew();
+            // Starting setup can take a while: Windows looks through a program it has not seen before.
+            while (Native.FindWindow(UpdateWindow.SetupWindowClass, UpdateWindow.SetupWindowTitle) == 0 && waited.Elapsed < TimeSpan.FromSeconds(60))
+            {
+                await Task.Delay(50);
+            }
+        }
+        // Queued, so whatever called Install finishes before the app shuts down.
+        _ui.TryEnqueue(App.Current.Quit);
     }
 
     private void SetState(UpdateState state)

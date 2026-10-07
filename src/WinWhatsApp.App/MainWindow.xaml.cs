@@ -269,7 +269,9 @@ public sealed partial class MainWindow : Window
     private void UpdateTitleBar()
     {
         _titleBarPending = false;
-        if (Content?.XamlRoot is not { } root)
+        // Queued before the window closed for good, when its content is gone;
+        // a throw here would end the app with a crash instead of quitting.
+        if (_quitting || Content?.XamlRoot is not { } root)
         {
             return;
         }

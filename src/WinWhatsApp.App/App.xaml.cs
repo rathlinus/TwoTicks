@@ -174,6 +174,7 @@ public partial class App : Application
     private void Shutdown()
     {
         _quitting = true;
+        Updater.CloseWindow();
         AudioPlayer.Stop();
         Session.Calls.Shutdown();
         _tray?.Dispose();

@@ -141,10 +141,14 @@ internal static partial class Native
     [LibraryImport("user32.dll")]
     public static partial uint GetDpiForWindow(nint hwnd);
 
+    [LibraryImport("user32.dll", EntryPoint = "FindWindowW", StringMarshalling = StringMarshalling.Utf16)]
+    public static partial nint FindWindow(string? className, string? windowName);
+
     [LibraryImport("user32.dll")]
     public static partial int GetSystemMetricsForDpi(int index, uint dpi);
 
-    public const int DWMWA_CAPTION_COLOR = 35;
+    public const int DWMWA_WINDOW_CORNER_PREFERENCE = 33, DWMWA_CAPTION_COLOR = 35;
+    public const uint DWMWCP_ROUND = 2;
 
     [LibraryImport("dwmapi.dll")]
     public static partial int DwmSetWindowAttribute(nint hwnd, int attribute, ref uint value, int size);
