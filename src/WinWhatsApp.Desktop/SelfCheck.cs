@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
@@ -55,6 +56,7 @@ internal static class SelfCheck
             {
                 await Task.Delay(200);
             }
+            await NoteFontsAsync();
             Note("Chats", session.Chats.Visible.Count.ToString());
             Note("State", session.State);
             if (session.Chats.Visible.FirstOrDefault() is ChatItem first)
@@ -93,6 +95,77 @@ internal static class SelfCheck
         }
         Environment.ExitCode = ok ? 0 : 1;
         app.Quit();
+    }
+
+    /// <summary>
+    /// Which font the text engine takes for an emoji, once written as the
+    /// private code point the app shows it with and once as it is: the fonts
+    /// of a system have their say in this, and no two systems have the same.
+    /// </summary>
+    private static async Task NoteFontsAsync()
+    {
+        try
+        {
+            if (Controls.Emoji.Set is not { Count: > 0 })
+            {
+                return;
+            }
+            using SKTypeface? emoji = SKTypeface.FromFile(Controls.Emoji.FontFile);
+            using SKTypeface? text = SKTypeface.FromFile(Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts", "Roboto-Regular.ttf"));
+            // The first emoji of the list as the app writes it, and raised hands as everyone does.
+            (string, int)[] points = [("private", Controls.Emoji.PrivateUse), ("plain", 0x1F64C)];
+            foreach ((string name, int point) in points)
+            {
+                Note($"Font for {name} U+{point:X}",
+                    $"emoji font glyph {emoji?.GetGlyph(point)}, text font glyph {text?.GetGlyph(point)}, " +
+                    $"system default {SKTypeface.Default.FamilyName} glyph {SKTypeface.Default.GetGlyph(point)}, " +
+                    $"system match {SKFontManager.Default.MatchCharacter(point)?.FamilyName ?? "none"}, " +
+                    $"symbols font {await EngineFontAsync("GetFont", point, Uno.UI.FeatureConfiguration.Font.SymbolsFont)}, " +
+                    $"fallback {await EngineFontAsync("GetFontForCodepoint", point, point)}");
+
+                using var bitmap = new SKBitmap(64, 64);
+                using var canvas = new SKCanvas(bitmap);
+                canvas.Clear(SKColors.Transparent);
+                using var font = new SKFont(emoji, 40);
+                using var paint = new SKPaint();
+                canvas.DrawText(char.ConvertFromUtf32(point), 4, 48, font, paint);
+                Note($"Drawn for {name}", bitmap.Pixels.Count(pixel => pixel.Alpha > 0) + " pixels");
+            }
+        }
+        catch (Exception e)
+        {
+            Note("Font check", "failed: " + e);
+        }
+    }
+
+    /// <summary>What the text engine's own font cache answers, which it keeps to itself.</summary>
+    private static async Task<string> EngineFontAsync(string method, int point, object first)
+    {
+        Type? cache = typeof(Microsoft.UI.Xaml.Documents.Run).Assembly.GetType("Microsoft.UI.Xaml.Documents.TextFormatting.FontDetailsCache");
+        MethodInfo? get = cache?.GetMethod(method, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+        if (get is null)
+        {
+            return "unknown";
+        }
+        object? result = get.Invoke(null, [first, 14f, Microsoft.UI.Text.FontWeights.Normal, Windows.UI.Text.FontStretch.Normal, Windows.UI.Text.FontStyle.Normal]);
+        // GetFont answers with the font for now and a task for the one that loads.
+        if (result?.GetType().GetField("Item2")?.GetValue(result) is Task both)
+        {
+            result = both;
+        }
+        if (result is not Task task)
+        {
+            return "unknown";
+        }
+        await task;
+        object? details = task.GetType().GetProperty("Result")?.GetValue(task);
+        if (details is null)
+        {
+            return "none";
+        }
+        const BindingFlags any = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+        object? font = details.GetType().GetProperty("SKFont", any)?.GetValue(details) ?? details.GetType().GetField("SKFont", any)?.GetValue(details);
+        return font is SKFont sk ? $"{sk.Typeface.FamilyName} glyph {sk.GetGlyph(point)}" : "unknown";
     }
 
     /// <summary>
