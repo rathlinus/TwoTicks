@@ -79,5 +79,6 @@
   "calls.failed": "The call failed.",
   "calls.setupFailed": "The call could not be set up.",
   "calls.downloadFailed": "The calling engine could not be downloaded. Check the connection.",
-  "calls.engineOutdated": "The calling engine WhatsApp sent is not the expected one. WinWhatsApp needs an update."
+  "calls.engineOutdated": "The calling engine WhatsApp sent is not the expected one. WinWhatsApp needs an update.",
+  "calls.noBrowser": "Calls need Chrome, Chromium, Edge, Brave, Vivaldi or Firefox on this computer. Install one of them and try again."
 }

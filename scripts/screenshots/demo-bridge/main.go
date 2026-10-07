@@ -336,6 +336,14 @@ func handle(d *demo, state map[string]any, method string, p map[string]any) any 
 			}
 		}
 		return map[string]string{"path": ""}
+	// A call in the demo rings and nobody answers: enough to show the call
+	// window and to have the calling engine start.
+	case "callIdentity":
+		return map[string]string{"pn": "4915550100:1@c.us", "pnUser": "4915550100@c.us", "lid": "100000000000001:1@lid", "countryCode": "49"}
+	case "callPrepare":
+		return map[string]any{"peer": "100000000000002@lid", "peerPn": "4915550101@c.us", "devices": []string{"100000000000002@lid"}, "name": ""}
+	case "callSend":
+		return map[string]string{"node": "", "error": "0"}
 	}
 	return true
 }

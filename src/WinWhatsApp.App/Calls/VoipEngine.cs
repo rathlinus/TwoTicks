@@ -9,7 +9,8 @@ namespace WinWhatsApp.App.Calls;
 
 /// <summary>
 /// WhatsApp's calling engine, the one WhatsApp Web uses: a WebAssembly program
-/// with the page around it in Assets\Voip, run in a WebView2 that is never shown.
+/// with the page around it in Assets\Voip, run in a browser that is never
+/// shown: WebView2 on Windows, a browser of the system on macOS and Linux.
 /// Messages go to the page as JSON and come back the same way; see host.js.
 /// </summary>
 /// <remarks>
@@ -53,17 +54,27 @@ internal sealed partial class VoipEngine : IDisposable
     private partial void ClosePage();
 
     /// <summary>Serves the page and waits for it to say that it loaded.</summary>
-    private async Task ServeAndWaitAsync(Action<string> navigate)
+    /// <param name="channelKey">
+    /// For a browser without web messages: the key that lets the page exchange
+    /// its messages with the app through the server; see <see cref="PageServer"/>.
+    /// </param>
+    private async Task ServeAndWaitAsync(Action<string> navigate, string? channelKey = null)
     {
         _loaded = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        _server = new PageServer(path => path == WasmPath ? _wasmFile : SafeAsset(path));
-        navigate(_server.Origin + "/host.html");
+        _server = new PageServer(path => path == WasmPath ? _wasmFile : SafeAsset(path), channelKey);
+        _server.MessageReceived += OnChannelMessage;
+        _server.ChannelClosed += OnChannelClosed;
+        navigate(_server.Origin + "/host.html" + (channelKey is null ? "" : "?key=" + channelKey));
         Task finished = await Task.WhenAny(_loaded.Task, Task.Delay(TimeSpan.FromSeconds(30)));
         if (finished != _loaded.Task)
         {
             throw new TimeoutException("The calling engine's page did not load.");
         }
     }
+
+    private void OnChannelMessage(string json) => _ui.TryEnqueue(() => OnMessage(json));
+
+    private void OnChannelClosed() => OnPageFailed("the page closed");
 
     /// <summary>The page or what it runs in stopped by itself.</summary>
     private void OnPageFailed(string reason)
@@ -199,9 +210,16 @@ internal sealed partial class VoipEngine : IDisposable
     {
         _loaded?.TrySetCanceled();
         _loaded = null;
-        ClosePage();
-        _server?.Dispose();
+        PageServer? server = _server;
         _server = null;
+        if (server is not null)
+        {
+            // Closing the page is not the page failing.
+            server.ChannelClosed -= OnChannelClosed;
+            server.MessageReceived -= OnChannelMessage;
+        }
+        ClosePage();
+        server?.Dispose();
     }
 
     public void Dispose()
@@ -210,3 +228,6 @@ internal sealed partial class VoipEngine : IDisposable
         Stop();
     }
 }
+
+/// <summary>The calling engine cannot run here, for a reason the person can do something about; the message says what.</summary>
+internal sealed class VoipSetupException(string message) : Exception(message);

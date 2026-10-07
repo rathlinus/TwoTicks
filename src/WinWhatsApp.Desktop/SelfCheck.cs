@@ -57,6 +57,9 @@ internal static class SelfCheck
                 await Task.Delay(200);
             }
             await NoteFontsAsync();
+            Note("Microphones", string.Join(", ", await AudioDevices.NamesAsync(microphones: true)) is { Length: > 0 } microphones ? microphones : "none listed");
+            Note("Speakers", string.Join(", ", await AudioDevices.NamesAsync(microphones: false)) is { Length: > 0 } speakers ? speakers : "none listed");
+            Note("Browser for calls", Calls.CallBrowser.Find()?.Name ?? "none");
             Note("Chats", session.Chats.Visible.Count.ToString());
             Note("State", session.State);
             if (session.Chats.Visible.FirstOrDefault() is ChatItem first)

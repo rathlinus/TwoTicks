@@ -79,5 +79,6 @@
   "calls.failed": "Der Anruf ist fehlgeschlagen.",
   "calls.setupFailed": "Der Anruf konnte nicht aufgebaut werden.",
   "calls.downloadFailed": "Die Anruf-Engine konnte nicht heruntergeladen werden. Prüfe die Verbindung.",
-  "calls.engineOutdated": "Die Anruf-Engine, die WhatsApp gesendet hat, ist nicht die erwartete. WinWhatsApp braucht ein Update."
+  "calls.engineOutdated": "Die Anruf-Engine, die WhatsApp gesendet hat, ist nicht die erwartete. WinWhatsApp braucht ein Update.",
+  "calls.noBrowser": "Anrufe brauchen Chrome, Chromium, Edge, Brave, Vivaldi oder Firefox auf diesem Computer. Installiere einen davon und versuch es noch einmal."
 }

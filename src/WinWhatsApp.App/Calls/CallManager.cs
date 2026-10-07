@@ -306,7 +306,7 @@ public sealed class CallManager : Observable
             {
                 HttpRequestException => Loc.T("calls.downloadFailed"),
                 InvalidDataException => Loc.T("calls.engineOutdated"),
-                BridgeException => e.Message,
+                BridgeException or VoipSetupException => e.Message,
                 _ => Loc.T("calls.setupFailed"),
             });
         }

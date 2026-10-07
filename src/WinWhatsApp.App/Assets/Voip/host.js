@@ -1,8 +1,12 @@
 // Runs WhatsApp's calling engine for the app. The app shows this page in a
-// hidden WebView2 and talks to it with web messages: it hands over what
+// browser nobody sees and exchanges messages with it: it hands over what
 // WhatsApp's servers send about calls and gets back what the engine wants to
 // send. Sound goes through the page's microphone and speakers, and the call's
 // media goes to WhatsApp's relays over WebTransport, as in WhatsApp Web.
+//
+// On Windows the browser is WebView2 and the messages are its web messages.
+// On macOS and Linux it is a browser of the system, run without a window, and
+// the messages go over a WebSocket to the app, which also serves the page.
 'use strict';
 
 const GLUE = 'WAWebVoipWebWasmLoader_ContentAddressed_internal';
@@ -27,9 +31,13 @@ let debug = false;
 // ---- Talking to the app ----
 
 const webview = window.chrome && window.chrome.webview;
+// The key the app put into the page's address, which opens the WebSocket.
+const channelKey = new URLSearchParams(location.search).get('key');
+let socket = null;
 
 function post(message) {
   if (webview) webview.postMessage(message);
+  else if (socket && socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
   else console.log('voip ->', message);
 }
 
@@ -615,22 +623,29 @@ const handlers = {
   },
 };
 
+function receive(m) {
+  const handler = m && handlers[m.type];
+  if (!handler) return;
+  if (m.type !== 'init' && !engine) {
+    log(2, 'voip: ' + m.type + ' before the engine started');
+    return;
+  }
+  Promise.resolve()
+    .then(() => handler(m))
+    .catch((err) => {
+      log(1, 'voip: ' + m.type + ' failed: ' + describe(err));
+      if (m.type === 'init') post({ type: 'failed', message: String(err && err.message ? err.message : err) });
+      else post({ type: 'error', request: m.type, message: String(err && err.message ? err.message : err) });
+    });
+}
+
 if (webview) {
-  webview.addEventListener('message', (e) => {
-    const m = e.data;
-    const handler = m && handlers[m.type];
-    if (!handler) return;
-    if (m.type !== 'init' && !engine) {
-      log(2, 'voip: ' + m.type + ' before the engine started');
-      return;
-    }
-    Promise.resolve()
-      .then(() => handler(m))
-      .catch((err) => {
-        log(1, 'voip: ' + m.type + ' failed: ' + describe(err));
-        if (m.type === 'init') post({ type: 'failed', message: String(err && err.message ? err.message : err) });
-        else post({ type: 'error', request: m.type, message: String(err && err.message ? err.message : err) });
-      });
-  });
+  webview.addEventListener('message', (e) => receive(e.data));
   post({ type: 'loaded', isolated: self.crossOriginIsolated === true });
+} else if (channelKey) {
+  socket = new WebSocket('ws://' + location.host + '/channel?key=' + encodeURIComponent(channelKey));
+  socket.addEventListener('open', () => post({ type: 'loaded', isolated: self.crossOriginIsolated === true }));
+  socket.addEventListener('message', (e) => receive(JSON.parse(e.data)));
+  // The app is gone, and with it the reason for this page.
+  socket.addEventListener('close', () => window.close());
 }

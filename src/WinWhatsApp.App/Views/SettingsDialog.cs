@@ -2,7 +2,6 @@ using System.Diagnostics;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using Windows.Devices.Enumeration;
 using WinWhatsApp.Core;
 
 namespace WinWhatsApp.App.Views;
@@ -60,12 +59,12 @@ internal sealed partial class SettingsDialog : ContentDialog
         panel.Children.Add(icon);
 
         panel.Children.Add(Heading(Loc.T("settings.calls")));
-        panel.Children.Add(DevicePicker(Loc.T("settings.microphone"), DeviceClass.AudioCapture, settings.Microphone, name =>
+        panel.Children.Add(DevicePicker(Loc.T("settings.microphone"), microphones: true, settings.Microphone, name =>
         {
             settings.Microphone = name;
             session.Calls.ApplyDevices();
         }));
-        panel.Children.Add(DevicePicker(Loc.T("settings.speaker"), DeviceClass.AudioRender, settings.Speaker, name =>
+        panel.Children.Add(DevicePicker(Loc.T("settings.speaker"), microphones: false, settings.Speaker, name =>
         {
             settings.Speaker = name;
             session.Calls.ApplyDevices();
@@ -223,11 +222,11 @@ internal sealed partial class SettingsDialog : ContentDialog
     }
 
     /// <summary>
-    /// A list of the microphones or speakers Windows has, by name, with the
-    /// Windows default first. A device picked earlier that is not connected now
+    /// A list of the microphones or speakers the system has, by name, with the
+    /// system's default first. A device picked earlier that is not connected now
     /// stays in the list, so the choice is not lost.
     /// </summary>
-    private static ComboBox DevicePicker(string header, DeviceClass kind, string? current, Action<string?> set)
+    private static ComboBox DevicePicker(string header, bool microphones, string? current, Action<string?> set)
     {
         string windowsDefault = Loc.T("settings.windowsDefault");
         var box = new ComboBox { Header = header, MinWidth = 300, Margin = new Thickness(0, 4, 0, 4) };
@@ -239,8 +238,8 @@ internal sealed partial class SettingsDialog : ContentDialog
         box.SelectedIndex = current is null ? 0 : 1;
         box.Loaded += async (_, _) =>
         {
-            DeviceInformationCollection devices = await DeviceInformation.FindAllAsync(kind);
-            foreach (string name in devices.Where(d => d.IsEnabled).Select(d => d.Name).Distinct().Order(StringComparer.CurrentCultureIgnoreCase))
+            IReadOnlyList<string> devices = await AudioDevices.NamesAsync(microphones);
+            foreach (string name in devices.Distinct().Order(StringComparer.CurrentCultureIgnoreCase))
             {
                 if (name != current)
                 {
