@@ -20,12 +20,19 @@ public partial class App
         Resources["MonoFont"] = new FontFamily(OperatingSystem.IsMacOS() ? "Menlo" : OperatingSystem.IsWindows() ? "Consolas" : "monospace");
     }
 
-    /// <summary>Whether the app has an icon in the notification area or the menu bar to come back from.</summary>
-    internal bool HasTray => _tray?.IsShown == true;
+    /// <summary>
+    /// Whether there is a way back to a window that is off the screen: the icon
+    /// in the notification area or the menu bar, or on macOS the one in the Dock.
+    /// </summary>
+    internal bool HasTray => _tray?.IsShown == true || Mac.MacApp.CanReopen;
 
     partial void Launched()
     {
         SelfCheck.Run(this);
+        if (OperatingSystem.IsMacOS())
+        {
+            Mac.MacApp.OnReopen(() => _ui.TryEnqueue(ShowWindow));
+        }
         if (Environment.GetCommandLineArgs().Contains(Program.BackgroundSwitch))
         {
             _ = ShowUnlessInTrayAsync();

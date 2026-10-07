@@ -146,6 +146,25 @@
           EnvironmentVariables="CGO_ENABLED=0;GOOS=$(GoOs);GOARCH=$(GoArch)" />
   </Target>
 
+  <!--
+    What the app asks of macOS itself (the icon in the menu bar, notifications,
+    the Dock) is Objective-C, in Mac\WinWhatsAppMac.m. It is built with clang,
+    for both kinds of Mac at once, when the app is built for macOS on a Mac.
+    A build for macOS made elsewhere runs without these.
+  -->
+  <PropertyGroup>
+    <MacLibrarySource>$(MSBuildThisFileDirectory)Mac\WinWhatsAppMac.m</MacLibrarySource>
+    <MacLibrary>$(Repo)artifacts\mac\libWinWhatsAppMac.dylib</MacLibrary>
+    <BuildMacLibrary Condition="'$(GoOs)' == 'darwin' and $([MSBuild]::IsOSPlatform('OSX'))">true</BuildMacLibrary>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(BuildMacLibrary)' == 'true'">
+    <Content Include="$(MacLibrary)" Link="libWinWhatsAppMac.dylib" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="BuildMacLibrary" BeforeTargets="BeforeBuild" Condition="'$(BuildMacLibrary)' == 'true'" Inputs="$(MacLibrarySource)" Outputs="$(MacLibrary)">
+    <MakeDir Directories="$(Repo)artifacts\mac" />
+    <Exec Command="clang -dynamiclib -fobjc-arc -O2 -Wall -arch arm64 -arch x86_64 -mmacosx-version-min=12.0 -framework Cocoa -framework UserNotifications -o &quot;$(MacLibrary)&quot; &quot;$(MacLibrarySource)&quot;" />
+  </Target>
+
   <ItemGroup>
     <PackageReference Include="QRCoder" Version="1.8.0" />
   </ItemGroup>
