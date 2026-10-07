@@ -45,9 +45,10 @@ public static partial class Program
     }
 
     /// <summary>
-    /// The drawing library for ARM on Linux calls into libuuid without telling
-    /// the system that it needs it, and the app stops at its first text unless
-    /// something else brought libuuid in. Loaded here for all to see, it is found.
+    /// The drawing library for ARM on Linux calls into libuuid and FreeType
+    /// without telling the system that it needs them, and the app stops at its
+    /// first text unless something else brought them in. Loaded here for all to
+    /// see, they are found. On x64 the library names what it needs.
     /// </summary>
     private static void LoadForDrawing()
     {
@@ -56,26 +57,29 @@ public static partial class Program
             return;
         }
         const int now = 2, global = 0x100;
-        try
+        foreach (string name in (string[])["libfontconfig.so.1", "libfreetype.so.6", "libuuid.so.1"])
         {
-            nint library;
             try
             {
-                library = dlopen("libuuid.so.1", now | global);
+                nint library;
+                try
+                {
+                    library = dlopen(name, now | global);
+                }
+                catch (EntryPointNotFoundException)
+                {
+                    // Before glibc 2.34 the function was in a library of its own.
+                    library = dlopen_old(name, now | global);
+                }
+                if (library == 0)
+                {
+                    Log.Info(name + " is missing, which the app needs to draw text");
+                }
             }
-            catch (EntryPointNotFoundException)
+            catch (Exception e) when (e is DllNotFoundException or EntryPointNotFoundException)
             {
-                // Before glibc 2.34 the function was in a library of its own.
-                library = dlopen_old("libuuid.so.1", now | global);
+                Log.Error("Could not load " + name, e);
             }
-            if (library == 0)
-            {
-                Log.Info("libuuid.so.1 is missing, which the app needs to draw; the package libuuid1 has it");
-            }
-        }
-        catch (Exception e) when (e is DllNotFoundException or EntryPointNotFoundException)
-        {
-            Log.Error("Could not load libuuid", e);
         }
     }
 
