@@ -16,6 +16,7 @@
   "session.fileNotSent": "{file} could not be sent: {error}",
   "session.downloadFailed": "Download failed: {error}",
   "session.cantPlay": "This recording can't be played. Windows may be missing the Web Media Extensions from the Microsoft Store.",
+  "session.cantPlay@unix": "This recording can't be played.",
 
   "notify.newMessage": "New message",
   "notify.replyPlaceholder": "Type a reply",

@@ -135,6 +135,34 @@ public static class Loc
         {
             tables[English] = [];
         }
+        foreach (Dictionary<string, string> table in tables.Values)
+        {
+            UseSystemWording(table);
+        }
         return tables;
+    }
+
+    /// <summary>
+    /// Text that names Windows or a part of it has another wording for where
+    /// the app runs elsewhere, under the same key with "@mac", "@linux" or, for
+    /// both, "@unix" after it. The one for this system takes the place of the
+    /// text, and the others are dropped, so the tables hold plain keys only.
+    /// </summary>
+    private static void UseSystemWording(Dictionary<string, string> table)
+    {
+        // Later ones win: the wording for one system over the one for both.
+        string[] mine = OperatingSystem.IsMacOS() ? ["@unix", "@mac"] : OperatingSystem.IsLinux() ? ["@unix", "@linux"] : [];
+        List<string> worded = table.Keys.Where(k => k.Contains('@')).ToList();
+        foreach (string suffix in mine)
+        {
+            foreach (string key in worded.Where(k => k.EndsWith(suffix, StringComparison.Ordinal)))
+            {
+                table[key[..^suffix.Length]] = table[key];
+            }
+        }
+        foreach (string key in worded)
+        {
+            table.Remove(key);
+        }
     }
 }

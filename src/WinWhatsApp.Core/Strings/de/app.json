@@ -16,6 +16,7 @@
   "session.fileNotSent": "{file} konnte nicht gesendet werden: {error}",
   "session.downloadFailed": "Download fehlgeschlagen: {error}",
   "session.cantPlay": "Diese Aufnahme kann nicht abgespielt werden. Möglicherweise fehlen in Windows die Web-Medienerweiterungen aus dem Microsoft Store.",
+  "session.cantPlay@unix": "Diese Aufnahme kann nicht abgespielt werden.",
 
   "notify.newMessage": "Neue Nachricht",
   "notify.replyPlaceholder": "Antwort eingeben",

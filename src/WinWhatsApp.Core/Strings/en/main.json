@@ -16,6 +16,7 @@
   "main.messages": "Messages",
   "main.noResults": "No chats or messages found",
   "main.welcome": "Send and receive messages without keeping your phone online. Open WhatsApp on your phone now and then to keep this PC linked.",
+  "main.welcome@unix": "Send and receive messages without keeping your phone online. Open WhatsApp on your phone now and then to keep this computer linked.",
   "main.encrypted": "Your personal messages are end-to-end encrypted",
   "main.minimize": "Minimize",
   "main.maximize": "Maximize",

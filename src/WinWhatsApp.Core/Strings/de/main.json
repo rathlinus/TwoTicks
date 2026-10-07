@@ -16,6 +16,7 @@
   "main.messages": "Nachrichten",
   "main.noResults": "Keine Chats oder Nachrichten gefunden",
   "main.welcome": "Sende und empfange Nachrichten, ohne dass dein Telefon online sein muss. Öffne ab und zu WhatsApp auf deinem Telefon, damit dieser PC verknüpft bleibt.",
+  "main.welcome@unix": "Sende und empfange Nachrichten, ohne dass dein Telefon online sein muss. Öffne ab und zu WhatsApp auf deinem Telefon, damit dieser Computer verknüpft bleibt.",
   "main.encrypted": "Deine persönlichen Nachrichten sind Ende-zu-Ende-verschlüsselt",
   "main.minimize": "Minimieren",
   "main.maximize": "Maximieren",

@@ -1,5 +1,6 @@
 {
   "login.title": "WhatsApp auf deinem PC verwenden",
+  "login.title@unix": "WhatsApp auf deinem Computer verwenden",
   "login.step1": "Öffne WhatsApp auf deinem Telefon.",
   "login.step2": "Tippe auf Menü ⋮ auf Android oder Einstellungen ⚙ auf dem iPhone.",
   "login.step3": "Tippe auf Verknüpfte Geräte und dann auf Gerät hinzufügen.",
@@ -10,6 +11,7 @@
   "login.linkWithPhone": "Mit Telefonnummer verknüpfen",
   "login.scanQr": "Mit QR-Code verknüpfen",
   "login.privacy": "WinWhatsApp wird wie WhatsApp Web mit deinem Telefon verknüpft. Deine Nachrichten werden nur auf diesem PC gespeichert.",
+  "login.privacy@unix": "WinWhatsApp wird wie WhatsApp Web mit deinem Telefon verknüpft. Deine Nachrichten werden nur auf diesem Computer gespeichert.",
   "login.reloadCode": "Code neu laden",
   "login.wholeNumber": "Gib die vollständige Nummer mit Ländervorwahl ein.",
   "media.zoomOut": "Verkleinern",

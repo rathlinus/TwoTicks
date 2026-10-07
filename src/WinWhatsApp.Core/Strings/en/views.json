@@ -1,5 +1,6 @@
 {
   "login.title": "Use WhatsApp on your PC",
+  "login.title@unix": "Use WhatsApp on your computer",
   "login.step1": "Open WhatsApp on your phone.",
   "login.step2": "On Android tap Menu ⋮, on iPhone tap Settings.",
   "login.step3": "Tap Linked devices, then Link a device.",
@@ -10,6 +11,7 @@
   "login.linkWithPhone": "Link with phone number instead",
   "login.scanQr": "Scan a QR code instead",
   "login.privacy": "WinWhatsApp links to your phone the way WhatsApp Web does. Your messages are kept on this PC only.",
+  "login.privacy@unix": "WinWhatsApp links to your phone the way WhatsApp Web does. Your messages are kept on this computer only.",
   "login.reloadCode": "Reload code",
   "login.wholeNumber": "Enter the whole number, starting with the country code.",
   "media.zoomOut": "Zoom out",
