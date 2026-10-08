@@ -4,9 +4,9 @@
 
 # WinWhatsApp
 
-A native WhatsApp app for Windows 11. It replaces the official app, which since 2025 is WhatsApp Web in a browser window: slow to start, slow to scroll, and a gigabyte of memory.
+A native WhatsApp app for Windows 11, and for macOS and Linux. It replaces the official app, which since 2025 is WhatsApp Web in a browser window: slow to start, slow to scroll, and a gigabyte of memory.
 
-WinWhatsApp is a WinUI 3 app. It opens in about half a second and uses around 180 MB with a few hundred chats. It links to your phone the way WhatsApp Web does, so the phone keeps your account and WinWhatsApp is one of its linked devices.
+On Windows, WinWhatsApp is a WinUI 3 app. It opens in about half a second and uses around 180 MB with a few hundred chats. On macOS and Linux it is the same app, drawn by [Uno Platform](https://platform.uno). It links to your phone the way WhatsApp Web does, so the phone keeps your account and WinWhatsApp is one of its linked devices.
 
 <p align="center">
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark-chat.webp" /><img src="docs/screenshots/light-chat.webp" alt="WinWhatsApp with the chat list on the left and a group chat on the right: a reply with a link preview, a photo of a mountain lake with reactions, an edited message and read ticks" width="100%" /></picture>
@@ -70,14 +70,14 @@ The info also holds what belongs to the chat, as in WhatsApp: its photos, videos
 
 Call someone with the phone button at the top of their chat, and answer calls that come in, in a small window of their own or from the notification. The window shows how long the call runs and has buttons to mute and to hang up.
 
-Calls use WhatsApp Web's own calling engine, which WinWhatsApp downloads from WhatsApp once, after linking.
+Calls use WhatsApp Web's own calling engine, which WinWhatsApp downloads from WhatsApp once, after linking. On macOS and Linux the engine runs in a browser you have installed, without a window: Chrome, Chromium, Edge, Brave, Vivaldi or Firefox.
 
 ## On your desktop
 
 - Notifications for new messages that you can reply to without opening the app
-- An icon in the notification area and the number of unread chats on the taskbar button
+- An icon in the notification area and the number of unread chats on the taskbar button; on macOS the icon is in the menu bar and the number on the Dock
 - Keeps running in the notification area when you close the window, so messages keep arriving
-- Starts when you sign in to Windows, if you want
+- Starts when you sign in, if you want
 - Light, dark or the system's theme, and WinWhatsApp's own icon or WhatsApp's
 
 <p align="center">
@@ -89,12 +89,12 @@ Calls use WhatsApp Web's own calling engine, which WinWhatsApp downloads from Wh
 
 | Keys | What they do |
 |---|---|
-| Ctrl+N | New chat |
-| Ctrl+F | Search |
+| Ctrl+N, Cmd+N on a Mac | New chat |
+| Ctrl+F, Cmd+F on a Mac | Search |
 | Enter, Shift+Enter | Send, new line |
 | Up | Edit your last message |
 | Esc | Close the viewer or cancel a reply |
-| Ctrl+S | Save the photo or video in the viewer |
+| Ctrl+S, Cmd+S on a Mac | Save the photo or video in the viewer |
 | Left, Right, Home, End | Previous, next, first and last photo or video in the viewer |
 | +, -, 0 | Zoom in, zoom out, fit to the window in the viewer |
 
@@ -104,17 +104,55 @@ Calls are voice calls with one person. Video calls and group calls show a notifi
 
 ## Install
 
+All downloads are on the [releases page](https://github.com/rathlinus/WinWhatsApp/releases).
+
+### Windows
+
 You need 64-bit Windows 11.
 
-Download `WinWhatsApp-<version>-Setup.exe` from the [releases page](https://github.com/rathlinus/WinWhatsApp/releases) and run it. It installs for your user only and needs no administrator rights.
+Download `WinWhatsApp-<version>-Setup.exe` and run it. It installs for your user only and needs no administrator rights.
 
 Setup is not signed, so Windows SmartScreen may stop it with "Windows protected your PC". Choose **More info**, then **Run anyway**.
 
 The release also has `WinWhatsApp-<version>-x64.zip` for running without installing: unpack it anywhere and start `WinWhatsApp.exe`.
 
+### macOS
+
+Download `WinWhatsApp-<version>-macos-arm64.dmg` for a Mac with Apple silicon, or `-macos-x64.dmg` for one with an Intel processor. Open it and drag WinWhatsApp to Applications.
+
+The app is not signed by Apple, so macOS refuses to open it with a double click the first time. Right-click it and choose **Open**, or allow it under System Settings, Privacy & Security.
+
+macOS asks whether WinWhatsApp may send notifications, and for the microphone at your first call.
+
+### Linux
+
+On Debian, Ubuntu and their relatives, install `winwhatsapp_<version>_amd64.deb`, or `_arm64.deb`:
+
+```
+sudo apt install ./winwhatsapp_<version>_amd64.deb
+```
+
+Elsewhere, unpack `WinWhatsApp-<version>-linux-x64.tar.gz`, or `-arm64`, anywhere and start `WinWhatsApp` in it. It adds itself to the menu of your desktop.
+
+The app brings .NET and its own fonts. Some things it leaves to programs you may already have. The package asks for them; with the archive you install them yourself.
+
+| For | It needs |
+|---|---|
+| Voice messages and videos | VLC, as `libvlc5`, `vlc-plugin-base` and `vlc-plugin-video-output` on Debian and Ubuntu |
+| Calls | Chrome, Chromium, Edge, Brave, Vivaldi or Firefox |
+| The icon in the notification area | a desktop with one; GNOME needs the AppIndicator extension. Without it, closing the window minimizes it. |
+| A preview of a video you send | `ffmpegthumbnailer` or `ffmpeg` |
+| Choosing the microphone and speaker | `pactl`, which PulseAudio and PipeWire come with |
+
+The window is an X11 window, which Wayland desktops show through XWayland.
+
+### How far macOS and Linux are
+
+They are new. Every change is built for both, and started on GitHub's machines with made-up chats to see that the window comes up as it should. On Linux the rest was tried by hand: notifications, the notification area, voice messages, videos, pasting, and a call as far as it gets without a second phone. On macOS nobody has clicked through the app yet, so expect rough edges there, and please report them.
+
 ## Updates
 
-The installed app looks for new versions on GitHub and installs them by itself while its window is closed, or when you quit it. It then starts again where it was, in the notification area or with the window open. Settings, Updates turns this off or installs a new version right away; a small window then shows the download and the install until the new version opens. A copy from the zip only tells you about new versions; download them from the releases page.
+The installed app on Windows looks for new versions on GitHub and installs them by itself while its window is closed, or when you quit it. It then starts again where it was, in the notification area or with the window open. Settings, Updates turns this off or installs a new version right away; a small window then shows the download and the install until the new version opens. A copy from the zip, and the app on macOS and Linux, only tell you about new versions; download them from the releases page.
 
 ## Link your phone
 
@@ -132,7 +170,7 @@ WinWhatsApp is not made by, affiliated with or endorsed by WhatsApp or Meta.
 
 ## Where your data is
 
-Everything is in `%LOCALAPPDATA%\WinWhatsApp`: the link to your phone, the messages, downloaded files, settings and logs. Nothing leaves your PC except what WhatsApp itself sends. The calling engine is kept in the `Calls` folder there. When you type a link, WinWhatsApp loads that page and its picture to show a preview, as WhatsApp's apps do. Logging out from the menu, or removing the device on the phone, deletes the messages and files.
+Everything is in one folder: the link to your phone, the messages, downloaded files, settings and logs. It is `%LOCALAPPDATA%\WinWhatsApp` on Windows, `~/Library/Application Support/WinWhatsApp` on macOS and `~/.local/share/WinWhatsApp` on Linux. Nothing leaves your computer except what WhatsApp itself sends. The calling engine is kept in the `Calls` folder there. When you type a link, WinWhatsApp loads that page and its picture to show a preview, as WhatsApp's apps do. Logging out from the menu, or removing the device on the phone, deletes the messages and files.
 
 ## Build
 
@@ -146,6 +184,7 @@ It includes work by others, under their own terms:
 
 - [whatsmeow](https://github.com/tulir/whatsmeow), in the helper `WinWhatsApp.Bridge.exe`, under the Mozilla Public License 2.0
 - [QRCoder](https://github.com/codebude/QRCoder), under the MIT License
+- On macOS and Linux, [Uno Platform](https://github.com/unoplatform/uno) under the Apache License 2.0, [SkiaSharp](https://github.com/mono/SkiaSharp) under the MIT License, [Concentus](https://github.com/lostromb/concentus) under the BSD license and [LibVLCSharp](https://github.com/videolan/libvlcsharp) under the LGPL 2.1
 - Roboto, by Google, under the Apache License 2.0
 - WhatsApp's name, logo, emoji, icons, wallpapers and notification sounds belong to WhatsApp and Meta. They are not covered by the MIT License.
 

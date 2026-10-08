@@ -2,7 +2,7 @@
 
 ## Setup
 
-You need the .NET 10 SDK and Go 1.24 or newer:
+You need the .NET 10 SDK and Go 1.24 or newer. On Windows:
 
 ```
 winget install Microsoft.DotNet.SDK.10
@@ -12,6 +12,13 @@ winget install JRSoftware.InnoSetup
 
 Inno Setup is only needed to compile the setup program.
 
+On macOS and Linux the build also needs Python 3 with two packages, for the fonts, and on macOS the command line tools of Xcode, for `clang`:
+
+```
+pip install fonttools pillow
+xcode-select --install
+```
+
 ## Scripts
 
 | Script | What it does |
@@ -19,11 +26,15 @@ Inno Setup is only needed to compile the setup program.
 | `scripts\build.ps1` | Runs the tests, builds the helper and publishes the app to `artifacts\app`. |
 | `scripts\build.ps1 -Run` | Also starts it, replacing a running copy. |
 | `scripts\release.ps1 -Version 1.2.0` | Builds a release and collects the setup program and the zip in `artifacts\release`. |
+| `scripts/build.sh` | The same as `build.ps1`, on macOS and Linux: the app for the system it runs on, in `artifacts/app`. `--run` starts it. |
+| `scripts/release.sh --version 1.2.0` | Builds a release there: the `.tar.gz` and the `.deb` on Linux, the `.dmg` on macOS. |
+| `scripts/check.sh` | Starts what `build.sh` built on made-up chats and has it check itself; see macOS and Linux below. |
 | `scripts\generate-assets.ps1` | Draws the icons and the pictures of the setup wizard. Run it only to change the logo. |
 | `scripts\screenshots` | Takes the README's screenshots on made-up chats; see its README. |
 | `scripts\copy-whatsapp-desktop.ps1` | Copies the icon and the sounds of WhatsApp from the Microsoft Store to `Assets\WhatsAppIcon` and `Assets\WhatsAppSounds`. Needs WhatsApp installed; run it only to take a newer version. |
-| `scripts\whatsapp-assetsuild.py` | Takes WhatsApp Web's emoji, icons, wallpapers and font; see below. |
-| `scripts\whatsapp-voipuild.py` | Takes WhatsApp Web's calling engine; see Calls below. |
+| `scripts\whatsapp-assets\build.py` | Takes WhatsApp Web's emoji, icons, wallpapers and font; see below. |
+| `scripts\whatsapp-voip\build.py` | Takes WhatsApp Web's calling engine; see Calls below. |
+| `scripts\whatsapp-assets\desktop-fonts.py` | Makes the emoji font and the text fonts of the macOS and Linux app. The build runs it. |
 
 `dotnet build src\WinWhatsApp.App -p:Platform=x64` builds the app for debugging. It builds the Go helper too, whenever its sources changed.
 
@@ -35,7 +46,8 @@ Setting `WINWHATSAPP_DATA` to a folder runs a second copy of the app with its ow
 |---|---|
 | `src/WinWhatsApp.Bridge` | The WhatsApp helper, in Go: the connection to WhatsApp, the database of chats and messages, media. |
 | `src/WinWhatsApp.Core` | The app's side of the helper's protocol, its data, WhatsApp's text formatting and the settings. No UI. |
-| `src/WinWhatsApp.App` | The WinUI 3 app. |
+| `src/WinWhatsApp.App` | The WinUI 3 app. Most of it is the app on every system; `Windows/` holds what only Windows has. |
+| `src/WinWhatsApp.Desktop` | The app for macOS and Linux: the sources of `WinWhatsApp.App` again, and what those systems have in place of `Windows/`. |
 | `tests/WinWhatsApp.Core.Tests` | Unit tests of Core. |
 
 ## The helper
@@ -57,7 +69,7 @@ The helper keeps two databases in the data folder:
 
 Downloaded files go to `media`, profile pictures to `avatars`. The helper writes `bridge.log`; start the app with `WINWHATSAPP_DEBUG=1` to get the protocol's debug output in it.
 
-The app ties the helper to itself with a job object, so it ends with the app however the app ends. When it crashes, the app starts it again.
+The app ties the helper to itself with a job object on Windows, so it ends with the app however the app ends. Elsewhere the helper ends when its input closes, which it does when the app is gone. When the helper crashes, the app starts it again.
 
 ### Phone numbers and LIDs
 
@@ -65,7 +77,7 @@ WhatsApp is moving people from phone numbers to hidden ids, LIDs (`123456@lid`).
 
 ## WhatsApp's look
 
-The app draws with WhatsApp Web's own material: its emoji, its icons, the doodle wallpaper behind the chat, its colours and its font. `scripts\whatsapp-assetsuild.py` collects them and writes:
+The app draws with WhatsApp Web's own material: its emoji, its icons, the doodle wallpaper behind the chat, its colours and its font. `scripts\whatsapp-assets\build.py` collects them and writes:
 
 | File | What it is |
 |---|---|
@@ -79,7 +91,7 @@ The scripts and sprites come from the Firefox cache of someone who uses WhatsApp
 
 ```
 pip install zstandard brotli fonttools
-python scripts\whatsapp-assetsuild.py
+python scripts\whatsapp-assets\build.py
 ```
 
 It needs Node.js too: `emoji-data.js` and `icons.js` run WhatsApp Web's own data modules to read the emoji order and the icons. Only WhatsApp Web's static files are read from the cache, never media or anything else of a chat. The stylesheet with the font, and the page's list of images, are fetched from WhatsApp's servers.
@@ -95,6 +107,38 @@ The colours in `App.xaml` and `Controls/WhatsAppColors.xaml` are the values of W
 The messages of a chat are a virtualized `ListView`. `Conversation` builds its rows: messages, a label at each new day, and the line above the first unread message. Older messages load when scrolling near the top. Parts of a bubble that most messages do not have (a reply, a photo, a document) are created only for the messages that have them, with `x:Load`.
 
 Notifications use the plain Windows toast API under the AppUserModelID `WinWhatsApp`, which the app registers itself; the Windows App SDK's notification API does not work for apps that ship the SDK in their folder without being packaged. The unread count on the taskbar button is an overlay icon drawn by `TaskbarBadge`.
+
+## macOS and Linux
+
+`src/WinWhatsApp.Desktop` builds the same app with [Uno Platform](https://platform.uno), which implements WinUI's API and draws with Skia. It has no XAML of its own and little C#: the project takes the sources of `WinWhatsApp.App`, without the `Windows` folder, and adds what a system does for the app.
+
+| Where | What is there |
+|---|---|
+| `WinWhatsApp.App/Windows/` | Windows' side: the notification area, toasts, the taskbar badge, WebView2, what Windows knows about media files |
+| `WinWhatsApp.Desktop/` | the same classes for macOS and Linux |
+| `WinWhatsApp.Desktop/Linux/` | D-Bus: notifications, the icon in the notification area (StatusNotifierItem) and its menu |
+| `WinWhatsApp.Desktop/Mac/` | the menu bar icon, the notification centre and the Dock, through a small Objective-C library, `WinWhatsAppMac.m`, which the project builds with `clang` |
+
+A class with two sides is `partial`: the shared file has what is common and declares what each side fills in. Where a few lines differ inside shared code, `#if HAS_UNO` marks the lines for macOS and Linux.
+
+What Uno lacks or does differently is dealt with in the project file, which says why at each place:
+
+- The XAML is compiled from changed copies in `obj/Xaml`. Uno has no `RichTextBlock`, so each becomes a `TextBlock`; `x:Load` on the parts of a list row becomes `Visibility`; the window's Mica is left out.
+- Text cannot hold pictures, so emoji in text are a font, `WhatsAppEmoji.ttf`, made from the sprite sheets by `desktop-fonts.py`. Shown text holds each emoji as one private code point, which `Controls/Emoji.cs` explains. The picker and single lines still draw emoji from the sheets.
+- The title bar is the system's.
+
+Things to know when something breaks:
+
+- Sound and video play through VLC on Linux. Uno only uses it when it finds `libvlc.so`, which only VLC's development package has; `Program.FindVlc` makes it work with `libvlc.so.5`.
+- SkiaSharp's library for ARM on Linux leaves out libraries it needs; `Program.LoadForDrawing` loads them first.
+- macOS draws nothing for a glyph without bounds, so the emoji font's glyphs have an outline with nothing to fill.
+- macOS does not play Ogg, so `AudioPlayer` decodes voice messages there. `WINWHATSAPP_DECODE_OPUS=1` makes it do the same on Linux.
+
+### Checking a build
+
+`scripts/check.sh` starts the built app with `WINWHATSAPP_CHECK` set to a folder. The app then runs on the stand-in helper of `scripts/screenshots`, opens the first chat, writes a picture of its window and a report to that folder, and quits; the script fails when the chats did not show. On macOS it does the same for the app bundle `release.sh` made, where the menu bar icon and the notification centre exist. The CI workflow runs it on both systems and keeps the pictures and reports as artifacts named `check-...`, which is the only look at the macOS app there is without a Mac.
+
+On Linux the app runs under `xvfb-run` when there is no screen. With `xdotool` on a virtual screen it can be clicked through from a script. `WINWHATSAPP_DEMO` set to `scripts/screenshots/demo`, with the stand-in helper in place of `WinWhatsApp.Bridge`, gives it chats without an account.
 
 ## Languages
 
@@ -115,7 +159,9 @@ the files, add the language to `text.go`, and add it to `[Languages]` in
 keys and placeholders as English, and that every key the code uses exists.
 ## Calls
 
-Calls run WhatsApp Web's own calling engine: WhatsApp's calling library compiled to WebAssembly, with the script Emscripten made for it. The app runs it in a WebView2 that is never shown, and passes call stanzas between it and the helper.
+Calls run WhatsApp Web's own calling engine: WhatsApp's calling library compiled to WebAssembly, with the script Emscripten made for it. The app runs it in a browser that is never shown, and passes call stanzas between it and the helper.
+
+On Windows the browser is WebView2, and the app and the page talk in web messages. The web views of macOS and Linux lack WebTransport, so there `CallBrowser` starts a browser that is installed, without a window and with a profile of its own that is deleted afterwards: a Chromium browser if there is one, otherwise Firefox. The page then talks to the app over a WebSocket on `PageServer`, which it may open with the key the app put into its address. `WINWHATSAPP_BROWSER` names another browser to use.
 
 | File | What it is |
 |---|---|
@@ -126,7 +172,7 @@ Calls run WhatsApp Web's own calling engine: WhatsApp's calling library compiled
 | `Assets/Voip/host.js`, `host.html` | the page: starts the engine, answers its callbacks, carries messages to and from the app |
 | `Assets/Voip/audio-worklet.js` | the microphone and the speakers |
 
-The binary is not in the repository. The app downloads it from WhatsApp the first time it connects, checks it against the hash and keeps it in `Calls` in the data folder, next to the WebView2 profile.
+The binary is not in the repository. The app downloads it from WhatsApp the first time it connects, checks it against the hash and keeps it in `Calls` in the data folder, next to the browser's profile.
 
 The engine needs threads that share memory, so its page must be isolated from other sites. `PageServer` serves it on a free port of 127.0.0.1 with the headers for that. WebView2 could serve the files itself by intercepting requests, but the engine's threads then hang loading their scripts.
 
@@ -143,7 +189,7 @@ To take a newer engine, make or take a call in WhatsApp Web in Firefox, so that 
 
 ```
 pip install zstandard brotli
-python scripts\whatsapp-voipuild.py
+python scripts\whatsapp-voip\build.py
 ```
 
 It finds a binary in the Firefox cache together with the script made for it, and writes the script and the manifest.

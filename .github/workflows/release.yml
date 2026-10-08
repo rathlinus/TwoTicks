@@ -9,8 +9,35 @@ on:
 permissions:
   contents: write
 
+env:
+  GH_TOKEN: ${{ github.token }}
+  GH_REPO: ${{ github.repository }}
+
 jobs:
-  release:
+  # The release starts as a draft, which nobody sees and no installed copy
+  # updates to. Each system adds its files, and the last job publishes it, so
+  # a release is either complete or not there.
+  draft:
+    name: Start the release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create the draft
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          cat > notes.md << EOF
+          **Windows:** download \`WinWhatsApp-$version-Setup.exe\` and run it. It is not signed, so Windows SmartScreen may warn about it; choose **More info**, then **Run anyway**.
+
+          **macOS:** download the \`.dmg\` for your Mac, \`arm64\` for Apple silicon and \`x64\` for Intel, and drag WinWhatsApp to Applications. It is not signed by Apple, so open it the first time with a right click and **Open**.
+
+          **Linux:** install the \`.deb\` on Debian, Ubuntu and their relatives, or unpack the \`.tar.gz\` anywhere and start \`WinWhatsApp\`.
+
+          The README has the details.
+          EOF
+          gh release create "$GITHUB_REF_NAME" --draft --title "WinWhatsApp $version" --notes-file notes.md --generate-notes --verify-tag
+
+  windows:
+    name: Windows
+    needs: draft
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
@@ -36,13 +63,62 @@ jobs:
         shell: powershell
         run: scripts\release.ps1 -Version ($env:GITHUB_REF_NAME.TrimStart('v'))
 
-      - name: Publish the release
+      - name: Add the files to the release
         shell: powershell
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          $version = $env:GITHUB_REF_NAME.TrimStart('v')
           $files = (Get-ChildItem artifacts\release -File).FullName
-          $notes = "Download ``WinWhatsApp-$version-Setup.exe`` and run it. It is not signed, so Windows SmartScreen may warn about it; choose **More info**, then **Run anyway**. The README has the details and the zip for running without installing."
-          gh release create $env:GITHUB_REF_NAME $files --title "WinWhatsApp $version" --notes $notes --generate-notes --verify-tag
-          if ($LASTEXITCODE -ne 0) { throw 'Creating the release failed.' }
+          gh release upload $env:GITHUB_REF_NAME $files --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Adding the files to the release failed.' }
+
+  # The same app for macOS and Linux, built on each of them for both kinds of processor.
+  desktop:
+    name: ${{ matrix.name }}
+    needs: draft
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - { name: Linux x64, os: ubuntu-latest, arch: x64 }
+          - { name: Linux arm64, os: ubuntu-24.04-arm, arch: arm64 }
+          - { name: macOS arm64, os: macos-latest, arch: arm64 }
+          - { name: macOS x64, os: macos-15-intel, arch: x64 }
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: src/WinWhatsApp.Bridge/go.mod
+          cache-dependency-path: src/WinWhatsApp.Bridge/go.sum
+
+      # The fonts of the app are made with Python; see scripts/whatsapp-assets/desktop-fonts.py.
+      - uses: actions/setup-python@v7
+        with:
+          python-version: 3.x
+
+      - name: Install the font tools
+        run: python3 -m pip install fonttools pillow
+
+      - name: Test
+        run: dotnet test tests/WinWhatsApp.Core.Tests
+
+      - name: Build
+        run: scripts/release.sh --version "${GITHUB_REF_NAME#v}" --arch ${{ matrix.arch }}
+
+      # A release that does not start is not one.
+      - name: Check that the app starts
+        run: scripts/check.sh
+
+      - name: Add the files to the release
+        run: gh release upload "$GITHUB_REF_NAME" artifacts/release/* --clobber
+
+  publish:
+    name: Publish the release
+    needs: [windows, desktop]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish
+        run: gh release edit "$GITHUB_REF_NAME" --draft=false
