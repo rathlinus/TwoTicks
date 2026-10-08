@@ -30,7 +30,7 @@ if (-not $env:CI -and -not $OnMyOwnPc) {
     throw 'This replaces your own install and moves its data. It is meant for the build machine; pass -OnMyOwnPc to run it here anyway.'
 }
 
-$formerRelease = 'https://github.com/rathlinus/WinWhatsApp/releases/download/v0.5.0/WinWhatsApp-0.5.0-Setup.exe'
+$formerRelease = 'https://github.com/rathlinus/TwoTicks/releases/download/v0.5.0/WinWhatsApp-0.5.0-Setup.exe'
 $programs = Join-Path $env:LOCALAPPDATA 'Programs'
 $former = Join-Path $programs 'WinWhatsApp'
 $current = Join-Path $programs 'TwoTicks'

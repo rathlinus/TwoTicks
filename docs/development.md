@@ -156,6 +156,8 @@ Up to version 0.5 the app was called WinWhatsApp, and Windows PCs that had it th
 
 Setup keeps its AppId, so Windows sees one app that got a new version. The old version finds the new setup program because it looks for a release file ending in `-Setup.exe`, whatever comes before.
 
+The repository was renamed with the app. The old version still asks `rathlinus/WinWhatsApp` for releases, and GitHub sends it on to this one. That lasts as long as the account has no other repository of the old name, so do not create one.
+
 `scripts\check-upgrade.ps1` tries all of this: it installs version 0.5.0, updates it with a setup program just built and looks at what is left. It is for the build machine, which runs it for every change, and refuses to run elsewhere.
 
 None of it runs for a copy on data of its own (`TWOTICKS_DATA`), so trying something out never touches an install.

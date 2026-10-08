@@ -105,7 +105,7 @@ Calls are voice calls with one person. Video calls and group calls show a notifi
 
 ## Install
 
-All downloads are on the [releases page](https://github.com/rathlinus/WinWhatsApp/releases).
+All downloads are on the [releases page](https://github.com/rathlinus/TwoTicks/releases).
 
 ### Windows
 

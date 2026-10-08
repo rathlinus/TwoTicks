@@ -7,7 +7,7 @@ public class UpdatesTests
     private const string Release = """
         {
           "tag_name": "v1.3.0",
-          "html_url": "https://github.com/rathlinus/WinWhatsApp/releases/tag/v1.3.0",
+          "html_url": "https://github.com/rathlinus/TwoTicks/releases/tag/v1.3.0",
           "draft": false,
           "prerelease": false,
           "assets": [

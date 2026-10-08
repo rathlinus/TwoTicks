@@ -22,7 +22,7 @@ from PIL import Image, ImageOps
 ROOT = Path(__file__).resolve().parents[2]
 CACHE = ROOT / "artifacts" / "demo" / "cache"
 DEMO = Path(__file__).resolve().parent / "demo"
-UA = {"User-Agent": "TwoTicks-readme-screenshots/1.0 (https://github.com/rathlinus/WinWhatsApp)"}
+UA = {"User-Agent": "TwoTicks-readme-screenshots/1.0 (https://github.com/rathlinus/TwoTicks)"}
 
 # Every picture, with where it is from. The README credits them from credits.json.
 PICTURES = {

@@ -14,7 +14,7 @@ public sealed record UpdateInfo(Version Version, string SetupUrl, long SetupSize
 /// </summary>
 public static class Updates
 {
-    public const string Repository = "rathlinus/WinWhatsApp";
+    public const string Repository = "rathlinus/TwoTicks";
 
     public static string ReleasesPage => $"https://github.com/{Repository}/releases/latest";
 

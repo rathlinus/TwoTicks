@@ -110,7 +110,7 @@ internal sealed partial class SettingsDialog : ContentDialog
         panel.Children.Add(new HyperlinkButton
         {
             Content = Loc.T("settings.sourceCode"),
-            NavigateUri = new Uri("https://github.com/rathlinus/WinWhatsApp"),
+            NavigateUri = new Uri("https://github.com/rathlinus/TwoTicks"),
             // No padding instead of a negative margin: the scroll viewer clips anything
             // left of the panel, which cut the hover background off at the left edge.
             Padding = new Thickness(0),
