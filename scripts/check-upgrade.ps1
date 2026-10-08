@@ -64,6 +64,16 @@ function RunValue([string] $name) {
     (Get-ItemProperty $run -ErrorAction SilentlyContinue).$name
 }
 
+# Runs a setup program and waits for it alone. Start-Process -Wait would also
+# wait for the app setup starts when it is done, which runs on.
+function Install([string] $program, [string[]] $arguments) {
+    $process = Start-Process $program -ArgumentList $arguments -PassThru
+    if (-not $process.WaitForExit(300000)) {
+        $process.Kill()
+        throw "$program did not finish in five minutes."
+    }
+}
+
 function Stop-App {
     Get-Process TwoTicks, TwoTicks.Bridge, WinWhatsApp, WinWhatsApp.Bridge -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 2
@@ -72,7 +82,7 @@ function Stop-App {
 Write-Host 'Installing version 0.5.0, under the former name...'
 $old = Join-Path $env:TEMP 'WinWhatsApp-0.5.0-Setup.exe'
 Invoke-WebRequest $formerRelease -OutFile $old -UseBasicParsing
-Start-Process $old -ArgumentList ($silent + '/TASKS=autostart') -Wait
+Install $old ($silent + '/TASKS=autostart')
 Expect 'the old version is installed' (Test-Path (Join-Path $former 'WinWhatsApp.exe'))
 Expect 'it has its Start menu entry' (Test-Path (Join-Path $startMenu 'WinWhatsApp.lnk'))
 Expect 'it starts at sign-in' ([bool](RunValue 'WinWhatsApp'))
@@ -95,7 +105,7 @@ Write-Host 'Updating, the way the old version starts setup...'
 $log = Join-Path $formerData 'update.log'
 $arguments = $silent + '/NOCANCEL', '/NOCLOSEAPPLICATIONS', '/SP-', '/RELAUNCH=background', "/WAITPID=$($running.Id)", "/LOG=`"$log`""
 $started = Get-Date
-Start-Process (Resolve-Path $Setup) -ArgumentList $arguments -Wait
+Install (Resolve-Path $Setup).Path $arguments
 Write-Host ("  setup took {0:0} s" -f ((Get-Date) - $started).TotalSeconds)
 
 Expect 'the old version was ended' $running.HasExited

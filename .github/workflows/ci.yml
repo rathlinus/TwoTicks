@@ -51,6 +51,7 @@ jobs:
       # Up to version 0.5 the app had another name. This installs that version,
       # updates it with the setup program just built and looks at what is left.
       - name: Check the update from the former name
+        timeout-minutes: 10
         shell: powershell
         run: scripts\check-upgrade.ps1 -Setup (Get-ChildItem artifacts\release\*-Setup.exe).FullName
 
