@@ -850,6 +850,13 @@ public sealed partial class ProfileView : UserControl
     /// <summary>Loads older messages once the end of the list comes into view.</summary>
     private void OnPageContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
     {
+#if HAS_UNO
+        if (sender == MediaGrid && _tileSide > 0 && args.ItemContainer is { } tile)
+        {
+            tile.Width = _tileSide;
+            tile.Height = _tileSide;
+        }
+#endif
         if (!args.InRecycleQueue && args.ItemIndex >= sender.Items.Count - 12
             && _hasOlder && !_loadingOlder && _page is not (null or "search"))
         {
@@ -857,6 +864,23 @@ public sealed partial class ProfileView : UserControl
         }
     }
 
+#if HAS_UNO
+    // The panel of the grid does not size its tiles here, so each tile is given its size.
+    private double _tileSide;
+
+    private void OnMediaGridSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        _tileSide = Math.Floor((e.NewSize.Width - MediaGrid.Padding.Left - MediaGrid.Padding.Right) / 3) - 4;
+        for (int i = 0; i < MediaGrid.Items.Count; i++)
+        {
+            if (MediaGrid.ContainerFromIndex(i) is FrameworkElement tile)
+            {
+                tile.Width = _tileSide;
+                tile.Height = _tileSide;
+            }
+        }
+    }
+#else
     private void OnMediaGridSizeChanged(object sender, SizeChangedEventArgs e)
     {
         if (MediaGrid.ItemsPanelRoot is ItemsWrapGrid panel)
@@ -866,6 +890,7 @@ public sealed partial class ProfileView : UserControl
             panel.ItemHeight = side + 4;
         }
     }
+#endif
 
     private void OnMediaTileClick(object sender, ItemClickEventArgs e)
     {

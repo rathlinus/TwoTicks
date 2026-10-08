@@ -57,6 +57,9 @@
     - The window asks for Mica behind it, which on Windows never shows, as
       the app fills its window. On macOS Uno makes the window see-through
       for it, and the app's own backgrounds went missing with that.
+    - A GridView that names ItemsWrapGrid as its panel shows nothing: Uno
+      does not have that panel to name. Left to its own panel the grid
+      works, and the code gives the tiles the size the panel would have.
   -->
   <ItemGroup>
     <AppXaml Include="$(App)**\*.xaml" Exclude="$(App)bin\**;$(App)obj\**;$(App)Windows\**" />
@@ -80,6 +83,7 @@
                 .Replace("RichTextBlock", "TextBlock")
                 .Replace("DefaultListViewItemStyle", "ListViewItemExpanded");
             text = Regex.Replace(text, "<Window\\.SystemBackdrop>.*?</Window\\.SystemBackdrop>", "", RegexOptions.Singleline);
+            text = Regex.Replace(text, "<GridView\\.ItemsPanel>.*?</GridView\\.ItemsPanel>", "", RegexOptions.Singleline);
             text = Regex.Replace(text, "<[^<>]*\\sx:Load=\"(\\{x:Bind [^\"]*\\})\"[^<>]*>", tag =>
                 tag.Value.Replace("x:Load=\"" + tag.Groups[1].Value + "\"", tag.Value.Contains(" Visibility=") ? "" : "Visibility=\"" + tag.Groups[1].Value + "\""));
             Directory.CreateDirectory(Path.GetDirectoryName(target));
