@@ -29,6 +29,7 @@ xcode-select --install
 | `scripts/build.sh` | The same as `build.ps1`, on macOS and Linux: the app for the system it runs on, in `artifacts/app`. `--run` starts it. |
 | `scripts/release.sh --version 1.2.0` | Builds a release there: the `.tar.gz` and the `.deb` on Linux, the `.dmg` on macOS. |
 | `scripts/check.sh` | Starts what `build.sh` built on made-up chats and has it check itself; see macOS and Linux below. |
+| `scripts\check-upgrade.ps1` | Updates an install of version 0.5.0 with a new setup program and checks what is left; see The former name below. For the build machine only. |
 | `scripts\generate-assets.ps1` | Draws the icons and the pictures of the setup wizard. Run it only to change the logo. |
 | `scripts\screenshots` | Takes the README's screenshots on made-up chats; see its README. |
 | `scripts\copy-whatsapp-desktop.ps1` | Copies the icon and the sounds of WhatsApp from the Microsoft Store to `Assets\WhatsAppIcon` and `Assets\WhatsAppSounds`. Needs WhatsApp installed; run it only to take a newer version. |
@@ -139,6 +140,36 @@ Things to know when something breaks:
 `scripts/check.sh` starts the built app with `TWOTICKS_CHECK` set to a folder. The app then runs on the stand-in helper of `scripts/screenshots`, opens the first chat, writes a picture of its window and a report to that folder, and quits; the script fails when the chats did not show. On macOS it does the same for the app bundle `release.sh` made, where the menu bar icon and the notification centre exist. The CI workflow runs it on both systems and keeps the pictures and reports as artifacts named `check-...`, which is the only look at the macOS app there is without a Mac.
 
 On Linux the app runs under `xvfb-run` when there is no screen. With `xdotool` on a virtual screen it can be clicked through from a script. `TWOTICKS_DEMO` set to `scripts/screenshots/demo`, with the stand-in helper in place of `TwoTicks.Bridge`, gives it chats without an account.
+
+## The former name
+
+Up to version 0.5 the app was called WinWhatsApp, and Windows PCs that had it then still have things of that name. A new version takes them over, so an update loses nothing:
+
+| What | Who takes it over |
+|---|---|
+| The data folder `%LOCALAPPDATA%\WinWhatsApp` | `AppPaths.TakeOver` in Core renames it at the first start. If something still has files open in it, the app runs on the old folder and tries again at the next start. |
+| The paths of downloaded files in `chats.db`, which are stored in full | `rebasePaths` in the helper, whenever the data folder is another than last time |
+| A copy of the old version that still runs | `FormerName.StopRunning` ends it before the data is touched; setup does the same |
+| The program folder, the Start menu entry, the entry to start at sign-in | `packaging\TwoTicks.iss`, where it mentions `FormerName`; `Startup.Refresh` for copies that were not installed |
+| A button pinned to the taskbar | `AppIcon.UpdateShortcuts` points it at the new program |
+| The registration for notifications | `FormerName.Forget` |
+
+Setup keeps its AppId, so Windows sees one app that got a new version. The old version finds the new setup program because it looks for a release file ending in `-Setup.exe`, whatever comes before.
+
+`scripts\check-upgrade.ps1` tries all of this: it installs version 0.5.0, updates it with a setup program just built and looks at what is left. It is for the build machine, which runs it for every change, and refuses to run elsewhere.
+
+None of it runs for a copy on data of its own (`TWOTICKS_DATA`), so trying something out never touches an install.
+
+## The name on the taskbar
+
+The setting for the icon is one for the name as well: with WhatsApp's icon the app goes by WhatsApp everywhere outside its own window. `AppName.Shown` in Core is that name, and `App.ApplyIcon` applies it with the icon:
+
+- the window's title, which is what the taskbar shows
+- the Start menu entry on Windows, whose file is renamed, and the menu entry on Linux, which the app writes into the user's folder
+- the icon in the notification area and its menu
+- the name above the notifications, where the system takes one from the app
+
+A pinned taskbar button on Windows keeps the name of its file, as Windows knows the button by that file. On macOS the icon in the Dock changes while the app runs; the name beside it is the app bundle's and stays.
 
 ## Languages
 

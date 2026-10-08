@@ -23,7 +23,7 @@ The release starts as a draft. Each system adds its files to it, and it is publi
 
 GitHub generates the release notes from the changes since the previous tag. None of the files is signed: Windows SmartScreen can warn about the download, and macOS opens the app only after a right click and Open. The `.app` is signed for nobody in particular, which Apple silicon needs to start a program at all.
 
-Installed copies pick the release up by themselves; see below.
+Installed copies pick the release up by themselves; see below. That includes copies from when the app was called WinWhatsApp: they look for a file ending in `-Setup.exe`, and setup replaces them; see The former name in [development.md](development.md).
 
 ## Try a release before tagging
 

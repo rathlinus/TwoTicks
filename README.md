@@ -78,7 +78,8 @@ Calls use WhatsApp Web's own calling engine, which TwoTicks downloads from Whats
 - An icon in the notification area and the number of unread chats on the taskbar button; on macOS the icon is in the menu bar and the number on the Dock
 - Keeps running in the notification area when you close the window, so messages keep arriving
 - Starts when you sign in, if you want
-- Light, dark or the system's theme, and TwoTicks's own icon or WhatsApp's
+- Light, dark or the system's theme
+- Its own icon and name, or WhatsApp's: with WhatsApp's icon the taskbar, the Start menu, the notification area and the notifications say WhatsApp too
 
 <p align="center">
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark-notification.webp" /><img src="docs/screenshots/light-notification.webp" alt="A Windows notification for a new message in the hiking group, with the group's picture, a box to type a reply and a button to mark it as read" width="49%" /></picture>
@@ -151,6 +152,8 @@ The window is an X11 window, which Wayland desktops show through XWayland.
 They are new. Every change is built for both, and started on GitHub's machines with made-up chats to see that the window comes up as it should. On Linux the rest was tried by hand: notifications, the notification area, voice messages, videos, pasting, and a call as far as it gets without a second phone. On macOS nobody has clicked through the app yet, so expect rough edges there, and please report them.
 
 ## Updates
+
+TwoTicks was called WinWhatsApp up to version 0.5. An install of that name updates itself to TwoTicks like to any other version: your account, your messages, the entry that starts it at sign-in and a button pinned to the taskbar all come along.
 
 The installed app on Windows looks for new versions on GitHub and installs them by itself while its window is closed, or when you quit it. It then starts again where it was, in the notification area or with the window open. Settings, Updates turns this off or installs a new version right away; a small window then shows the download and the install until the new version opens. A copy from the zip, and the app on macOS and Linux, only tell you about new versions; download them from the releases page.
 
