@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Helpers to run WinWhatsApp on the demo helper and take screenshots of it.
+    Helpers to run TwoTicks on the demo helper and take screenshots of it.
 
 .DESCRIPTION
     Dot-source it, then:
@@ -78,11 +78,11 @@ function Start-Demo([ValidateSet('Light', 'Dark')][string]$Theme = 'Light', [swi
         Window = @{ X = 100; Y = 60; Width = 1400; Height = 900; Maximized = $false }
     } | ConvertTo-Json | Set-Content -Encoding utf8 (Join-Path $data 'settings.json')
 
-    $env:WINWHATSAPP_DATA = $data
-    $env:WINWHATSAPP_DEMO = Join-Path $PSScriptRoot 'demo'
-    $env:WINWHATSAPP_DEMO_QR = if ($Link) { '1' } else { '' }
-    $process = Start-Process (Join-Path $script:Root 'artifacts/demo/app/WinWhatsApp.exe') -PassThru
-    Remove-Item Env:\WINWHATSAPP_DATA, Env:\WINWHATSAPP_DEMO, Env:\WINWHATSAPP_DEMO_QR -ErrorAction SilentlyContinue
+    $env:TWOTICKS_DATA = $data
+    $env:TWOTICKS_DEMO = Join-Path $PSScriptRoot 'demo'
+    $env:TWOTICKS_DEMO_QR = if ($Link) { '1' } else { '' }
+    $process = Start-Process (Join-Path $script:Root 'artifacts/demo/app/TwoTicks.exe') -PassThru
+    Remove-Item Env:\TWOTICKS_DATA, Env:\TWOTICKS_DEMO, Env:\TWOTICKS_DEMO_QR -ErrorAction SilentlyContinue
     for ($i = 0; $i -lt 50 -and $process.MainWindowHandle -eq 0; $i++) {
         Start-Sleep -Milliseconds 200
         $process.Refresh()
@@ -92,8 +92,8 @@ function Start-Demo([ValidateSet('Light', 'Dark')][string]$Theme = 'Light', [swi
 
 # The running demo, also one started from another PowerShell session.
 function Get-DemoProcess {
-    $exe = (Resolve-Path (Join-Path $script:Root 'artifacts/demo/app/WinWhatsApp.exe')).Path
-    Get-Process WinWhatsApp -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $exe } | Select-Object -First 1
+    $exe = (Resolve-Path (Join-Path $script:Root 'artifacts/demo/app/TwoTicks.exe')).Path
+    Get-Process TwoTicks -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $exe } | Select-Object -First 1
 }
 
 function Stop-Demo {
@@ -261,9 +261,9 @@ function Save-Notification([string]$Path) {
     $window.Dispose(); $before.Dispose(); $after.Dispose()
 
     # Takes it off the screen and out of the notification centre. Only the demo
-    # chat's: your own WinWhatsApp shows its notifications under the same name.
+    # chat's: your own TwoTicks shows its notifications under the same name.
     $history = [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime]::History
-    $history.RemoveGroup('120363000000000001@g.us', 'WinWhatsApp')
+    $history.RemoveGroup('120363000000000001@g.us', 'TwoTicks')
     $full
 }
 

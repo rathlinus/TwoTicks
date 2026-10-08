@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="TwoTicks.App.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:app="using:TwoTicks.App"
+    xmlns:c="using:TwoTicks.App.Controls"
+    xmlns:m="using:TwoTicks.App.Models"
+    xmlns:v="using:TwoTicks.App.Views"
+    Title="TwoTicks">
+    <Window.SystemBackdrop>
+        <MicaBackdrop />
+    </Window.SystemBackdrop>
+
+    <Grid
+        x:Name="Root"
+        Background="{ThemeResource SurfaceBrush}"
+        KeyboardAcceleratorPlacementMode="Hidden">
+        <Grid.Resources>
+            <!-- A row of the chat list, laid out as in WhatsApp Web. -->
+            <DataTemplate x:Key="ChatTemplate" x:DataType="m:ChatItem">
+                <Grid Height="72" Padding="10,0,12,0" ColumnSpacing="14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="49" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <c:Avatar Size="49" IsGroup="{x:Bind IsGroup}" Source="{x:Bind Avatar, Mode=OneWay}" />
+                    <Grid Grid.Column="1" VerticalAlignment="Center" ColumnSpacing="6" RowSpacing="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <c:EmojiLabel Text="{x:Bind Name, Mode=OneWay}" FontSize="16" FontWeight="{x:Bind NameWeight, Mode=OneWay}" Foreground="{ThemeResource TextPrimaryBrush}" />
+                        <Grid Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock FontSize="12" Foreground="{ThemeResource MetaTextBrush}" Text="{x:Bind Time, Mode=OneWay}" Visibility="{x:Bind TimeReadVisibility, Mode=OneWay}" />
+                            <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{ThemeResource UnreadTextBrush}" Text="{x:Bind Time, Mode=OneWay}"
+                                       Visibility="{x:Bind TimeUnreadVisibility, Mode=OneWay}" />
+                        </Grid>
+
+                        <Grid Grid.Row="1" ColumnSpacing="3">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <c:Ticks Status="{x:Bind Status, Mode=OneWay}" Visibility="{x:Bind TicksVisibility, Mode=OneWay}" />
+                            <c:WaIcon Grid.Column="1" Kind="{x:Bind PreviewGlyph, Mode=OneWay}" Size="16" Foreground="{ThemeResource MetaTextBrush}"
+                                      Visibility="{x:Bind PreviewGlyphVisibility, Mode=OneWay}" />
+                            <c:EmojiLabel Text="{x:Bind PreviewLine, Mode=OneWay}" Grid.Column="2" FontSize="14" Foreground="{ThemeResource TextSecondaryBrush}" Visibility="{x:Bind PreviewVisibility, Mode=OneWay}" />
+                            <TextBlock Grid.Column="2" FontSize="14" Foreground="{ThemeResource UnreadTextBrush}" MaxLines="1" Text="{x:Bind Typing, Mode=OneWay}"
+                                       TextTrimming="CharacterEllipsis" Visibility="{x:Bind TypingVisibility, Mode=OneWay}" />
+                        </Grid>
+                        <StackPanel Grid.Row="1" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal" Spacing="4">
+                            <c:WaIcon Kind="Muted" Size="18" Foreground="{ThemeResource MetaTextBrush}" Visibility="{x:Bind MutedVisibility, Mode=OneWay}" />
+                            <c:WaIcon Kind="Pin" Size="18" Foreground="{ThemeResource MetaTextBrush}" Visibility="{x:Bind PinVisibility, Mode=OneWay}" />
+                            <Border MinWidth="20" Height="20" Padding="6,0" Background="{ThemeResource UnreadBadgeBrush}" CornerRadius="10"
+                                    Visibility="{x:Bind BadgeVisibility, Mode=OneWay}">
+                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{ThemeResource UnreadBadgeTextBrush}" Text="{x:Bind UnreadText, Mode=OneWay}" />
+                            </Border>
+                            <Border MinWidth="20" Height="20" Padding="6,0" Background="{ThemeResource MutedBadgeBrush}" CornerRadius="10"
+                                    Visibility="{x:Bind MutedBadgeVisibility, Mode=OneWay}">
+                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{ThemeResource SurfaceBrush}" Text="{x:Bind UnreadText, Mode=OneWay}" />
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </DataTemplate>
+
+            <!-- A message found by the search. -->
+            <DataTemplate x:Key="SearchResultTemplate" x:DataType="app:SearchResult">
+                <StackPanel Padding="14,8" Spacing="2">
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <c:EmojiLabel Text="{x:Bind ChatName}" FontSize="16" Foreground="{ThemeResource TextPrimaryBrush}" />
+                        <TextBlock Grid.Column="1" FontSize="12" Foreground="{ThemeResource MetaTextBrush}" Text="{x:Bind Time}" />
+                    </Grid>
+                    <RichTextBlock c:SearchText.Snippet="{x:Bind Text}" c:SearchText.MatchBrush="{ThemeResource AccentGreenBrush}" FontSize="14"
+                                   Foreground="{ThemeResource TextSecondaryBrush}" IsTextSelectionEnabled="False" MaxLines="2" TextTrimming="CharacterEllipsis" TextWrapping="Wrap" />
+                </StackPanel>
+            </DataTemplate>
+
+        </Grid.Resources>
+
+        <Grid.KeyboardAccelerators>
+            <KeyboardAccelerator Key="F" Invoked="OnFindInvoked" Modifiers="Control" />
+            <KeyboardAccelerator Key="N" Invoked="OnNewChatInvoked" Modifiers="Control" />
+            <KeyboardAccelerator Key="Tab" Invoked="OnNextChatInvoked" Modifiers="Control" />
+            <KeyboardAccelerator Key="Tab" Invoked="OnPreviousChatInvoked" Modifiers="Control,Shift" />
+            <KeyboardAccelerator Key="Escape" Invoked="OnEscapeInvoked" />
+        </Grid.KeyboardAccelerators>
+
+        <!-- No title bar: the headers of the chat list and the chat move the window, and
+             minimize, maximize and close sit in the top right corner, as in WhatsApp. -->
+        <Grid x:Name="MainArea" SizeChanged="OnMainAreaSizeChanged">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="ChatColumn" Width="380" MinWidth="280" MaxWidth="640" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- The chat list. -->
+            <Grid x:Name="ChatPane" Background="{ThemeResource SurfaceBrush}" BorderBrush="{ThemeResource DividerBrush}" BorderThickness="0,0,1,0">
+                <Grid.Resources>
+                    <ResourceDictionary>
+                        <ResourceDictionary.MergedDictionaries>
+                            <ResourceDictionary Source="ms-appx:///Controls/WhatsAppColors.xaml" />
+                        </ResourceDictionary.MergedDictionaries>
+                    </ResourceDictionary>
+                </Grid.Resources>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Grid x:Name="PaneHeader" Height="60" Padding="20,0,10,0" ColumnSpacing="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Button x:Name="BackButton" Margin="-12,0,4,0" AutomationProperties.Name="{app:L Key=main.backToChats}" Click="OnBackFromArchiveClick" Style="{StaticResource IconButtonStyle}" Visibility="Collapsed">
+                        <c:WaIcon Kind="Back" Size="22" />
+                    </Button>
+                    <TextBlock x:Name="PaneTitle" Grid.Column="1" VerticalAlignment="Center" FontSize="22" FontWeight="SemiBold" Foreground="{ThemeResource AccentGreenBrush}" Text="TwoTicks" />
+                    <TextBlock x:Name="ArchiveTitle" Grid.Column="1" VerticalAlignment="Center" FontSize="20" FontWeight="SemiBold" Foreground="{ThemeResource TextPrimaryBrush}" Text="{app:L Key=main.archived}" Visibility="Collapsed" />
+                    <Button Grid.Column="2" AutomationProperties.Name="{app:L Key=main.newChat}" Click="OnNewChatClick" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="{app:L Key=main.newChatTooltip}">
+                        <c:WaIcon Kind="NewChat" Size="22" />
+                    </Button>
+                    <Button x:Name="MenuButton" Grid.Column="3" AutomationProperties.Name="{app:L Key=main.menu}" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="{app:L Key=main.menu}">
+                        <c:WaIcon Kind="MoreVert" Size="22" />
+                        <Button.Flyout>
+                            <MenuFlyout x:Name="MainMenu" Placement="BottomEdgeAlignedRight">
+                                <MenuFlyoutItem x:Name="SettingsItem" Click="OnSettingsClick" Text="{app:L Key=main.settings}" />
+                                <MenuFlyoutItem x:Name="MarkAllReadItem" Click="OnMarkAllReadClick" Text="{app:L Key=main.markAllRead}" />
+                                <MenuFlyoutSeparator />
+                                <MenuFlyoutItem x:Name="QuitItem" Click="OnQuitClick" Text="{app:L Key=main.quit}" />
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
+                </Grid>
+
+                <InfoBar x:Name="ConnectionBar" Grid.Row="1" Margin="12,0,12,8" IsClosable="False" IsOpen="False" Severity="Informational">
+                    <InfoBar.ActionButton>
+                        <Button x:Name="UseHereButton" Click="OnUseHereClick" Content="{app:L Key=main.useHere}" Visibility="Collapsed" />
+                    </InfoBar.ActionButton>
+                </InfoBar>
+
+                <!-- The search field, a pill as in WhatsApp. -->
+                <Grid Grid.Row="2" Height="40" Margin="14,0,14,8" Padding="12,0,4,0" ColumnSpacing="10" Background="{ThemeResource SurfaceEmphasizedBrush}" CornerRadius="20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.Resources>
+                        <SolidColorBrush x:Key="TextControlBackground" Color="Transparent" />
+                        <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="Transparent" />
+                        <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="Transparent" />
+                        <SolidColorBrush x:Key="TextControlBorderBrush" Color="Transparent" />
+                        <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="Transparent" />
+                        <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="Transparent" />
+                    </Grid.Resources>
+                    <c:WaIcon VerticalAlignment="Center" Kind="Search" Size="20" Foreground="{ThemeResource MetaTextBrush}" />
+                    <TextBox x:Name="SearchBox" Grid.Column="1" VerticalAlignment="Center" BorderThickness="0" FontSize="15" PlaceholderText="{app:L Key=main.searchPlaceholder}"
+                             TextChanged="OnSearchTextChanged" />
+                </Grid>
+
+                <StackPanel x:Name="Filters" Grid.Row="3" Margin="14,0,14,8" Orientation="Horizontal" Spacing="8">
+                    <ToggleButton x:Name="AllFilter" Click="OnFilterClick" Content="{app:L Key=main.filterAll}" IsChecked="True" Style="{StaticResource FilterChipStyle}" Tag="All" />
+                    <ToggleButton x:Name="UnreadFilter" Click="OnFilterClick" Content="{app:L Key=main.filterUnread}" Style="{StaticResource FilterChipStyle}" Tag="Unread" />
+                    <ToggleButton x:Name="GroupsFilter" Click="OnFilterClick" Content="{app:L Key=main.filterGroups}" Style="{StaticResource FilterChipStyle}" Tag="Groups" />
+                </StackPanel>
+
+                <Button x:Name="ArchivedButton" Grid.Row="4" Height="52" Padding="16,0,12,0" Click="OnArchivedClick" Style="{StaticResource ChatRowButtonStyle}" Visibility="Collapsed">
+                    <Grid ColumnSpacing="26">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <c:WaIcon Margin="10,0,0,0" Kind="Archive" Size="20" Foreground="{ThemeResource AccentGreenBrush}" />
+                        <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="16" Foreground="{ThemeResource TextPrimaryBrush}" Text="{app:L Key=main.archived}" />
+                        <TextBlock x:Name="ArchivedCount" Grid.Column="2" VerticalAlignment="Center" FontSize="12" Foreground="{ThemeResource UnreadTextBrush}" />
+                    </Grid>
+                </Button>
+
+                <ListView
+                    x:Name="ChatListView"
+                    Grid.Row="5"
+                    ContainerContentChanging="OnChatContainerContentChanging"
+                    ContextRequested="OnChatContextRequested"
+                    ItemContainerStyle="{StaticResource ChatContainerStyle}"
+                    ItemTemplate="{StaticResource ChatTemplate}"
+                    ItemsSource="{x:Bind Session.Chats.Visible}"
+                    Loaded="OnChatListLoaded"
+                    SelectionChanged="OnChatSelectionChanged"
+                    SelectionMode="Single" />
+
+                <!-- Shadows at the edges of the chat list while there is more to scroll to. -->
+                <Rectangle x:Name="ChatListTopShadow" Grid.Row="5" Height="10" VerticalAlignment="Top" IsHitTestVisible="False" Opacity="0">
+                    <Rectangle.OpacityTransition>
+                        <ScalarTransition Duration="0:0:0.15" />
+                    </Rectangle.OpacityTransition>
+                    <Rectangle.Fill>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Offset="0" Color="{ThemeResource ScrollShadowColor}" />
+                            <GradientStop Offset="1" Color="#00000000" />
+                        </LinearGradientBrush>
+                    </Rectangle.Fill>
+                </Rectangle>
+                <Rectangle x:Name="ChatListBottomShadow" Grid.Row="5" Height="10" VerticalAlignment="Bottom" IsHitTestVisible="False" Opacity="0">
+                    <Rectangle.OpacityTransition>
+                        <ScalarTransition Duration="0:0:0.15" />
+                    </Rectangle.OpacityTransition>
+                    <Rectangle.Fill>
+                        <LinearGradientBrush StartPoint="0,1" EndPoint="0,0">
+                            <GradientStop Offset="0" Color="{ThemeResource ScrollShadowColor}" />
+                            <GradientStop Offset="1" Color="#00000000" />
+                        </LinearGradientBrush>
+                    </Rectangle.Fill>
+                </Rectangle>
+
+                <Grid x:Name="SearchPanel" Grid.Row="3" Grid.RowSpan="3" Background="{ThemeResource SurfaceBrush}" Visibility="Collapsed">
+                    <ScrollViewer>
+                        <StackPanel>
+                            <TextBlock x:Name="ChatsHeading" Margin="22,8,16,4" FontSize="15" Foreground="{ThemeResource AccentGreenBrush}" Text="{app:L Key=main.chats}" />
+                            <ListView x:Name="SearchChats" IsItemClickEnabled="True" ItemClick="OnSearchChatClick" ItemContainerStyle="{StaticResource ChatContainerStyle}"
+                                      ItemTemplate="{StaticResource ChatTemplate}" SelectionMode="None" />
+                            <TextBlock x:Name="MessagesHeading" Margin="22,12,16,4" FontSize="15" Foreground="{ThemeResource AccentGreenBrush}" Text="{app:L Key=main.messages}" />
+                            <ListView x:Name="SearchMessages" IsItemClickEnabled="True" ItemClick="OnSearchMessageClick" ItemContainerStyle="{StaticResource ChatContainerStyle}"
+                                      ItemTemplate="{StaticResource SearchResultTemplate}" SelectionMode="None" />
+                            <TextBlock x:Name="NoResults" Margin="16,24" HorizontalAlignment="Center" Foreground="{ThemeResource TextSecondaryBrush}" Text="{app:L Key=main.noResults}" Visibility="Collapsed" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Grid>
+
+            <!-- Drag to change the width of the chat list. -->
+            <c:SplitterHandle x:Name="Splitter" Width="7" Margin="0,0,-4,0" HorizontalAlignment="Right" Background="Transparent"
+                              PointerPressed="OnSplitterPressed" PointerMoved="OnSplitterMoved" PointerReleased="OnSplitterReleased" PointerCaptureLost="OnSplitterReleased" />
+
+            <!-- The open chat, or a welcome when none is open, and the info of a contact or group beside it. -->
+            <Grid x:Name="ChatArea" Grid.Column="1" SizeChanged="OnChatAreaSizeChanged">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid x:Name="EmptyState" Background="{ThemeResource SurfaceEmphasizedBrush}">
+                    <StackPanel MaxWidth="460" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="14">
+                        <Image Width="88" Height="88" Source="Assets/Logo.png" />
+                        <TextBlock HorizontalAlignment="Center" FontSize="30" FontWeight="Light" Foreground="{ThemeResource TextPrimaryBrush}" Text="TwoTicks" />
+                        <TextBlock HorizontalAlignment="Center" FontSize="14" Foreground="{ThemeResource TextSecondaryBrush}" LineHeight="20" TextAlignment="Center" TextWrapping="Wrap"
+                                   Text="{app:L Key=main.welcome}" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,0,36" HorizontalAlignment="Center" VerticalAlignment="Bottom" Orientation="Horizontal" Spacing="6">
+                        <c:WaIcon VerticalAlignment="Center" Kind="Lock" Size="14" Foreground="{ThemeResource TextSecondaryBrush}" />
+                        <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="{ThemeResource TextSecondaryBrush}" Text="{app:L Key=main.encrypted}" />
+                    </StackPanel>
+                </Grid>
+                <v:ConversationView x:Name="ConversationPane" Visibility="Collapsed" />
+                <v:ProfileView x:Name="ProfilePane" Grid.Column="1" Width="400" Visibility="Collapsed" />
+            </Grid>
+        </Grid>
+
+        <v:LoginView x:Name="LoginPane" Visibility="Collapsed" />
+
+        <!-- Photos and videos, over everything. -->
+        <v:MediaViewer x:Name="Viewer" Visibility="Collapsed" />
+
+        <!-- Minimize, maximize and close, drawn here so they are as tall as the headers. -->
+        <StackPanel x:Name="CaptionButtons" HorizontalAlignment="Right" VerticalAlignment="Top" Orientation="Horizontal">
+            <Button x:Name="MinimizeButton" AutomationProperties.Name="{app:L Key=main.minimize}" Click="OnMinimizeClick" Style="{StaticResource CaptionButtonStyle}" ToolTipService.ToolTip="{app:L Key=main.minimize}">
+                <FontIcon FontSize="10" Glyph="&#xE921;" />
+            </Button>
+            <Button x:Name="MaximizeButton" AutomationProperties.Name="{app:L Key=main.maximize}" Click="OnMaximizeClick" Style="{StaticResource CaptionButtonStyle}" ToolTipService.ToolTip="{app:L Key=main.maximize}">
+                <FontIcon x:Name="MaximizeIcon" FontSize="10" Glyph="&#xE922;" />
+            </Button>
+            <Button x:Name="CloseButton" AutomationProperties.Name="{app:L Key=common.close}" Click="OnCloseClick" Style="{StaticResource CloseCaptionButtonStyle}" ToolTipService.ToolTip="{app:L Key=common.close}">
+                <FontIcon FontSize="10" Glyph="&#xE8BB;" />
+            </Button>
+        </StackPanel>
+
+        <InfoBar x:Name="ErrorBar" MaxWidth="560" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                 Closed="OnErrorClosed" IsOpen="False" Severity="Error" />
+    </Grid>
+</Window>

@@ -8,7 +8,7 @@
     scripts\screenshots\demo and saves every view in both themes to
     docs\screenshots as <theme>-<name>.webp.
 
-    It never touches your own WinWhatsApp or its data, and runs beside it.
+    It never touches your own TwoTicks or its data, and runs beside it.
     Build the app first with scripts\build.ps1. Needs Go, and Python with
     Pillow for the WebP files. Keep your hands off the mouse while it runs:
     opening a photo is a real click. For the notification it switches Windows
@@ -25,7 +25,7 @@ $App = Join-Path $Root 'artifacts\demo\app'
 $Shots = Join-Path $Root 'artifacts\demo\shots'
 $Output = Join-Path $Root 'docs\screenshots'
 
-if (-not (Test-Path (Join-Path $Root 'artifacts\app\WinWhatsApp.exe'))) {
+if (-not (Test-Path (Join-Path $Root 'artifacts\app\TwoTicks.exe'))) {
     throw 'Build the app first: scripts\build.ps1'
 }
 
@@ -33,7 +33,7 @@ Write-Host 'Preparing the demo app...'
 Stop-Demo
 Remove-Item -Recurse -Force $App, $Shots -ErrorAction SilentlyContinue
 Copy-Item -Recurse (Join-Path $Root 'artifacts\app') $App
-go build -C (Join-Path $PSScriptRoot 'demo-bridge') -o (Join-Path $App 'WinWhatsApp.Bridge.exe') .
+go build -C (Join-Path $PSScriptRoot 'demo-bridge') -o (Join-Path $App 'TwoTicks.Bridge.exe') .
 if ($LASTEXITCODE -ne 0) { throw 'Building the demo helper failed.' }
 New-Item -ItemType Directory -Force $Shots | Out-Null
 

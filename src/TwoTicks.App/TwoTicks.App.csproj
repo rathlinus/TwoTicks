@@ -1,0 +1,92 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The WinUI 3 app: the window with the chats, notifications and the icon in the
+    notification area. WhatsApp itself is spoken by TwoTicks.Bridge.exe, a Go
+    program next to it that the app starts and talks to over a pipe.
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.22000.0</TargetPlatformMinVersion>
+    <RootNamespace>TwoTicks.App</RootNamespace>
+    <AssemblyName>TwoTicks</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
+    <Platforms>x64</Platforms>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <UseWinUI>true</UseWinUI>
+    <WinUISDKReferences>false</WinUISDKReferences>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Not installed as a package: it runs from its folder. -->
+    <WindowsPackageType>None</WindowsPackageType>
+    <!-- Ship .NET and the Windows App SDK in that folder, so it runs with no prerequisites. -->
+    <SelfContained>true</SelfContained>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <!-- Precompiled code: opening the app should not wait for the JIT. -->
+    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">true</PublishReadyToRun>
+    <!-- Program.cs has the entry point: it hands over to a running instance before any window opens. -->
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Manifest Include="$(ApplicationManifest)" />
+    <Content Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
+    <PackageReference Include="QRCoder" Version="1.8.0" />
+    <!-- Draws the unread count on the taskbar button. -->
+    <PackageReference Include="System.Drawing.Common" Version="10.0.12" />
+  </ItemGroup>
+
+  <!--
+    Parts of the Windows App SDK the app has no use for. Leaving them out keeps
+    their libraries, among them two machine learning runtimes, out of its folder.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK.AI" Version="2.5.5" ExcludeAssets="all" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.ML" Version="2.1.94" ExcludeAssets="all" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Search" Version="2.5.5" ExcludeAssets="all" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Widgets" Version="2.0.5" ExcludeAssets="all" />
+    <PackageReference Include="Microsoft.Windows.AI.MachineLearning" Version="2.1.74" ExcludeAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TwoTicks.Core\TwoTicks.Core.csproj" />
+  </ItemGroup>
+
+  <!--
+    The WhatsApp helper is built from src\TwoTicks.Bridge with Go whenever
+    its sources changed, and copied next to the app.
+  -->
+  <PropertyGroup>
+    <BridgeSourceFolder>$(MSBuildThisFileDirectory)..\TwoTicks.Bridge\</BridgeSourceFolder>
+    <BridgeExecutable>$(MSBuildThisFileDirectory)..\..\artifacts\bridge\TwoTicks.Bridge.exe</BridgeExecutable>
+  </PropertyGroup>
+  <ItemGroup>
+    <BridgeSource Include="$(BridgeSourceFolder)*.go;$(BridgeSourceFolder)go.mod;$(BridgeSourceFolder)go.sum" />
+    <Content Include="$(BridgeExecutable)" Link="TwoTicks.Bridge.exe" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="BuildBridge" BeforeTargets="BeforeBuild" Inputs="@(BridgeSource)" Outputs="$(BridgeExecutable)">
+    <!-- windowsgui: the helper never opens a console window, also when started by hand. -->
+    <Exec Command="go build -trimpath -ldflags &quot;-s -w -H windowsgui -X main.version=$(Version)&quot; -o &quot;$(BridgeExecutable)&quot; ."
+          WorkingDirectory="$(BridgeSourceFolder)"
+          EnvironmentVariables="CGO_ENABLED=0;GOOS=windows;GOARCH=amd64" />
+  </Target>
+
+  <!--
+    "dotnet publish" leaves out the compiled XAML and its index when the app is
+    not a package. Without them the app stops at start, so copy them over from
+    the build output.
+  -->
+  <Target Name="PublishCompiledXaml" AfterTargets="Publish">
+    <ItemGroup>
+      <CompiledXaml Include="$(OutDir)**\*.xbf;$(OutDir)$(AssemblyName).pri" />
+    </ItemGroup>
+    <Copy SourceFiles="@(CompiledXaml)" DestinationFiles="@(CompiledXaml->'$(PublishDir)%(RecursiveDir)%(Filename)%(Extension)')" />
+  </Target>
+
+</Project>

@@ -25,15 +25,15 @@ jobs:
         run: |
           version="${GITHUB_REF_NAME#v}"
           cat > notes.md << EOF
-          **Windows:** download \`WinWhatsApp-$version-Setup.exe\` and run it. It is not signed, so Windows SmartScreen may warn about it; choose **More info**, then **Run anyway**.
+          **Windows:** download \`TwoTicks-$version-Setup.exe\` and run it. It is not signed, so Windows SmartScreen may warn about it; choose **More info**, then **Run anyway**.
 
-          **macOS:** download the \`.dmg\` for your Mac, \`arm64\` for Apple silicon and \`x64\` for Intel, and drag WinWhatsApp to Applications. It is not signed by Apple, so open it the first time with a right click and **Open**.
+          **macOS:** download the \`.dmg\` for your Mac, \`arm64\` for Apple silicon and \`x64\` for Intel, and drag TwoTicks to Applications. It is not signed by Apple, so open it the first time with a right click and **Open**.
 
-          **Linux:** install the \`.deb\` on Debian, Ubuntu and their relatives, or unpack the \`.tar.gz\` anywhere and start \`WinWhatsApp\`.
+          **Linux:** install the \`.deb\` on Debian, Ubuntu and their relatives, or unpack the \`.tar.gz\` anywhere and start \`TwoTicks\`.
 
           The README has the details.
           EOF
-          gh release create "$GITHUB_REF_NAME" --draft --title "WinWhatsApp $version" --notes-file notes.md --generate-notes --verify-tag
+          gh release create "$GITHUB_REF_NAME" --draft --title "TwoTicks $version" --notes-file notes.md --generate-notes --verify-tag
 
   windows:
     name: Windows
@@ -48,15 +48,15 @@ jobs:
 
       - uses: actions/setup-go@v6
         with:
-          go-version-file: src/WinWhatsApp.Bridge/go.mod
-          cache-dependency-path: src/WinWhatsApp.Bridge/go.sum
+          go-version-file: src/TwoTicks.Bridge/go.mod
+          cache-dependency-path: src/TwoTicks.Bridge/go.sum
 
       # Inno Setup compiles the setup program.
       - name: Install Inno Setup
         run: choco install innosetup --no-progress -y
 
       - name: Test
-        run: dotnet test tests/WinWhatsApp.Core.Tests
+        run: dotnet test tests/TwoTicks.Core.Tests
 
       # Windows PowerShell, because that is what the scripts are written for and tested with.
       - name: Build
@@ -91,8 +91,8 @@ jobs:
 
       - uses: actions/setup-go@v6
         with:
-          go-version-file: src/WinWhatsApp.Bridge/go.mod
-          cache-dependency-path: src/WinWhatsApp.Bridge/go.sum
+          go-version-file: src/TwoTicks.Bridge/go.mod
+          cache-dependency-path: src/TwoTicks.Bridge/go.sum
 
       # The fonts of the app are made with Python; see scripts/whatsapp-assets/desktop-fonts.py.
       - uses: actions/setup-python@v7
@@ -103,7 +103,7 @@ jobs:
         run: python3 -m pip install fonttools pillow
 
       - name: Test
-        run: dotnet test tests/WinWhatsApp.Core.Tests
+        run: dotnet test tests/TwoTicks.Core.Tests
 
       - name: Build
         run: scripts/release.sh --version "${GITHUB_REF_NAME#v}" --arch ${{ matrix.arch }}

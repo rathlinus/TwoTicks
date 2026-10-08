@@ -1,13 +1,13 @@
 <#
 .SYNOPSIS
     Copies the icon and the sounds of the WhatsApp app from the Microsoft Store
-    into src\WinWhatsApp.App\Assets: the icon to WhatsAppIcon, for the setting
-    that shows it instead of the WinWhatsApp logo, and the sounds to
+    into src\TwoTicks.App\Assets: the icon to WhatsAppIcon, for the setting
+    that shows it instead of the TwoTicks logo, and the sounds to
     WhatsAppSounds.
 
 .DESCRIPTION
     Reads the sizes of the icon that WhatsApp ships in its package and writes
-    from them the same files generate-assets.ps1 writes for the WinWhatsApp
+    from them the same files generate-assets.ps1 writes for the TwoTicks
     logo: AppIcon.png, AppIcon.ico, Tray.ico and TrayUnread.ico, the last with
     the same red dot for unread chats.
 
@@ -28,7 +28,7 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName PresentationCore, PresentationFramework, WindowsBase
 
 if (-not $AssetsFolder) {
-    $AssetsFolder = Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) '..\src\WinWhatsApp.App\Assets'
+    $AssetsFolder = Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) '..\src\TwoTicks.App\Assets'
 }
 $OutputFolder = Join-Path $AssetsFolder 'WhatsAppIcon'
 $SoundsFolder = Join-Path $AssetsFolder 'WhatsAppSounds'

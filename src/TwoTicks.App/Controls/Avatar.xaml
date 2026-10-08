@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="TwoTicks.App.Controls.Avatar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:c="using:TwoTicks.App.Controls"
+    IsTabStop="False">
+    <!-- A profile picture, or WhatsApp's grey figure for someone without one. -->
+    <Grid x:Name="Root">
+        <Ellipse Fill="{ThemeResource DefaultAvatarBackgroundBrush}" />
+        <c:WaIcon x:Name="PersonIcon" Kind="DefaultUser" Foreground="{ThemeResource DefaultAvatarForegroundBrush}" />
+        <c:WaIcon x:Name="GroupIcon" Kind="Group" HorizontalAlignment="Center" VerticalAlignment="Center"
+                  Foreground="{ThemeResource DefaultAvatarForegroundBrush}" Visibility="Collapsed" />
+        <!-- An Image cut round, not an ImageBrush: a brush draws nothing for a
+             picture another element has decoded already, as the same chat's
+             picture in the list and in the header. -->
+        <Grid x:Name="Photo" Visibility="Collapsed">
+            <Image x:Name="PhotoImage" Stretch="UniformToFill" />
+        </Grid>
+    </Grid>
+</UserControl>

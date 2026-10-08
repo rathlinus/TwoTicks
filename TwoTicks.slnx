@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TwoTicks.App/TwoTicks.App.csproj" />
+    <Project Path="src/TwoTicks.Core/TwoTicks.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TwoTicks.Core.Tests/TwoTicks.Core.Tests.csproj" />
+  </Folder>
+</Solution>

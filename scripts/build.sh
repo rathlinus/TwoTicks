@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Builds WinWhatsApp for macOS or Linux: the app and the WhatsApp helper next
+# Builds TwoTicks for macOS or Linux: the app and the WhatsApp helper next
 # to it. The same as build.ps1 does for Windows.
 #
 # Runs the tests, builds the Go helper and the fonts, and publishes the app to
@@ -15,7 +15,7 @@
 #                 development build gets the one in Directory.Build.props.
 #   --arch        The processor to build for. Left out, the one of this machine.
 #   --skip-tests  Publish without running the tests first.
-#   --run         Start the freshly built WinWhatsApp afterwards.
+#   --run         Start the freshly built TwoTicks afterwards.
 
 set -euo pipefail
 
@@ -62,15 +62,15 @@ fi
 
 if [ "$skip_tests" = false ]; then
     echo 'Running the tests...'
-    dotnet test "$repo/tests/WinWhatsApp.Core.Tests" --nologo -v:q
-    (cd "$repo/src/WinWhatsApp.Bridge" && go vet ./...)
+    dotnet test "$repo/tests/TwoTicks.Core.Tests" --nologo -v:q
+    (cd "$repo/src/TwoTicks.Bridge" && go vet ./...)
 fi
 
 output="$repo/artifacts/app"
 # Publishing does not remove files an earlier build left there.
 rm -rf "$output"
 # The project builds the helper before it compiles; see BuildBridge in
-# WinWhatsApp.Desktop.csproj. Removing it keeps a release from reusing a
+# TwoTicks.Desktop.csproj. Removing it keeps a release from reusing a
 # helper built with another version.
 rm -rf "$repo/artifacts/bridge"
 
@@ -79,12 +79,12 @@ if [ -n "$version" ]; then
     version_arguments=("-p:Version=$version")
 fi
 
-echo "Publishing WinWhatsApp for $rid..."
-dotnet publish "$repo/src/WinWhatsApp.Desktop/WinWhatsApp.Desktop.csproj" \
+echo "Publishing TwoTicks for $rid..."
+dotnet publish "$repo/src/TwoTicks.Desktop/TwoTicks.Desktop.csproj" \
     -c Release -r "$rid" --self-contained -o "$output" --nologo -v:q "${version_arguments[@]}"
 
-echo "Built: $output/WinWhatsApp"
+echo "Built: $output/TwoTicks"
 
 if [ "$run" = true ]; then
-    "$output/WinWhatsApp" &
+    "$output/TwoTicks" &
 fi

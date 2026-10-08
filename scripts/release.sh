@@ -3,9 +3,9 @@
 # Builds what a release consists of on macOS or Linux, as release.ps1 does for
 # Windows, and collects the files to publish in artifacts/release:
 #
-#   Linux   WinWhatsApp-<version>-linux-<arch>.tar.gz   the app folder, which runs after unpacking
-#           winwhatsapp_<version>_<arch>.deb            a package for Debian, Ubuntu and their relatives
-#   macOS   WinWhatsApp-<version>-macos-<arch>.dmg      a disk image with WinWhatsApp.app
+#   Linux   TwoTicks-<version>-linux-<arch>.tar.gz   the app folder, which runs after unpacking
+#           twoticks_<version>_<arch>.deb            a package for Debian, Ubuntu and their relatives
+#   macOS   TwoTicks-<version>-macos-<arch>.dmg      a disk image with TwoTicks.app
 #
 #   scripts/release.sh --version 1.2.0 [--arch x64|arm64]
 #
@@ -48,13 +48,13 @@ find "$app" -name '*.pdb' -delete
 
 if [ "$(uname -s)" = Darwin ]; then
     echo 'Making the app bundle...'
-    # Uno makes WinWhatsApp.app from a publish of its own; the folder built
+    # Uno makes TwoTicks.app from a publish of its own; the folder built
     # above is what the checks run on.
     bundles="$repo/artifacts/bundle"
     rm -rf "$bundles"
-    dotnet publish "$repo/src/WinWhatsApp.Desktop/WinWhatsApp.Desktop.csproj" \
+    dotnet publish "$repo/src/TwoTicks.Desktop/TwoTicks.Desktop.csproj" \
         -c Release -r "osx-$arch" -p:PackageFormat=app -p:Version="$version" -o "$bundles/publish" --nologo -v:q
-    bundle="$(find "$repo/artifacts/bundle" "$repo/src/WinWhatsApp.Desktop/bin" -maxdepth 6 -name 'WinWhatsApp.app' -type d 2> /dev/null | head -n 1)"
+    bundle="$(find "$repo/artifacts/bundle" "$repo/src/TwoTicks.Desktop/bin" -maxdepth 6 -name 'TwoTicks.app' -type d 2> /dev/null | head -n 1)"
     if [ -z "$bundle" ]; then
         echo 'The app bundle was not made.' >&2
         exit 1
@@ -62,7 +62,7 @@ if [ "$(uname -s)" = Darwin ]; then
 
     plist="$bundle/Contents/Info.plist"
     # Calls ask for the microphone; macOS shows this text when it asks.
-    /usr/libexec/PlistBuddy -c 'Add :NSMicrophoneUsageDescription string "WinWhatsApp uses the microphone for calls."' "$plist" 2> /dev/null || true
+    /usr/libexec/PlistBuddy -c 'Add :NSMicrophoneUsageDescription string "TwoTicks uses the microphone for calls."' "$plist" 2> /dev/null || true
     /usr/libexec/PlistBuddy -c 'Add :LSApplicationCategoryType string "public.app-category.social-networking"' "$plist" 2> /dev/null || true
     find "$bundle" -name '*.pdb' -delete
 
@@ -72,19 +72,19 @@ if [ "$(uname -s)" = Darwin ]; then
 
     echo 'Making the disk image...'
     staging="$(mktemp -d)"
-    cp -R "$bundle" "$staging/WinWhatsApp.app"
+    cp -R "$bundle" "$staging/TwoTicks.app"
     ln -s /Applications "$staging/Applications"
-    image="$release/WinWhatsApp-$version-macos-$arch.dmg"
+    image="$release/TwoTicks-$version-macos-$arch.dmg"
     rm -f "$image"
-    hdiutil create -volname WinWhatsApp -srcfolder "$staging" -ov -format UDZO "$image" > /dev/null
+    hdiutil create -volname TwoTicks -srcfolder "$staging" -ov -format UDZO "$image" > /dev/null
     rm -rf "$staging"
 else
     echo 'Packing the archive...'
-    bundle="$release/WinWhatsApp"
+    bundle="$release/TwoTicks"
     rm -rf "$bundle"
     cp -R "$app" "$bundle"
-    chmod +x "$bundle/WinWhatsApp" "$bundle/WinWhatsApp.Bridge"
-    tar -C "$release" -czf "$release/WinWhatsApp-$version-linux-$arch.tar.gz" WinWhatsApp
+    chmod +x "$bundle/TwoTicks" "$bundle/TwoTicks.Bridge"
+    tar -C "$release" -czf "$release/TwoTicks-$version-linux-$arch.tar.gz" TwoTicks
     rm -rf "$bundle"
 
     if command -v dpkg-deb > /dev/null; then
@@ -95,18 +95,18 @@ else
         esac
         root="$(mktemp -d)"
         mkdir -p "$root/DEBIAN" "$root/opt" "$root/usr/bin" "$root/usr/share/applications"
-        cp -R "$app" "$root/opt/winwhatsapp"
-        chmod 755 "$root/opt/winwhatsapp/WinWhatsApp" "$root/opt/winwhatsapp/WinWhatsApp.Bridge"
-        ln -s /opt/winwhatsapp/WinWhatsApp "$root/usr/bin/winwhatsapp"
-        sed "s|@EXEC@|/opt/winwhatsapp/WinWhatsApp|; s|@ICON@|io.github.rathlinus.WinWhatsApp|" \
-            "$packaging/linux/winwhatsapp.desktop" > "$root/usr/share/applications/io.github.rathlinus.WinWhatsApp.desktop"
-        python3 "$packaging/linux/icons.py" "$repo/src/WinWhatsApp.App/Assets/AppIcon.png" "$root/usr/share/icons/hicolor" io.github.rathlinus.WinWhatsApp
+        cp -R "$app" "$root/opt/twoticks"
+        chmod 755 "$root/opt/twoticks/TwoTicks" "$root/opt/twoticks/TwoTicks.Bridge"
+        ln -s /opt/twoticks/TwoTicks "$root/usr/bin/twoticks"
+        sed "s|@EXEC@|/opt/twoticks/TwoTicks|; s|@ICON@|io.github.rathlinus.TwoTicks|" \
+            "$packaging/linux/twoticks.desktop" > "$root/usr/share/applications/io.github.rathlinus.TwoTicks.desktop"
+        python3 "$packaging/linux/icons.py" "$repo/src/TwoTicks.App/Assets/AppIcon.png" "$root/usr/share/icons/hicolor" io.github.rathlinus.TwoTicks
         size="$(du -sk "$root" | cut -f1)"
         sed "s|@VERSION@|$version|; s|@ARCH@|$deb_arch|; s|@SIZE@|$size|" "$packaging/linux/control" > "$root/DEBIAN/control"
         cp "$packaging/linux/postinst" "$root/DEBIAN/postinst"
         cp "$packaging/linux/postinst" "$root/DEBIAN/postrm"
         chmod 755 "$root/DEBIAN/postinst" "$root/DEBIAN/postrm"
-        dpkg-deb --root-owner-group --build "$root" "$release/winwhatsapp_${version}_${deb_arch}.deb" > /dev/null
+        dpkg-deb --root-owner-group --build "$root" "$release/twoticks_${version}_${deb_arch}.deb" > /dev/null
         rm -rf "$root"
     else
         echo 'dpkg-deb was not found: no .deb is built.'

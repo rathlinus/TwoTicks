@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Draws the WinWhatsApp logo and writes Logo.png, AppIcon.png and AppIcon.ico,
+    Draws the TwoTicks logo and writes Logo.png, AppIcon.png and AppIcon.ico,
     the tray icons, and the two pictures of the setup wizard to packaging.
 
 .DESCRIPTION
@@ -24,7 +24,7 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName PresentationCore, PresentationFramework, WindowsBase
 
 if (-not $OutputFolder) {
-    $OutputFolder = Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) '..\src\WinWhatsApp.App\Assets'
+    $OutputFolder = Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) '..\src\TwoTicks.App\Assets'
 }
 
 New-Item -ItemType Directory -Force $OutputFolder | Out-Null

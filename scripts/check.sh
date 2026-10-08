@@ -19,7 +19,7 @@ repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 app="${1:-$repo/artifacts/app}"
 out="$repo/artifacts/check"
 
-if [ ! -x "$app/WinWhatsApp" ]; then
+if [ ! -x "$app/TwoTicks" ]; then
     echo "No app in $app. Build it first: scripts/build.sh" >&2
     exit 1
 fi
@@ -27,7 +27,7 @@ fi
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 # The stand-in for the WhatsApp helper; see scripts/screenshots/README.md.
-(cd "$repo/scripts/screenshots/demo-bridge" && go build -o "$work/WinWhatsApp.Bridge" .)
+(cd "$repo/scripts/screenshots/demo-bridge" && go build -o "$work/TwoTicks.Bridge" .)
 
 # Runs one copy of the app and waits for it to finish its check.
 #   check <program> <folder for the results>
@@ -45,7 +45,7 @@ EOF
         run=(xvfb-run -a -s '-screen 0 1480x980x24' "${run[@]}")
     fi
 
-    WINWHATSAPP_DATA="$data" WINWHATSAPP_DEMO="$repo/scripts/screenshots/demo" WINWHATSAPP_CHECK="$results" \
+    TWOTICKS_DATA="$data" TWOTICKS_DEMO="$repo/scripts/screenshots/demo" TWOTICKS_CHECK="$results" \
         "${run[@]}" > "$results/output.txt" 2>&1 &
     pid=$!
     # It quits by itself; a hung start must not hold up the build.
@@ -77,17 +77,17 @@ rm -rf "$out"
 status=0
 
 cp -R "$app" "$work/app"
-cp "$work/WinWhatsApp.Bridge" "$work/app/WinWhatsApp.Bridge"
-check "$work/app/WinWhatsApp" "$out" || status=$?
+cp "$work/TwoTicks.Bridge" "$work/app/TwoTicks.Bridge"
+check "$work/app/TwoTicks" "$out" || status=$?
 
 if [ "$(uname -s)" = Darwin ]; then
-    bundle="$(find "$repo/artifacts/bundle" -maxdepth 4 -name 'WinWhatsApp.app' -type d 2> /dev/null | head -n 1)"
+    bundle="$(find "$repo/artifacts/bundle" -maxdepth 4 -name 'TwoTicks.app' -type d 2> /dev/null | head -n 1)"
     if [ -n "$bundle" ]; then
-        cp -R "$bundle" "$work/WinWhatsApp.app"
-        cp "$work/WinWhatsApp.Bridge" "$work/WinWhatsApp.app/Contents/Resources/WinWhatsApp.Bridge"
+        cp -R "$bundle" "$work/TwoTicks.app"
+        cp "$work/TwoTicks.Bridge" "$work/TwoTicks.app/Contents/Resources/TwoTicks.Bridge"
         # The helper changed, so the signature has to be made again.
-        codesign --force --deep --sign - "$work/WinWhatsApp.app" 2> /dev/null || true
-        check "$work/WinWhatsApp.app/Contents/MacOS/WinWhatsApp" "$out/bundle" || status=$?
+        codesign --force --deep --sign - "$work/TwoTicks.app" 2> /dev/null || true
+        check "$work/TwoTicks.app/Contents/MacOS/TwoTicks" "$out/bundle" || status=$?
     fi
 fi
 

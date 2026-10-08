@@ -14,9 +14,9 @@ such as flags and skin tones, are ligatures.
 
 Reads these and writes to the folder given, which the build puts into the app:
 
-    src/WinWhatsApp.App/Assets/WhatsApp/Emoji/<n>.webp   the emoji sprite sheets
-    src/WinWhatsApp.App/Assets/WhatsApp/emoji.json        which emoji is in which cell
-    src/WinWhatsApp.App/Assets/Fonts/Roboto*.ttf          the text font
+    src/TwoTicks.App/Assets/WhatsApp/Emoji/<n>.webp   the emoji sprite sheets
+    src/TwoTicks.App/Assets/WhatsApp/emoji.json        which emoji is in which cell
+    src/TwoTicks.App/Assets/Fonts/Roboto*.ttf          the text font
 
 The project of the macOS and Linux app runs it when one of these changed:
 
@@ -39,7 +39,7 @@ from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..'))
-ASSETS = os.path.join(REPO, 'src', 'WinWhatsApp.App', 'Assets')
+ASSETS = os.path.join(REPO, 'src', 'TwoTicks.App', 'Assets')
 
 # The sheets, as EmojiSet.CellOf in Core reads them.
 CELL = 40

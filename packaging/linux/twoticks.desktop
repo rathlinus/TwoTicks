@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=TwoTicks
+GenericName=WhatsApp client
+Comment=A native WhatsApp app
+Comment[de]=Eine native WhatsApp-App
+Exec=@EXEC@
+Icon=@ICON@
+Terminal=false
+Categories=Network;InstantMessaging;Chat;
+Keywords=WhatsApp;chat;messages;
+StartupWMClass=TwoTicks
+StartupNotify=true

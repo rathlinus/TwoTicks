@@ -27,18 +27,18 @@ jobs:
       # The WhatsApp helper is written in Go.
       - uses: actions/setup-go@v6
         with:
-          go-version-file: src/WinWhatsApp.Bridge/go.mod
-          cache-dependency-path: src/WinWhatsApp.Bridge/go.sum
+          go-version-file: src/TwoTicks.Bridge/go.mod
+          cache-dependency-path: src/TwoTicks.Bridge/go.sum
 
       # Inno Setup compiles the setup program.
       - name: Install Inno Setup
         run: choco install innosetup --no-progress -y
 
       - name: Test
-        run: dotnet test tests/WinWhatsApp.Core.Tests
+        run: dotnet test tests/TwoTicks.Core.Tests
 
       - name: Vet the helper
-        working-directory: src/WinWhatsApp.Bridge
+        working-directory: src/TwoTicks.Bridge
         run: go vet ./...
 
       # The same script the release workflow runs, so a broken release shows up here
@@ -49,10 +49,10 @@ jobs:
         run: scripts\release.ps1 -Version 0.0.1
 
       # Enough to try out what a change produced: run the setup program, or unpack
-      # the zip and start WinWhatsApp.exe.
+      # the zip and start TwoTicks.exe.
       - uses: actions/upload-artifact@v7
         with:
-          name: WinWhatsApp-windows-x64
+          name: TwoTicks-windows-x64
           path: artifacts/release/
           if-no-files-found: error
 
@@ -77,8 +77,8 @@ jobs:
 
       - uses: actions/setup-go@v6
         with:
-          go-version-file: src/WinWhatsApp.Bridge/go.mod
-          cache-dependency-path: src/WinWhatsApp.Bridge/go.sum
+          go-version-file: src/TwoTicks.Bridge/go.mod
+          cache-dependency-path: src/TwoTicks.Bridge/go.sum
 
       # The fonts of the app are made with Python; see scripts/whatsapp-assets/desktop-fonts.py.
       - uses: actions/setup-python@v7
@@ -89,10 +89,10 @@ jobs:
         run: python3 -m pip install fonttools pillow
 
       - name: Test
-        run: dotnet test tests/WinWhatsApp.Core.Tests
+        run: dotnet test tests/TwoTicks.Core.Tests
 
       - name: Vet the helper
-        working-directory: src/WinWhatsApp.Bridge
+        working-directory: src/TwoTicks.Bridge
         run: go vet ./...
 
       # The same script the release workflow runs. The version is a placeholder.
@@ -105,7 +105,7 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: WinWhatsApp-${{ matrix.system }}-${{ matrix.arch }}
+          name: TwoTicks-${{ matrix.system }}-${{ matrix.arch }}
           path: artifacts/release/
           if-no-files-found: error
 

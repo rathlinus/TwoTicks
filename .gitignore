@@ -12,7 +12,7 @@ TestResults/
 # Signing certificates.
 *.pfx
 
-# WhatsApp data from a test run with WINWHATSAPP_DATA: session.db holds the
+# WhatsApp data from a test run with TWOTICKS_DATA: session.db holds the
 # device keys of a linked account and must never be pushed.
 *.db
 *.db-shm

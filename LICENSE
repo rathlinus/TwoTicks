@@ -20,8 +20,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-This license covers WinWhatsApp's own code. WhatsApp's name, logo, emoji,
-icons, wallpapers and notification sounds in src/WinWhatsApp.App/Assets belong
+This license covers TwoTicks's own code. WhatsApp's name, logo, emoji,
+icons, wallpapers and notification sounds in src/TwoTicks.App/Assets belong
 to WhatsApp and Meta and are not covered by it. whatsmeow is under the Mozilla
 Public License 2.0 and Roboto under the Apache License 2.0. The photos in
 scripts/screenshots/demo are under their own licenses, listed in CREDITS.md

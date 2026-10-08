@@ -3,11 +3,11 @@
     Builds what a release consists of.
 
 .DESCRIPTION
-    Builds WinWhatsApp with the given version and collects the files to publish
+    Builds TwoTicks with the given version and collects the files to publish
     in artifacts\release:
 
-        WinWhatsApp-<version>-Setup.exe  the setup program, which is what most people want
-        WinWhatsApp-<version>-x64.zip    the app folder, which runs after unpacking
+        TwoTicks-<version>-Setup.exe  the setup program, which is what most people want
+        TwoTicks-<version>-x64.zip    the app folder, which runs after unpacking
                                          without installing anything
 
     Compiling the setup program needs Inno Setup.
@@ -56,17 +56,17 @@ if (Test-Path $release) { Remove-Item $release -Recurse -Force }
 # A copy without the debug symbols, which nobody running the program needs.
 $app = Join-Path $Artifacts 'app'
 $shortVersion = "$($Version.Major).$($Version.Minor).$([Math]::Max($Version.Build, 0))"
-$bundle = Join-Path $release 'WinWhatsApp'
+$bundle = Join-Path $release 'TwoTicks'
 New-Item -ItemType Directory -Force $release | Out-Null
 Copy-Item $app $bundle -Recurse
 Get-ChildItem $bundle -Recurse -Filter '*.pdb' | Remove-Item -Force
 
 Write-Host 'Packing the zip...'
-Compress-Archive -Path $bundle -DestinationPath (Join-Path $release "WinWhatsApp-$shortVersion-x64.zip")
+Compress-Archive -Path $bundle -DestinationPath (Join-Path $release "TwoTicks-$shortVersion-x64.zip")
 Remove-Item $bundle -Recurse -Force
 
 Write-Host 'Compiling the setup program...'
-& $innoSetup '/Qp' "/DAppVersion=$shortVersion" "/DSourceDir=$app" "/DOutputDir=$release" (Join-Path $RepoRoot 'packaging\WinWhatsApp.iss')
+& $innoSetup '/Qp' "/DAppVersion=$shortVersion" "/DSourceDir=$app" "/DOutputDir=$release" (Join-Path $RepoRoot 'packaging\TwoTicks.iss')
 if ($LASTEXITCODE -ne 0) {
     throw "Inno Setup failed with exit code $LASTEXITCODE."
 }

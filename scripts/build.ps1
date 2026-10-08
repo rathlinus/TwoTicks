@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Builds WinWhatsApp: the app and the WhatsApp helper next to it.
+    Builds TwoTicks: the app and the WhatsApp helper next to it.
 
 .DESCRIPTION
     Runs the tests, builds the Go helper and publishes the app to artifacts\app.
@@ -16,7 +16,7 @@
     Publish without running the tests first.
 
 .PARAMETER Run
-    Start the freshly built WinWhatsApp afterwards, replacing a running one.
+    Start the freshly built TwoTicks afterwards, replacing a running one.
 #>
 [CmdletBinding()]
 param(
@@ -46,8 +46,8 @@ if (-not (Get-Command go -ErrorAction SilentlyContinue)) {
 
 if (-not $SkipTests) {
     Write-Host 'Running the tests...'
-    Invoke-Native dotnet @('test', (Join-Path $RepoRoot 'tests\WinWhatsApp.Core.Tests'), '--nologo', '-v:q')
-    Push-Location (Join-Path $RepoRoot 'src\WinWhatsApp.Bridge')
+    Invoke-Native dotnet @('test', (Join-Path $RepoRoot 'tests\TwoTicks.Core.Tests'), '--nologo', '-v:q')
+    Push-Location (Join-Path $RepoRoot 'src\TwoTicks.Bridge')
     try {
         Invoke-Native go @('vet', './...')
     }
@@ -56,10 +56,10 @@ if (-not $SkipTests) {
     }
 }
 
-# A running WinWhatsApp keeps its files locked.
-$running = Get-Process WinWhatsApp, WinWhatsApp.Bridge -ErrorAction SilentlyContinue
+# A running TwoTicks keeps its files locked.
+$running = Get-Process TwoTicks, TwoTicks.Bridge -ErrorAction SilentlyContinue
 if ($running) {
-    Write-Host 'Stopping the running WinWhatsApp...'
+    Write-Host 'Stopping the running TwoTicks...'
     $running | Stop-Process -Force
     $running | Wait-Process -Timeout 10 -ErrorAction SilentlyContinue
 }
@@ -75,19 +75,19 @@ if (Test-Path $Output) {
 }
 
 # The project builds the helper with Go before it compiles; see BuildBridge in
-# WinWhatsApp.App.csproj. Forcing it here keeps a release from reusing a helper
+# TwoTicks.App.csproj. Forcing it here keeps a release from reusing a helper
 # built with another version.
-$bridge = Join-Path $RepoRoot 'artifacts\bridge\WinWhatsApp.Bridge.exe'
+$bridge = Join-Path $RepoRoot 'artifacts\bridge\TwoTicks.Bridge.exe'
 if (Test-Path $bridge) {
     Remove-Item $bridge -Force
 }
 
-Write-Host 'Publishing WinWhatsApp...'
+Write-Host 'Publishing TwoTicks...'
 Invoke-Native dotnet (@(
-    'publish', (Join-Path $RepoRoot 'src\WinWhatsApp.App\WinWhatsApp.App.csproj'),
+    'publish', (Join-Path $RepoRoot 'src\TwoTicks.App\TwoTicks.App.csproj'),
     '-c', 'Release', '-p:Platform=x64', '-o', $Output, '--nologo', '-v:q') + $versionArguments)
 
-$exe = Join-Path $Output 'WinWhatsApp.exe'
+$exe = Join-Path $Output 'TwoTicks.exe'
 Write-Host "Built: $exe"
 
 if ($Run) {

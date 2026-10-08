@@ -1,4 +1,4 @@
-"""Takes WhatsApp Web's calling engine for WinWhatsApp.
+"""Takes WhatsApp Web's calling engine for TwoTicks.
 
 WhatsApp Web places and answers calls with a WebAssembly build of WhatsApp's
 native calling library, started by a script that Emscripten generated for
@@ -6,8 +6,8 @@ it. Script and binary belong together: the script has the binary's SHA-256
 in it. This finds a binary in the Firefox cache together with the script
 made for it, and writes
 
-    src/WinWhatsApp.App/Assets/Voip/wa-voip-glue.js   the script, as WhatsApp Web has it
-    src/WinWhatsApp.App/Assets/Voip/manifest.json     where to download the binary, and its hash
+    src/TwoTicks.App/Assets/Voip/wa-voip-glue.js   the script, as WhatsApp Web has it
+    src/TwoTicks.App/Assets/Voip/manifest.json     where to download the binary, and its hash
 
 The binary itself is not copied. The app downloads it from WhatsApp's servers
 the first time it is needed and checks it against the hash.
@@ -30,7 +30,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'whatsapp-assets'))
 from build import REPO, decode_body, find_cache, log, read_entry  # noqa: E402
 
-OUT = os.path.join(REPO, 'src', 'WinWhatsApp.App', 'Assets', 'Voip')
+OUT = os.path.join(REPO, 'src', 'TwoTicks.App', 'Assets', 'Voip')
 GLUE_MODULE = 'WAWebVoipWebWasmLoader_ContentAddressed_internal'
 WASM_URL = re.compile(r'^https://static\.whatsapp\.net/rsrc\.php/.+\.wasm$')
 SCRIPT_URL = re.compile(r'^https://static\.whatsapp\.net/rsrc\.php/.+\.js')

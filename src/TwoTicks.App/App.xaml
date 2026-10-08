@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Application
+    x:Class="TwoTicks.App.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+                <ResourceDictionary Source="ms-appx:///Controls/WhatsAppColors.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!--
+                WhatsApp Web's colours: the values of its design tokens (WDS) in the
+                default light and dark theme, read from its stylesheet.
+            -->
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="ConversationBackgroundBrush" Color="#F5F1EB" />
+                    <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="SurfaceEmphasizedBrush" Color="#F7F5F3" />
+                    <SolidColorBrush x:Key="ComposerBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="IncomingBubbleBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="OutgoingBubbleBrush" Color="#D9FDD3" />
+                    <SolidColorBrush x:Key="BubbleBorderBrush" Color="#12000000" />
+                    <SolidColorBrush x:Key="QuoteBackgroundBrush" Color="#0D000000" />
+                    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#0A0A0A" />
+                    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#99000000" />
+                    <SolidColorBrush x:Key="MetaTextBrush" Color="#99000000" />
+                    <SolidColorBrush x:Key="IconBrush" Color="#CC000000" />
+                    <SolidColorBrush x:Key="DividerBrush" Color="#1A000000" />
+                    <SolidColorBrush x:Key="ReadTicksBrush" Color="#007BFC" />
+                    <SolidColorBrush x:Key="WaveformBrush" Color="#4D000000" />
+                    <SolidColorBrush x:Key="UnreadBadgeBrush" Color="#1DAA61" />
+                    <SolidColorBrush x:Key="UnreadBadgeTextBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="UnreadTextBrush" Color="#1DAA61" />
+                    <SolidColorBrush x:Key="AccentGreenBrush" Color="#1DAA61" />
+                    <SolidColorBrush x:Key="MutedBadgeBrush" Color="#99000000" />
+                    <SolidColorBrush x:Key="DayChipBrush" Color="#E6FFFFFF" />
+                    <SolidColorBrush x:Key="UnreadBandBrush" Color="#40FFFFFF" />
+                    <SolidColorBrush x:Key="SystemChipBrush" Color="#E6FFFFFF" />
+                    <SolidColorBrush x:Key="MentionBrush" Color="#027EB5" />
+                    <SolidColorBrush x:Key="ReactionPillBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="FailedBrush" Color="#EA0038" />
+                    <SolidColorBrush x:Key="ChatListSelectedBrush" Color="#26C2BDB8" />
+                    <SolidColorBrush x:Key="ChatListHoverBrush" Color="#14C2BDB8" />
+                    <SolidColorBrush x:Key="FilterChipBrush" Color="#F7F5F3" />
+                    <SolidColorBrush x:Key="FilterChipSelectedBrush" Color="#D9FDD3" />
+                    <SolidColorBrush x:Key="FilterChipSelectedTextBrush" Color="#15603E" />
+                    <SolidColorBrush x:Key="DefaultAvatarBackgroundBrush" Color="#DFE5E7" />
+                    <SolidColorBrush x:Key="DefaultAvatarForegroundBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="SendButtonBrush" Color="#1DAA61" />
+                    <SolidColorBrush x:Key="SendButtonIconBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="MessageHighlightBrush" Color="#331DAA61" />
+                    <Color x:Key="ScrollShadowColor">#1A000000</Color>
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="ConversationBackgroundBrush" Color="#161717" />
+                    <SolidColorBrush x:Key="SurfaceBrush" Color="#161717" />
+                    <SolidColorBrush x:Key="SurfaceEmphasizedBrush" Color="#1D1F1F" />
+                    <SolidColorBrush x:Key="ComposerBrush" Color="#242626" />
+                    <SolidColorBrush x:Key="IncomingBubbleBrush" Color="#242626" />
+                    <SolidColorBrush x:Key="OutgoingBubbleBrush" Color="#144D37" />
+                    <SolidColorBrush x:Key="BubbleBorderBrush" Color="#00000000" />
+                    <SolidColorBrush x:Key="QuoteBackgroundBrush" Color="#33000000" />
+                    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FAFAFA" />
+                    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#99FFFFFF" />
+                    <SolidColorBrush x:Key="MetaTextBrush" Color="#99FFFFFF" />
+                    <SolidColorBrush x:Key="IconBrush" Color="#D9FFFFFF" />
+                    <SolidColorBrush x:Key="DividerBrush" Color="#1AFFFFFF" />
+                    <SolidColorBrush x:Key="ReadTicksBrush" Color="#53BDEB" />
+                    <SolidColorBrush x:Key="WaveformBrush" Color="#66FFFFFF" />
+                    <SolidColorBrush x:Key="UnreadBadgeBrush" Color="#21C063" />
+                    <SolidColorBrush x:Key="UnreadBadgeTextBrush" Color="#0A0A0A" />
+                    <SolidColorBrush x:Key="UnreadTextBrush" Color="#21C063" />
+                    <SolidColorBrush x:Key="AccentGreenBrush" Color="#21C063" />
+                    <SolidColorBrush x:Key="MutedBadgeBrush" Color="#99FFFFFF" />
+                    <SolidColorBrush x:Key="DayChipBrush" Color="#1D1F1F" />
+                    <SolidColorBrush x:Key="UnreadBandBrush" Color="#0DFFFFFF" />
+                    <SolidColorBrush x:Key="SystemChipBrush" Color="#1D1F1F" />
+                    <SolidColorBrush x:Key="MentionBrush" Color="#53BDEB" />
+                    <SolidColorBrush x:Key="ReactionPillBrush" Color="#242626" />
+                    <SolidColorBrush x:Key="FailedBrush" Color="#F15C6D" />
+                    <SolidColorBrush x:Key="ChatListSelectedBrush" Color="#1AFFFFFF" />
+                    <SolidColorBrush x:Key="ChatListHoverBrush" Color="#0DFFFFFF" />
+                    <SolidColorBrush x:Key="FilterChipBrush" Color="#1D1F1F" />
+                    <SolidColorBrush x:Key="FilterChipSelectedBrush" Color="#103529" />
+                    <SolidColorBrush x:Key="FilterChipSelectedTextBrush" Color="#D9FDD3" />
+                    <SolidColorBrush x:Key="DefaultAvatarBackgroundBrush" Color="#3B3D3D" />
+                    <SolidColorBrush x:Key="DefaultAvatarForegroundBrush" Color="#A6A8A8" />
+                    <SolidColorBrush x:Key="SendButtonBrush" Color="#21C063" />
+                    <SolidColorBrush x:Key="SendButtonIconBrush" Color="#0A0A0A" />
+                    <SolidColorBrush x:Key="MessageHighlightBrush" Color="#3321C063" />
+                    <Color x:Key="ScrollShadowColor">#66000000</Color>
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+
+            <!-- No accent bar beside the open chat, as in WhatsApp. -->
+            <x:Boolean x:Key="ListViewItemSelectionIndicatorVisualEnabled">False</x:Boolean>
+
+            <!-- WhatsApp's green as the accent of the controls: focus lines, toggles, links. -->
+            <Color x:Key="SystemAccentColor">#25D366</Color>
+            <Color x:Key="SystemAccentColorLight1">#25D366</Color>
+            <Color x:Key="SystemAccentColorLight2">#21C063</Color>
+            <Color x:Key="SystemAccentColorLight3">#71EB85</Color>
+            <Color x:Key="SystemAccentColorDark1">#1DAA61</Color>
+            <Color x:Key="SystemAccentColorDark2">#1B8755</Color>
+            <Color x:Key="SystemAccentColorDark3">#15603E</Color>
+
+            <!-- WhatsApp Web's text font. -->
+            <FontFamily x:Key="WhatsAppFont">ms-appx:///Assets/Fonts/Roboto.ttf#Roboto</FontFamily>
+            <FontFamily x:Key="ContentControlThemeFontFamily">ms-appx:///Assets/Fonts/Roboto.ttf#Roboto</FontFamily>
+            <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas</FontFamily>
+
+            <Style TargetType="TextBlock">
+                <Setter Property="FontFamily" Value="{StaticResource WhatsAppFont}" />
+            </Style>
+            <Style TargetType="RichTextBlock">
+                <Setter Property="FontFamily" Value="{StaticResource WhatsAppFont}" />
+            </Style>
+            <Style TargetType="TextBox" BasedOn="{StaticResource DefaultTextBoxStyle}">
+                <Setter Property="FontFamily" Value="{StaticResource WhatsAppFont}" />
+            </Style>
+
+            <!-- A button that is only an icon until hovered. -->
+            <Style x:Key="IconButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderBrush" Value="Transparent" />
+                <Setter Property="Foreground" Value="{ThemeResource IconBrush}" />
+                <Setter Property="Width" Value="40" />
+                <Setter Property="Height" Value="40" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="CornerRadius" Value="20" />
+            </Style>
+
+            <!-- Minimize, maximize and close, as Windows draws them but as tall as the headers. -->
+            <Style x:Key="CaptionButtonStyle" TargetType="Button">
+                <Setter Property="Width" Value="46" />
+                <Setter Property="Height" Value="60" />
+                <Setter Property="Foreground" Value="{ThemeResource TextFillColorPrimaryBrush}" />
+                <Setter Property="IsTabStop" Value="False" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Grid x:Name="Root" Background="Transparent">
+                                <ContentPresenter x:Name="Content" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{TemplateBinding Foreground}" />
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualState x:Name="Normal" />
+                                        <VisualState x:Name="PointerOver">
+                                            <VisualState.Setters>
+                                                <Setter Target="Root.Background" Value="{ThemeResource SubtleFillColorSecondaryBrush}" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="Pressed">
+                                            <VisualState.Setters>
+                                                <Setter Target="Root.Background" Value="{ThemeResource SubtleFillColorTertiaryBrush}" />
+                                                <Setter Target="Content.Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="Disabled" />
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style x:Key="CloseCaptionButtonStyle" TargetType="Button" BasedOn="{StaticResource CaptionButtonStyle}">
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Grid x:Name="Root" Background="Transparent">
+                                <ContentPresenter x:Name="Content" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{TemplateBinding Foreground}" />
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualState x:Name="Normal" />
+                                        <VisualState x:Name="PointerOver">
+                                            <VisualState.Setters>
+                                                <Setter Target="Root.Background" Value="#C42B1C" />
+                                                <Setter Target="Content.Foreground" Value="White" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="Pressed">
+                                            <VisualState.Setters>
+                                                <Setter Target="Root.Background" Value="#E6C42B1C" />
+                                                <Setter Target="Content.Foreground" Value="#B3FFFFFF" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="Disabled" />
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- A button that looks only like its content: a name or a picture to click. -->
+            <Style x:Key="PlainButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="UseSystemFocusVisuals" Value="True" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <ContentPresenter Padding="{TemplateBinding Padding}" HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" Background="{TemplateBinding Background}"
+                                              Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" CornerRadius="{TemplateBinding CornerRadius}" />
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- A button laid out as a row of the chat list, with the same hover and press colours. -->
+            <Style x:Key="ChatRowButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Margin" Value="8,0,8,0" />
+                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="UseSystemFocusVisuals" Value="True" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <ContentPresenter x:Name="Presenter" Padding="{TemplateBinding Padding}" HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" Background="{TemplateBinding Background}"
+                                              Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" CornerRadius="{TemplateBinding CornerRadius}">
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualState x:Name="Normal" />
+                                        <VisualState x:Name="PointerOver">
+                                            <VisualState.Setters>
+                                                <Setter Target="Presenter.Background" Value="{ThemeResource ListViewItemBackgroundPointerOver}" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="Pressed">
+                                            <VisualState.Setters>
+                                                <Setter Target="Presenter.Background" Value="{ThemeResource ListViewItemBackgroundPressed}" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="Disabled" />
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                            </ContentPresenter>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Rows of the message list: no selection, no hover highlight, no padding. -->
+            <Style x:Key="MessageContainerStyle" TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Margin" Value="0" />
+                <Setter Property="MinHeight" Value="0" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="IsTabStop" Value="False" />
+                <Setter Property="UseSystemFocusVisuals" Value="False" />
+            </Style>
+
+            <Style x:Key="ChatContainerStyle" TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Margin" Value="8,0,8,0" />
+                <Setter Property="MinHeight" Value="0" />
+                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            </Style>
+
+            <!-- The All, Unread and Groups filters above the chat list. -->
+            <Style x:Key="FilterChipStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
+                <!-- A fixed height with a radius of exactly half of it, so the ends are
+                     round. A larger radius gets squashed vertically into an ellipse. -->
+                <Setter Property="Height" Value="32" />
+                <Setter Property="Padding" Value="12,0" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="CornerRadius" Value="16" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="Background" Value="{ThemeResource FilterChipBrush}" />
+                <Setter Property="Foreground" Value="{ThemeResource TextSecondaryBrush}" />
+            </Style>
+
+            <Style x:Key="MetaTextStyle" TargetType="TextBlock">
+                <Setter Property="FontFamily" Value="{StaticResource WhatsAppFont}" />
+                <Setter Property="FontSize" Value="11" />
+                <Setter Property="Foreground" Value="{ThemeResource MetaTextBrush}" />
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

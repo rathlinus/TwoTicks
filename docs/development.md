@@ -1,4 +1,4 @@
-# Developing WinWhatsApp
+# Developing TwoTicks
 
 ## Setup
 
@@ -36,23 +36,23 @@ xcode-select --install
 | `scripts\whatsapp-voip\build.py` | Takes WhatsApp Web's calling engine; see Calls below. |
 | `scripts\whatsapp-assets\desktop-fonts.py` | Makes the emoji font and the text fonts of the macOS and Linux app. The build runs it. |
 
-`dotnet build src\WinWhatsApp.App -p:Platform=x64` builds the app for debugging. It builds the Go helper too, whenever its sources changed.
+`dotnet build src\TwoTicks.App -p:Platform=x64` builds the app for debugging. It builds the Go helper too, whenever its sources changed.
 
-Setting `WINWHATSAPP_DATA` to a folder runs a second copy of the app with its own data, beside the usual one. That is the way to try linking or logging out without touching your real session.
+Setting `TWOTICKS_DATA` to a folder runs a second copy of the app with its own data, beside the usual one. That is the way to try linking or logging out without touching your real session.
 
 ## Projects
 
 | Project | What it is |
 |---|---|
-| `src/WinWhatsApp.Bridge` | The WhatsApp helper, in Go: the connection to WhatsApp, the database of chats and messages, media. |
-| `src/WinWhatsApp.Core` | The app's side of the helper's protocol, its data, WhatsApp's text formatting and the settings. No UI. |
-| `src/WinWhatsApp.App` | The WinUI 3 app. Most of it is the app on every system; `Windows/` holds what only Windows has. |
-| `src/WinWhatsApp.Desktop` | The app for macOS and Linux: the sources of `WinWhatsApp.App` again, and what those systems have in place of `Windows/`. |
-| `tests/WinWhatsApp.Core.Tests` | Unit tests of Core. |
+| `src/TwoTicks.Bridge` | The WhatsApp helper, in Go: the connection to WhatsApp, the database of chats and messages, media. |
+| `src/TwoTicks.Core` | The app's side of the helper's protocol, its data, WhatsApp's text formatting and the settings. No UI. |
+| `src/TwoTicks.App` | The WinUI 3 app. Most of it is the app on every system; `Windows/` holds what only Windows has. |
+| `src/TwoTicks.Desktop` | The app for macOS and Linux: the sources of `TwoTicks.App` again, and what those systems have in place of `Windows/`. |
+| `tests/TwoTicks.Core.Tests` | Unit tests of Core. |
 
 ## The helper
 
-WhatsApp's protocol is implemented by [whatsmeow](https://github.com/tulir/whatsmeow), which is written in Go. `WinWhatsApp.Bridge.exe` wraps it: the app starts it with `--data <folder>` and talks to it over its standard input and output, one JSON object per line.
+WhatsApp's protocol is implemented by [whatsmeow](https://github.com/tulir/whatsmeow), which is written in Go. `TwoTicks.Bridge.exe` wraps it: the app starts it with `--data <folder>` and talks to it over its standard input and output, one JSON object per line.
 
 ```
 → {"id":1,"method":"messages","params":{"chat":"491701234567@s.whatsapp.net","limit":60}}
@@ -65,9 +65,9 @@ Every request gets one response with its id; lines with an `event` instead are t
 The helper keeps two databases in the data folder:
 
 - `session.db` is whatsmeow's: the device keys, the encryption sessions with every contact, contacts and app state.
-- `chats.db` is WinWhatsApp's: chats, messages, reactions, receipts and profile pictures. WhatsApp's servers store no history for linked devices; what the app shows comes from history sync when linking, and every message since.
+- `chats.db` is TwoTicks's: chats, messages, reactions, receipts and profile pictures. WhatsApp's servers store no history for linked devices; what the app shows comes from history sync when linking, and every message since.
 
-Downloaded files go to `media`, profile pictures to `avatars`. The helper writes `bridge.log`; start the app with `WINWHATSAPP_DEBUG=1` to get the protocol's debug output in it.
+Downloaded files go to `media`, profile pictures to `avatars`. The helper writes `bridge.log`; start the app with `TWOTICKS_DEBUG=1` to get the protocol's debug output in it.
 
 The app ties the helper to itself with a job object on Windows, so it ends with the app however the app ends. Elsewhere the helper ends when its input closes, which it does when the app is gone. When the helper crashes, the app starts it again.
 
@@ -106,18 +106,18 @@ The colours in `App.xaml` and `Controls/WhatsAppColors.xaml` are the values of W
 
 The messages of a chat are a virtualized `ListView`. `Conversation` builds its rows: messages, a label at each new day, and the line above the first unread message. Older messages load when scrolling near the top. Parts of a bubble that most messages do not have (a reply, a photo, a document) are created only for the messages that have them, with `x:Load`.
 
-Notifications use the plain Windows toast API under the AppUserModelID `WinWhatsApp`, which the app registers itself; the Windows App SDK's notification API does not work for apps that ship the SDK in their folder without being packaged. The unread count on the taskbar button is an overlay icon drawn by `TaskbarBadge`.
+Notifications use the plain Windows toast API under the AppUserModelID `TwoTicks`, which the app registers itself; the Windows App SDK's notification API does not work for apps that ship the SDK in their folder without being packaged. The unread count on the taskbar button is an overlay icon drawn by `TaskbarBadge`.
 
 ## macOS and Linux
 
-`src/WinWhatsApp.Desktop` builds the same app with [Uno Platform](https://platform.uno), which implements WinUI's API and draws with Skia. It has no XAML of its own and little C#: the project takes the sources of `WinWhatsApp.App`, without the `Windows` folder, and adds what a system does for the app.
+`src/TwoTicks.Desktop` builds the same app with [Uno Platform](https://platform.uno), which implements WinUI's API and draws with Skia. It has no XAML of its own and little C#: the project takes the sources of `TwoTicks.App`, without the `Windows` folder, and adds what a system does for the app.
 
 | Where | What is there |
 |---|---|
-| `WinWhatsApp.App/Windows/` | Windows' side: the notification area, toasts, the taskbar badge, WebView2, what Windows knows about media files |
-| `WinWhatsApp.Desktop/` | the same classes for macOS and Linux |
-| `WinWhatsApp.Desktop/Linux/` | D-Bus: notifications, the icon in the notification area (StatusNotifierItem) and its menu |
-| `WinWhatsApp.Desktop/Mac/` | the menu bar icon, the notification centre and the Dock, through a small Objective-C library, `WinWhatsAppMac.m`, which the project builds with `clang` |
+| `TwoTicks.App/Windows/` | Windows' side: the notification area, toasts, the taskbar badge, WebView2, what Windows knows about media files |
+| `TwoTicks.Desktop/` | the same classes for macOS and Linux |
+| `TwoTicks.Desktop/Linux/` | D-Bus: notifications, the icon in the notification area (StatusNotifierItem) and its menu |
+| `TwoTicks.Desktop/Mac/` | the menu bar icon, the notification centre and the Dock, through a small Objective-C library, `TwoTicksMac.m`, which the project builds with `clang` |
 
 A class with two sides is `partial`: the shared file has what is common and declares what each side fills in. Where a few lines differ inside shared code, `#if HAS_UNO` marks the lines for macOS and Linux.
 
@@ -132,17 +132,17 @@ Things to know when something breaks:
 - Sound and video play through VLC on Linux. Uno only uses it when it finds `libvlc.so`, which only VLC's development package has; `Program.FindVlc` makes it work with `libvlc.so.5`.
 - SkiaSharp's library for ARM on Linux leaves out libraries it needs; `Program.LoadForDrawing` loads them first.
 - macOS draws nothing for a glyph without bounds, so the emoji font's glyphs have an outline with nothing to fill.
-- macOS does not play Ogg, so `AudioPlayer` decodes voice messages there. `WINWHATSAPP_DECODE_OPUS=1` makes it do the same on Linux.
+- macOS does not play Ogg, so `AudioPlayer` decodes voice messages there. `TWOTICKS_DECODE_OPUS=1` makes it do the same on Linux.
 
 ### Checking a build
 
-`scripts/check.sh` starts the built app with `WINWHATSAPP_CHECK` set to a folder. The app then runs on the stand-in helper of `scripts/screenshots`, opens the first chat, writes a picture of its window and a report to that folder, and quits; the script fails when the chats did not show. On macOS it does the same for the app bundle `release.sh` made, where the menu bar icon and the notification centre exist. The CI workflow runs it on both systems and keeps the pictures and reports as artifacts named `check-...`, which is the only look at the macOS app there is without a Mac.
+`scripts/check.sh` starts the built app with `TWOTICKS_CHECK` set to a folder. The app then runs on the stand-in helper of `scripts/screenshots`, opens the first chat, writes a picture of its window and a report to that folder, and quits; the script fails when the chats did not show. On macOS it does the same for the app bundle `release.sh` made, where the menu bar icon and the notification centre exist. The CI workflow runs it on both systems and keeps the pictures and reports as artifacts named `check-...`, which is the only look at the macOS app there is without a Mac.
 
-On Linux the app runs under `xvfb-run` when there is no screen. With `xdotool` on a virtual screen it can be clicked through from a script. `WINWHATSAPP_DEMO` set to `scripts/screenshots/demo`, with the stand-in helper in place of `WinWhatsApp.Bridge`, gives it chats without an account.
+On Linux the app runs under `xvfb-run` when there is no screen. With `xdotool` on a virtual screen it can be clicked through from a script. `TWOTICKS_DEMO` set to `scripts/screenshots/demo`, with the stand-in helper in place of `TwoTicks.Bridge`, gives it chats without an account.
 
 ## Languages
 
-The app's text is in `src/WinWhatsApp.Core/Strings/<language>/*.json`, one
+The app's text is in `src/TwoTicks.Core/Strings/<language>/*.json`, one
 folder per language, with English as the fallback for anything missing. C#
 reads it with `Loc.T("key")` and `Loc.Plural("key", count)`, XAML with
 `{app:L Key=key}`. Values go in braces, such as `{name}`. The language follows
@@ -150,18 +150,18 @@ Windows unless one is picked in the settings; a change needs a restart.
 
 The helper writes some text itself (group notices such as "Anna added Bob",
 missed calls, and errors the app shows). That text is in
-`src/WinWhatsApp.Bridge/text.go`, and the app passes its language with `--lang`.
+`src/TwoTicks.Bridge/text.go`, and the app passes its language with `--lang`.
 Notices are stored in the language that was active when they arrived.
 
 To add a language, copy the `en` folder to the new language code, translate
 the files, add the language to `text.go`, and add it to `[Languages]` in
-`packaging/WinWhatsApp.iss`. The tests check that every language has the same
+`packaging/TwoTicks.iss`. The tests check that every language has the same
 keys and placeholders as English, and that every key the code uses exists.
 ## Calls
 
 Calls run WhatsApp Web's own calling engine: WhatsApp's calling library compiled to WebAssembly, with the script Emscripten made for it. The app runs it in a browser that is never shown, and passes call stanzas between it and the helper.
 
-On Windows the browser is WebView2, and the app and the page talk in web messages. The web views of macOS and Linux lack WebTransport, so there `CallBrowser` starts a browser that is installed, without a window and with a profile of its own that is deleted afterwards: a Chromium browser if there is one, otherwise Firefox. The page then talks to the app over a WebSocket on `PageServer`, which it may open with the key the app put into its address. `WINWHATSAPP_BROWSER` names another browser to use.
+On Windows the browser is WebView2, and the app and the page talk in web messages. The web views of macOS and Linux lack WebTransport, so there `CallBrowser` starts a browser that is installed, without a window and with a profile of its own that is deleted afterwards: a Chromium browser if there is one, otherwise Firefox. The page then talks to the app over a WebSocket on `PageServer`, which it may open with the key the app put into its address. `TWOTICKS_BROWSER` names another browser to use.
 
 | File | What it is |
 |---|---|

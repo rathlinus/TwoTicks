@@ -1,7 +1,7 @@
-Package: winwhatsapp
+Package: twoticks
 Version: @VERSION@
 Architecture: @ARCH@
-Maintainer: WinWhatsApp <https://github.com/rathlinus/WinWhatsApp>
+Maintainer: TwoTicks <https://github.com/rathlinus/WinWhatsApp>
 Installed-Size: @SIZE@
 Section: net
 Priority: optional
@@ -9,7 +9,7 @@ Homepage: https://github.com/rathlinus/WinWhatsApp
 Depends: libx11-6, libxext6, libxi6, libxrandr2, libxcursor1, libfontconfig1, libfreetype6, libuuid1, libgl1, libicu78 | libicu76 | libicu74 | libicu72 | libicu70 | libicu67
 Recommends: firefox | firefox-esr | chromium | chromium-browser | google-chrome-stable | microsoft-edge-stable | brave-browser, pulseaudio-utils, libvlc5, vlc-plugin-base, vlc-plugin-video-output, ffmpegthumbnailer | ffmpeg, xclip, fonts-noto-core
 Description: A native WhatsApp app
- WinWhatsApp links to your phone the way WhatsApp Web does and shows your
+ TwoTicks links to your phone the way WhatsApp Web does and shows your
  chats in a window of its own, without a browser.
  .
  It is not made by, affiliated with or endorsed by WhatsApp or Meta.

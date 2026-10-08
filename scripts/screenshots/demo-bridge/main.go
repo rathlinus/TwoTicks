@@ -1,9 +1,9 @@
-// A stand-in for WinWhatsApp.Bridge that serves made-up chats, for
+// A stand-in for TwoTicks.Bridge that serves made-up chats, for
 // screenshots. It speaks the same line protocol as the real helper but never
 // connects to WhatsApp. See ../README.md.
 //
-// WINWHATSAPP_DEMO is the folder with demo.json and its pictures.
-// WINWHATSAPP_DEMO_QR=1 shows the linking screen instead of the chats.
+// TWOTICKS_DEMO is the folder with demo.json and its pictures.
+// TWOTICKS_DEMO_QR=1 shows the linking screen instead of the chats.
 // A file named demo-incoming in the app's data folder makes it send the
 // incoming message of demo.json, as if it just arrived, and is then deleted.
 package main
@@ -62,7 +62,7 @@ func main() {
 	flag.String("lang", "", "ignored")
 	flag.Parse()
 
-	dir, _ := filepath.Abs(os.Getenv("WINWHATSAPP_DEMO"))
+	dir, _ := filepath.Abs(os.Getenv("TWOTICKS_DEMO"))
 	raw, err := os.ReadFile(filepath.Join(dir, "demo.json"))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -74,7 +74,7 @@ func main() {
 		os.Exit(1)
 	}
 	d.State = "connected"
-	if os.Getenv("WINWHATSAPP_DEMO_QR") == "1" {
+	if os.Getenv("TWOTICKS_DEMO_QR") == "1" {
 		d.State = "qr"
 	}
 	fix(dir, time.Now().Unix()-d.Now, &d)
