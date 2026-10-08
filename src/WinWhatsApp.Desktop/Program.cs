@@ -1,5 +1,8 @@
 using System.Globalization;
+using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Runtime.Loader;
+using Uno.Foundation.Extensibility;
 using Uno.UI.Hosting;
 using WinWhatsApp.Core;
 
@@ -26,6 +29,8 @@ public static partial class Program
         }
 
         LoadForDrawing();
+        FindVlc();
+        AudioPlayer.ClearCopies();
         Loc.Use(SettingsStore.Load().Language);
         CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.CurrentUICulture = Loc.Culture;
 
@@ -81,6 +86,65 @@ public static partial class Program
                 Log.Error("Could not load " + name, e);
             }
         }
+    }
+
+    /// <summary>
+    /// Sound and video play through VLC's library on Linux. Uno and the code
+    /// it calls VLC with both look for "libvlc.so", a name the library only
+    /// has where VLC's development package is installed; everyone else has
+    /// libvlc.so.5. This makes the player work with that one.
+    /// </summary>
+    private static void FindVlc()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+        if (NativeLibrary.TryLoad("libvlc.so", out nint found))
+        {
+            // The name is there: nothing to make up for.
+            NativeLibrary.Free(found);
+            return;
+        }
+        if (!NativeLibrary.TryLoad("libvlc.so.5", out _))
+        {
+            Log.Info("VLC's library is not installed: voice messages and videos do not play. The package libvlc5 or vlc-libs has it.");
+            return;
+        }
+
+        // The calls into VLC ask .NET for "libvlc", which it does not find; this answers then.
+        AssemblyLoadContext.Default.ResolvingUnmanagedDll += (_, name) =>
+        {
+            string? file = name switch
+            {
+                "libvlc" => "libvlc.so.5",
+                "libvlccore" => "libvlccore.so.9",
+                _ => null,
+            };
+            return file is not null && NativeLibrary.TryLoad(file, out nint library) ? library : 0;
+        };
+
+        // Uno hands sound and video to its VLC player only when it found
+        // "libvlc.so" itself. Told here what it would have told itself.
+        try
+        {
+            const string player = "Uno.UI.MediaPlayer.Skia.X11";
+            Type playerType = Type.GetType($"{player}.SharedMediaPlayerExtension, {player}", throwOnError: true)!;
+            Type presenterType = Type.GetType($"{player}.X11MediaPlayerPresenterExtension, {player}", throwOnError: true)!;
+            ApiExtensibility.Register(Role(playerType, "IMediaPlayerExtension"), owner => Create(playerType, owner));
+            ApiExtensibility.Register(Role(presenterType, "IMediaPlayerPresenterExtension"), owner => Create(presenterType, owner));
+        }
+        catch (Exception e) when (e is TypeLoadException or FileNotFoundException or FileLoadException or InvalidOperationException)
+        {
+            Log.Error("Could not set up the player for voice messages and videos", e);
+        }
+
+        // What Uno asks for when it needs a player: the interface the type stands in for.
+        static Type Role(Type type, string name) =>
+            type.GetInterfaces().FirstOrDefault(role => role.Name == name) ?? throw new TypeLoadException($"{type.Name} is no {name}");
+
+        static object Create(Type type, object owner) =>
+            Activator.CreateInstance(type, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, [owner], null)!;
     }
 
     [LibraryImport("libc.so.6", StringMarshalling = StringMarshalling.Utf8)]

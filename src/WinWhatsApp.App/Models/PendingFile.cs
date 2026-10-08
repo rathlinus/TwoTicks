@@ -1,8 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
-using Windows.Storage;
-using Windows.Storage.FileProperties;
+using Windows.Storage.Streams;
 using WinWhatsApp.Core;
 
 namespace WinWhatsApp.App.Models;
@@ -84,15 +83,18 @@ public sealed class PendingFile : Observable
     {
         try
         {
-            StorageFile file = await StorageFile.GetFileFromPathAsync(Path);
-            using StorageItemThumbnail frame = await file.GetThumbnailAsync(Windows.Storage.FileProperties.ThumbnailMode.VideosView, 112);
+            using IRandomAccessStream? frame = await MediaInfo.VideoFrameAsync(Path, 112);
+            if (frame is null)
+            {
+                return;
+            }
             var image = new BitmapImage();
             await image.SetSourceAsync(frame);
             Thumb = image;
         }
         catch (Exception)
         {
-            // Windows could not read the video; the tile keeps its icon.
+            // The video could not be read; the tile keeps its icon.
         }
     }
 }

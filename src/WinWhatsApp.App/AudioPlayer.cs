@@ -7,7 +7,7 @@ using WinWhatsApp.Core;
 namespace WinWhatsApp.App;
 
 /// <summary>Plays voice messages and audio, one at a time.</summary>
-internal static class AudioPlayer
+internal static partial class AudioPlayer
 {
     private static MediaPlayer? s_player;
     private static MessageItem? s_current;
@@ -37,11 +37,40 @@ internal static class AudioPlayer
 
         Stop();
         s_current = item;
-        player.Source = MediaSource.CreateFromUri(new Uri(path));
-        player.Play();
         item.IsPlaying = true;
         onFirstPlay?.Invoke();
+        _ = StartAsync(player, item, path);
     }
+
+    private static async Task StartAsync(MediaPlayer player, MessageItem item, string path)
+    {
+        try
+        {
+            string playable = await PlayableAsync(path);
+            if (s_current != item)
+            {
+                // Stopped, or another one started, while this one was made ready.
+                return;
+            }
+            player.Source = MediaSource.CreateFromUri(new Uri(playable));
+            player.Play();
+        }
+        catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException or NotSupportedException or ArgumentException)
+        {
+            Log.Error($"Could not play {path}", e);
+            if (s_current == item)
+            {
+                Stop();
+                App.Current.Session?.ShowError(Loc.T("session.cantPlay"));
+            }
+        }
+    }
+
+    /// <summary>
+    /// The file to hand to the player for a recording: the recording itself
+    /// where the system plays it, and a copy in a form it does play where not.
+    /// </summary>
+    private static partial Task<string> PlayableAsync(string path);
 
     /// <summary>Moves to a point in the playing recording, given as 0 to 1.</summary>
     public static void Seek(MessageItem item, double fraction)

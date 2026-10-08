@@ -48,7 +48,7 @@ internal static class EmojiClipboard
     }
 
     /// <summary>Control, or Command on a Mac.</summary>
-    private static bool CommandKeyDown() =>
+    public static bool CommandKeyDown() =>
         IsDown(VirtualKey.Control) || (OperatingSystem.IsMacOS() && (IsDown(VirtualKey.LeftWindows) || IsDown(VirtualKey.RightWindows)));
 
     private static bool IsDown(VirtualKey key) =>

@@ -88,6 +88,9 @@ public sealed partial class MediaViewer : UserControl
     {
         InitializeComponent();
         Strip.ItemsSource = _items;
+#if HAS_UNO
+        Stage.SizeChanged += (_, _) => FitVideo();
+#endif
     }
 
     public Session Session => App.Current.Session;
@@ -229,8 +232,55 @@ public sealed partial class MediaViewer : UserControl
             {
                 player.IsLoopingEnabled = item.Message?.Kind == "gif";
             }
+#if HAS_UNO
+            FitVideo();
+            StartVideo(item);
+#endif
         }
     }
+
+#if HAS_UNO
+    /// <summary>
+    /// Starts the video once it is loaded. AutoPlay does not on every system:
+    /// on Linux the player loads the video and then waits to be told.
+    /// </summary>
+    private async void StartVideo(ViewerItem item)
+    {
+        for (int i = 0; i < 50 && _current == item && Video.Visibility == Visibility.Visible; i++)
+        {
+            switch (Video.MediaPlayer?.PlaybackSession.PlaybackState)
+            {
+                case Windows.Media.Playback.MediaPlaybackState.Playing:
+                    return;
+                case Windows.Media.Playback.MediaPlaybackState.Paused:
+                    Video.MediaPlayer.Play();
+                    return;
+            }
+            await Task.Delay(100);
+        }
+    }
+
+    /// <summary>
+    /// Gives the player the shape of the video, as large as there is room for:
+    /// on Linux the picture fills whatever the player is given, whatever its shape.
+    /// </summary>
+    private void FitVideo()
+    {
+        double width = Stage.ActualWidth - Video.Margin.Left - Video.Margin.Right;
+        double height = Stage.ActualHeight - Video.Margin.Top - Video.Margin.Bottom;
+        if (_current is { IsVideo: true, Message.Media: { Width: > 0, Height: > 0 } media } && width > 0 && height > 0)
+        {
+            double scale = Math.Min(width / media.Width, height / media.Height);
+            Video.Width = Math.Floor(media.Width * scale);
+            Video.Height = Math.Floor(media.Height * scale);
+        }
+        else
+        {
+            Video.Width = double.NaN;
+            Video.Height = double.NaN;
+        }
+    }
+#endif
 
     private void ShowDetails(ViewerItem item)
     {

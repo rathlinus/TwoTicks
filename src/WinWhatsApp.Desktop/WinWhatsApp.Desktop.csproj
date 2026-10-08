@@ -20,7 +20,8 @@
     <ApplicationVersion>1</ApplicationVersion>
     <ApplicationPublisher>WinWhatsApp</ApplicationPublisher>
 
-    <UnoFeatures>SkiaRenderer;</UnoFeatures>
+    <!-- MediaPlayerElement brings what plays sound and video: on Linux through VLC's library, on macOS through the system. -->
+    <UnoFeatures>SkiaRenderer;MediaPlayerElement;</UnoFeatures>
 
     <!-- What Uno does not have of WinUI is dealt with where it matters; the rest is noise. -->
     <NoWarn>$(NoWarn);Uno0001;NU1507;NETSDK1201</NoWarn>
@@ -167,6 +168,9 @@
 
   <ItemGroup>
     <PackageReference Include="QRCoder" Version="1.8.0" />
+    <!-- Decode voice messages for macOS, which does not play Ogg; see AudioPlayer.cs. -->
+    <PackageReference Include="Concentus" Version="2.2.2" />
+    <PackageReference Include="Concentus.OggFile" Version="1.0.7" />
   </ItemGroup>
 
   <ItemGroup>

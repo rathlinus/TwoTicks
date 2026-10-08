@@ -17,6 +17,7 @@
   "session.downloadFailed": "Download fehlgeschlagen: {error}",
   "session.cantPlay": "Diese Aufnahme kann nicht abgespielt werden. Möglicherweise fehlen in Windows die Web-Medienerweiterungen aus dem Microsoft Store.",
   "session.cantPlay@unix": "Diese Aufnahme kann nicht abgespielt werden.",
+  "session.cantPlay@linux": "Diese Aufnahme kann nicht abgespielt werden. Für Ton und Video braucht es VLC, das vielleicht nicht installiert ist.",
 
   "notify.newMessage": "Neue Nachricht",
   "notify.replyPlaceholder": "Antwort eingeben",

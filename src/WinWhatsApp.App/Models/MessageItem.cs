@@ -413,11 +413,8 @@ public sealed class MessageItem : Observable
             // Read off the UI thread. This runs while the list makes the row,
             // and these calls can let the window handle messages while they
             // wait, which runs layout inside the list's own and makes XAML end the app.
-            using Windows.Storage.FileProperties.StorageItemThumbnail frame = await Task.Run(async () =>
-            {
-                Windows.Storage.StorageFile file = await Windows.Storage.StorageFile.GetFileFromPathAsync(path);
-                return await file.GetThumbnailAsync(Windows.Storage.FileProperties.ThumbnailMode.VideosView, 480);
-            });
+            using Windows.Storage.Streams.IRandomAccessStream frame = await Task.Run(() => MediaInfo.VideoFrameAsync(path, 480))
+                ?? throw new InvalidOperationException("No frame to be had.");
             var image = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage();
             await image.SetSourceAsync(frame);
             if (_visual is null)
@@ -427,7 +424,7 @@ public sealed class MessageItem : Observable
         }
         catch (Exception)
         {
-            // Windows could not read the video; the box stays plain.
+            // The video could not be read; the box stays plain.
         }
     }
 

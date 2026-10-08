@@ -498,6 +498,13 @@ public sealed partial class ConversationView : UserControl
         bool shift = InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Shift).HasFlag(CoreVirtualKeyStates.Down);
         switch (e.Key)
         {
+#if HAS_UNO
+            // The text box here only tells of a paste when text was copied, and after it put the text in.
+            case VirtualKey.V when EmojiClipboard.CommandKeyDown() && Clipboard.GetContent() is { } copied && HasFiles(copied):
+                e.Handled = true;
+                _ = PasteFilesAsync(copied);
+                break;
+#endif
             case VirtualKey.Enter when !shift:
                 e.Handled = true;
                 _ = SendAsync();
@@ -790,23 +797,31 @@ public sealed partial class ConversationView : UserControl
         return true;
     }
 
-    private async void OnPaste(object sender, TextControlPasteEventArgs e)
+    private void OnPaste(object sender, TextControlPasteEventArgs e)
     {
         DataPackageView content = Clipboard.GetContent();
-        if (content.Contains(StandardDataFormats.StorageItems))
+        if (HasFiles(content))
         {
             e.Handled = true;
+            _ = PasteFilesAsync(content);
+        }
+    }
+
+    /// <summary>Whether what was copied is files or a picture, which are sent, and not text, which is typed.</summary>
+    private static bool HasFiles(DataPackageView content) =>
+        content.Contains(StandardDataFormats.StorageItems) || MediaInfo.HasClipboardImage(content);
+
+    /// <summary>Shows the copied files, or the copied picture as a file, to send them.</summary>
+    private async Task PasteFilesAsync(DataPackageView content)
+    {
+        if (content.Contains(StandardDataFormats.StorageItems))
+        {
             IReadOnlyList<IStorageItem> items = await content.GetStorageItemsAsync();
             ShowFiles(items.OfType<StorageFile>().Select(f => f.Path).ToList());
         }
-        else if (content.Contains(StandardDataFormats.Bitmap))
+        else if (await MediaInfo.SaveClipboardImageAsync(content) is { } path)
         {
-            e.Handled = true;
-            string? path = await MediaInfo.SaveClipboardImageAsync(content);
-            if (path is not null)
-            {
-                ShowFiles([path]);
-            }
+            ShowFiles([path]);
         }
     }
 

@@ -17,6 +17,7 @@
   "session.downloadFailed": "Download failed: {error}",
   "session.cantPlay": "This recording can't be played. Windows may be missing the Web Media Extensions from the Microsoft Store.",
   "session.cantPlay@unix": "This recording can't be played.",
+  "session.cantPlay@linux": "This recording can't be played. Playing sound and video needs VLC, which may not be installed.",
 
   "notify.newMessage": "New message",
   "notify.replyPlaceholder": "Type a reply",

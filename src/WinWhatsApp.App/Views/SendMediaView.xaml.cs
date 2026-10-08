@@ -5,9 +5,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.ApplicationModel.DataTransfer;
-using Windows.Graphics.Imaging;
 using Windows.Storage;
-using Windows.Storage.Streams;
 using Windows.System;
 using Windows.UI.Core;
 using WinWhatsApp.App.Models;
@@ -141,18 +139,12 @@ public sealed partial class SendMediaView : UserControl
         }
     }
 
-    /// <summary>A photo at its own size, or at screen size when it is larger. Null when Windows cannot read it.</summary>
+    /// <summary>A photo at its own size, or at screen size when it is larger. Null when it cannot be read.</summary>
     private static async Task<BitmapImage?> LoadPictureAsync(string path)
     {
         try
         {
-            StorageFile file = await StorageFile.GetFileFromPathAsync(path);
-            uint width, height;
-            using (IRandomAccessStream stream = await file.OpenReadAsync())
-            {
-                BitmapDecoder decoder = await BitmapDecoder.CreateAsync(stream);
-                (width, height) = (decoder.OrientedPixelWidth, decoder.OrientedPixelHeight);
-            }
+            (uint width, uint height) = await MediaInfo.PictureSizeAsync(path);
             var image = new BitmapImage();
             if (width >= height && width > MaxPreviewSide)
             {
