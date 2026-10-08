@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.WindowsRuntime;
@@ -71,6 +72,7 @@ internal static class SelfCheck
                 Note("Open chat", session.Current is { } open ? $"{open.Chat.Name}, {open.Items.Count} rows" : "none");
                 ok = session.Current is { Items.Count: > 0 };
             }
+            await NoteCallAsync(session);
             await Task.Delay(1000);
             if (app.Window.Content is FrameworkElement root)
             {
@@ -98,6 +100,29 @@ internal static class SelfCheck
         }
         Environment.ExitCode = ok ? 0 : 1;
         app.Quit();
+    }
+
+    /// <summary>
+    /// Calls the first person of the made-up chats, to see the calling engine
+    /// come up in a browser of this system. Nobody answers there, so the call
+    /// is ended as soon as the engine is ready, or after a while when it is not.
+    /// A system without a browser for it is not a failed check.
+    /// </summary>
+    private static async Task NoteCallAsync(Session session)
+    {
+        if (Calls.CallBrowser.Find() is null || session.Chats.Visible.FirstOrDefault(chat => !chat.IsGroup) is not { } person)
+        {
+            return;
+        }
+        var watch = Stopwatch.StartNew();
+        await session.Calls.StartAsync(person.Jid, person.Name);
+        while (!session.Calls.IsEngineReady && session.Calls.Phase != Calls.CallPhase.Idle && watch.Elapsed < TimeSpan.FromSeconds(45))
+        {
+            await Task.Delay(250);
+        }
+        Note("Calling engine", session.Calls.IsEngineReady ? $"ready after {watch.Elapsed.TotalSeconds:0.#} s" : $"not ready: {session.Calls.Status}");
+        session.Calls.HangUp();
+        await Task.Delay(500);
     }
 
     /// <summary>

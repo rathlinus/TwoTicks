@@ -105,6 +105,9 @@ public sealed class CallManager : Observable
     public bool IsMuted { get => _muted; private set => Set(ref _muted, value); }
     public bool IsRinging => _phase == CallPhase.Incoming;
 
+    /// <summary>Whether the calling engine is up and takes what a call has for it.</summary>
+    public bool IsEngineReady => _ready;
+
     // ---- From WhatsApp ----
 
     private void OnSignal(CallSignalData signal)
