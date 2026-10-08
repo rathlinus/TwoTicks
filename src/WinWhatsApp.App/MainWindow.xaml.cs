@@ -99,6 +99,8 @@ public sealed partial class MainWindow : Window
             }
         };
         RefreshFromSession();
+        // The chats may be there already, and then nothing changes to tell of them.
+        UpdateArchivedButton();
     }
 
     public Session Session => App.Current.Session;
