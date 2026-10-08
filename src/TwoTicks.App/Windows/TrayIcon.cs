@@ -22,7 +22,7 @@ internal sealed unsafe class TrayIcon : IDisposable
     private nint _icon;
     private nint _unreadIcon;
     private bool _unread;
-    private string _tooltip = "TwoTicks";
+    private string _tooltip = AppName.Shown;
     private bool _added;
 
     public event Action? OpenRequested;
@@ -109,7 +109,7 @@ internal sealed unsafe class TrayIcon : IDisposable
     public void SetUnread(int chats)
     {
         _unread = chats > 0;
-        _tooltip = chats > 0 ? Loc.Plural("notify.trayUnread", chats) : "TwoTicks";
+        _tooltip = chats > 0 ? Loc.Plural("notify.trayUnread", chats, ("app", AppName.Shown)) : AppName.Shown;
         if (_added)
         {
             var data = CreateData(Native.NIF_ICON | Native.NIF_TIP | Native.NIF_SHOWTIP);
@@ -147,7 +147,7 @@ internal sealed unsafe class TrayIcon : IDisposable
     private void ShowMenu()
     {
         nint menu = Native.CreatePopupMenu();
-        Native.AppendMenu(menu, Native.MF_STRING, OpenCommand, Loc.T("notify.trayOpen"));
+        Native.AppendMenu(menu, Native.MF_STRING, OpenCommand, Loc.T("notify.trayOpen", ("app", AppName.Shown)));
         if (UpdateVersion is not null)
         {
             Native.AppendMenu(menu, Native.MF_STRING, UpdateCommand, Loc.T("notify.trayInstall", ("version", UpdateVersion)));

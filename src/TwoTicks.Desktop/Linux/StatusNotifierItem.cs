@@ -1,6 +1,7 @@
 using System.Text;
 using SkiaSharp;
 using Tmds.DBus.Protocol;
+using TwoTicks.Core;
 
 namespace TwoTicks.App.Linux;
 
@@ -34,8 +35,8 @@ internal sealed class StatusNotifierItem : IDisposable
     private readonly string _name = $"org.kde.StatusNotifierItem-{Environment.ProcessId}-1";
     private Connection? _bus;
     private List<(int Size, byte[] Pixels)> _icon = [];
-    private string _title = "TwoTicks";
-    private string _tooltip = "TwoTicks";
+    private string _title = AppName.Shown;
+    private string _tooltip = AppName.Shown;
     private IReadOnlyList<TrayMenuItem> _menu = [];
     private uint _menuRevision = 1;
     private volatile bool _disposed;
@@ -165,6 +166,13 @@ internal sealed class StatusNotifierItem : IDisposable
     {
         _tooltip = text;
         Emit(ItemPath, ItemInterface, "NewToolTip");
+    }
+
+    /// <summary>The name of the app, which a panel shows where it lists its icons.</summary>
+    public void SetTitle(string text)
+    {
+        _title = text;
+        Emit(ItemPath, ItemInterface, "NewTitle");
     }
 
     public void SetMenu(IReadOnlyList<TrayMenuItem> items)

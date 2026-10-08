@@ -1,4 +1,5 @@
 using Tmds.DBus.Protocol;
+using TwoTicks.Core;
 
 namespace TwoTicks.App.Linux;
 
@@ -178,7 +179,7 @@ internal sealed class LinuxNotifications : ISystemNotifications
         MessageBuffer Write(ref MessageWriter writer)
         {
             writer.WriteMethodCallHeader(Service, ObjectPath, Service, "Notify", "susssasa{sv}i");
-            writer.WriteString(Notifier.AppId);
+            writer.WriteString(AppName.Shown);
             writer.WriteUInt32(replaces);
             writer.WriteString(File.Exists(Icon) ? Icon : "");
             writer.WriteString(notification.Title);

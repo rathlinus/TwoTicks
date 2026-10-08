@@ -143,6 +143,14 @@ void wa_dock_set_badge(const char *text) {
     });
 }
 
+// The icon in the Dock while the app runs; an empty path for the app bundle's own.
+void wa_dock_set_icon(const char *iconPath) {
+    NSString *path = Text(iconPath);
+    OnMain(^{
+        NSApp.applicationIconImage = path.length > 0 ? [[NSImage alloc] initWithContentsOfFile:path] : nil;
+    });
+}
+
 @interface WAReopenTarget : NSObject
 @end
 

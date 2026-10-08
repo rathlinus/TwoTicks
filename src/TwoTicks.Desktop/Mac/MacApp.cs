@@ -20,6 +20,15 @@ internal static unsafe class MacApp
         }
     }
 
+    /// <summary>The app's icon in the Dock while it runs, from a picture file; null for the app bundle's own.</summary>
+    public static void SetDockIcon(string? file)
+    {
+        if (MacNative.IsAvailable)
+        {
+            MacNative.wa_dock_set_icon(file ?? "");
+        }
+    }
+
     /// <summary>
     /// Calls back when the Dock icon is clicked, or the app is opened again
     /// from the Finder, while it runs: the way back to a window that was closed.

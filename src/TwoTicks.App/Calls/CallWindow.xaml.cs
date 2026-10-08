@@ -103,7 +103,7 @@ public sealed partial class CallWindow : Window
 
     private void Refresh()
     {
-        Title = _call.Name.Length > 0 ? _call.Name : Loc.T("calls.windowTitle");
+        Title = _call.Name.Length > 0 ? _call.Name : Loc.T("calls.windowTitle", ("app", AppName.Shown));
         NameText.Text = _call.Name;
         StatusText.Text = _call.Status;
         Picture.Source = _call.Avatar;

@@ -65,7 +65,7 @@ internal sealed class Notifier
     public void SetIcon(string assets)
     {
         using RegistryKey app = Registry.CurrentUser.CreateSubKey($@"Software\Classes\AppUserModelId\{AppId}");
-        app.SetValue("DisplayName", "TwoTicks");
+        app.SetValue("DisplayName", AppName.Shown);
         app.SetValue("IconUri", Path.Combine(assets, "AppIcon.png"));
     }
 

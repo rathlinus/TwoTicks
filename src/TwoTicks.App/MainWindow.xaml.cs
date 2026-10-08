@@ -281,7 +281,13 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>Puts the number of unread chats in the window's name on the taskbar.</summary>
-    public void SetUnread(int chats) => Title = chats > 0 ? $"({chats}) TwoTicks" : "TwoTicks";
+    public void SetUnread(int chats)
+    {
+        Title = chats > 0 ? $"({chats}) {AppName.Shown}" : AppName.Shown;
+#if HAS_UNO
+        SystemWindow.SetTitle(this, Title);
+#endif
+    }
 
     // ---- Following the session ----
 

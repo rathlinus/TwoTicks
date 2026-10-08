@@ -11,6 +11,7 @@ public partial class App : Application
     private TaskbarBadge? _badge;
     private DispatcherQueue _ui = null!;
     private bool _quitting;
+    private int _unread;
 
     public App()
     {
@@ -54,6 +55,7 @@ public partial class App : Application
         Log.Info($"Starting TwoTicks {typeof(App).Assembly.GetName().Version?.ToString(3)}");
 
         AppSettings settings = SettingsStore.Load();
+        AppName.Use(settings.WhatsAppIcon);
         Controls.Emoji.Load();
         _notifier = new Notifier();
         _notifier.Opened += chat => _ui.TryEnqueue(() =>
@@ -87,12 +89,9 @@ public partial class App : Application
         _tray.QuitRequested += Quit;
         _tray.UpdateRequested += () => _ = Updater.InstallNowAsync();
         _badge = new TaskbarBadge(Window);
-        Session.UnreadChanged += unread =>
-        {
-            _tray?.SetUnread(unread);
-            _badge?.Set(unread);
-            Window.SetUnread(unread);
-        };
+        Session.UnreadChanged += ShowUnread;
+        // The chats may be there already, and then nothing changes to tell of them.
+        ShowUnread(Session.Chats.UnreadChats);
 
         // A second start of the app, or a click on a notification while it runs,
         // arrives here from Program.
@@ -122,6 +121,15 @@ public partial class App : Application
         Launched();
     }
 
+    /// <summary>Shows how many chats are unread wherever the app has a place for it.</summary>
+    private void ShowUnread(int unread)
+    {
+        _unread = unread;
+        _tray?.SetUnread(unread);
+        _badge?.Set(unread);
+        Window.SetUnread(unread);
+    }
+
     /// <summary>The app is up: what a system does once everything else is.</summary>
     partial void Launched();
 
@@ -130,13 +138,18 @@ public partial class App : Application
 
     public void ShowWindow() => Window.ShowAndActivate();
 
-    /// <summary>Shows the icon picked in the settings everywhere the app has one.</summary>
+    /// <summary>
+    /// Shows the icon picked in the settings everywhere the app has one, and
+    /// the name that goes with it everywhere outside its window; see <see cref="AppName"/>.
+    /// </summary>
     public void ApplyIcon()
     {
         bool whatsApp = Session.Settings.WhatsAppIcon;
+        AppName.Use(whatsApp);
         string assets = AppIcon.Folder(whatsApp);
         Window.SetIcon(assets);
         _tray?.SetIcons(assets);
+        ShowUnread(_unread);
         try
         {
             _notifier.SetIcon(assets);

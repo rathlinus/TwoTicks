@@ -11,10 +11,19 @@ internal static partial class AppIcon
     /// notifications, in the app's menu entry. A package installs one. A copy
     /// unpacked from the archive has none, so it writes its own into the
     /// user's folder, pointing at where it runs from, with the icon picked in
-    /// the settings. On macOS the app bundle has the icon.
+    /// the settings and the name that goes with it. A user's entry comes
+    /// before the package's, so an installed copy gets one too while it goes
+    /// by WhatsApp's name. On macOS the app bundle has the icon and the name.
+    /// The icon in the Dock can be another while the app runs; the name
+    /// beside it cannot.
     /// </summary>
     public static partial void UpdateShortcuts(bool whatsApp)
     {
+        if (OperatingSystem.IsMacOS())
+        {
+            Mac.MacApp.SetDockIcon(whatsApp ? Path.Combine(Folder(true), "AppIcon.png") : null);
+            return;
+        }
         // Not for a copy that only tries something out on its own data.
         if (!OperatingSystem.IsLinux() || !AppPaths.IsDefaultDataFolder || Environment.ProcessPath is not { } exe)
         {
@@ -39,8 +48,13 @@ internal static partial class AppIcon
             {
                 File.Delete(icon);
             }
-            if (installed)
+            if (installed && !whatsApp)
             {
+                // The package's entry says it all.
+                if (File.Exists(entry))
+                {
+                    File.Delete(entry);
+                }
                 return;
             }
 
@@ -48,7 +62,7 @@ internal static partial class AppIcon
                 $"""
                 [Desktop Entry]
                 Type=Application
-                Name=TwoTicks
+                Name={AppName.Of(whatsApp)}
                 GenericName=WhatsApp client
                 Comment=A native WhatsApp app
                 Exec={Startup.Quote(exe)}

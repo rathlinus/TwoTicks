@@ -92,6 +92,29 @@ internal static partial class SystemWindow
         }
     }
 
+    /// <summary>
+    /// Tells an X server the window's name right away. Uno sets it too, but
+    /// leaves it in its queue until it next has something else to send, so a
+    /// new name, or a new number of unread chats in it, showed up on the
+    /// taskbar only once the window was used again.
+    /// </summary>
+    public static void SetTitle(Window window, string title)
+    {
+        try
+        {
+            if (OperatingSystem.IsLinux() && X11Window(window) is { } x11 && Display() is var display and not 0)
+            {
+                byte[] text = System.Text.Encoding.UTF8.GetBytes(title);
+                XChangeProperty(display, x11, XInternAtom(display, "_NET_WM_NAME", 0), XInternAtom(display, "UTF8_STRING", 0), 8, 0, text, text.Length);
+                XFlush(display);
+            }
+        }
+        catch (Exception e) when (e is DllNotFoundException or EntryPointNotFoundException)
+        {
+            Log.Error("Could not name the window", e);
+        }
+    }
+
     /// <summary>The window's NSWindow on macOS, or null.</summary>
     public static nint? NSWindow(Window window)
     {
@@ -131,6 +154,12 @@ internal static partial class SystemWindow
 
     [LibraryImport("libX11.so.6")]
     private static partial int XFlush(nint display);
+
+    [LibraryImport("libX11.so.6", StringMarshalling = StringMarshalling.Utf8)]
+    private static partial nint XInternAtom(nint display, string name, int onlyIfExists);
+
+    [LibraryImport("libX11.so.6")]
+    private static partial int XChangeProperty(nint display, nint window, nint property, nint type, int format, int mode, byte[] data, int count);
 
     [LibraryImport("/usr/lib/libobjc.dylib", StringMarshalling = StringMarshalling.Utf8)]
     private static partial nint objc_getClass(string name);

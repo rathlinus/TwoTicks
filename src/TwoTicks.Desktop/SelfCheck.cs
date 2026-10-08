@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media.Imaging;
 using SkiaSharp;
 using TwoTicks.App.Models;
+using TwoTicks.Core;
 
 namespace TwoTicks.App;
 
@@ -51,6 +52,7 @@ internal static class SelfCheck
             Directory.CreateDirectory(s_folder);
             Note("System", $"{RuntimeInformation.OSDescription} {RuntimeInformation.ProcessArchitecture}");
             Note("Emoji font", File.Exists(Controls.Emoji.FontFile) ? "there" : "missing");
+            Note("Name", $"{AppName.Shown}, window \"{app.Window.Title}\"");
 
             Session session = app.Session;
             for (int i = 0; i < 100 && session.Chats.Visible.Count == 0; i++)

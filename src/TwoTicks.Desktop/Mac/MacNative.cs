@@ -61,6 +61,9 @@ internal static unsafe partial class MacNative
     [LibraryImport(Library, StringMarshalling = StringMarshalling.Utf8)]
     public static partial void wa_dock_set_badge(string text);
 
+    [LibraryImport(Library, StringMarshalling = StringMarshalling.Utf8)]
+    public static partial void wa_dock_set_icon(string iconPath);
+
     [LibraryImport(Library)]
     public static partial void wa_app_on_reopen(delegate* unmanaged[Cdecl]<void> callback);
 

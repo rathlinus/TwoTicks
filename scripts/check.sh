@@ -9,7 +9,8 @@
 #
 # On macOS the app bundle scripts/release.sh made is checked as well, when
 # there is one, with its results in artifacts/check/bundle: the icon in the
-# menu bar and notifications only exist for the bundle.
+# menu bar and notifications only exist for the bundle. That run has the
+# setting on that shows WhatsApp's icon and name, so both ways are seen.
 #
 # Needs Go for the stand-in helper. On Linux without a screen it needs Xvfb.
 
@@ -30,12 +31,12 @@ trap 'rm -rf "$work"' EXIT
 (cd "$repo/scripts/screenshots/demo-bridge" && go build -o "$work/TwoTicks.Bridge" .)
 
 # Runs one copy of the app and waits for it to finish its check.
-#   check <program> <folder for the results>
+#   check <program> <folder for the results> [true to show WhatsApp's icon and name]
 check() {
-    local program="$1" results="$2" data status=0 pid
+    local program="$1" results="$2" whatsapp="${3:-false}" data status=0 pid
     data="$(mktemp -d "$work/data.XXXXXX")"
-    cat > "$data/settings.json" << 'EOF'
-{ "Notifications": true, "CloseToTray": false, "Theme": "Light", "ChatListWidth": 400,
+    cat > "$data/settings.json" << EOF
+{ "Notifications": true, "CloseToTray": false, "Theme": "Light", "ChatListWidth": 400, "WhatsAppIcon": $whatsapp,
   "Window": { "X": 40, "Y": 40, "Width": 1400, "Height": 900, "Maximized": false } }
 EOF
     mkdir -p "$results"
@@ -87,7 +88,7 @@ if [ "$(uname -s)" = Darwin ]; then
         cp "$work/TwoTicks.Bridge" "$work/TwoTicks.app/Contents/Resources/TwoTicks.Bridge"
         # The helper changed, so the signature has to be made again.
         codesign --force --deep --sign - "$work/TwoTicks.app" 2> /dev/null || true
-        check "$work/TwoTicks.app/Contents/MacOS/TwoTicks" "$out/bundle" || status=$?
+        check "$work/TwoTicks.app/Contents/MacOS/TwoTicks" "$out/bundle" true || status=$?
     fi
 fi
 

@@ -43,7 +43,7 @@ internal sealed class TrayIcon : IDisposable
             }
             else if (OperatingSystem.IsMacOS())
             {
-                _macItem = Mac.MacStatusItem.Create(IconFile, "TwoTicks", Menu());
+                _macItem = Mac.MacStatusItem.Create(IconFile, AppName.Shown, Menu());
             }
         }
         catch (Exception e)
@@ -74,7 +74,7 @@ internal sealed class TrayIcon : IDisposable
 
     private List<TrayMenuItem> Menu()
     {
-        var items = new List<TrayMenuItem> { new(1, Loc.T("notify.trayOpen"), () => _ui.TryEnqueue(() => OpenRequested?.Invoke())) };
+        var items = new List<TrayMenuItem> { new(1, Loc.T("notify.trayOpen", ("app", AppName.Shown)), () => _ui.TryEnqueue(() => OpenRequested?.Invoke())) };
         if (_updateVersion is not null)
         {
             items.Add(new(3, Loc.T("notify.trayInstall", ("version", _updateVersion)), () => _ui.TryEnqueue(() => UpdateRequested?.Invoke())));
@@ -84,18 +84,21 @@ internal sealed class TrayIcon : IDisposable
         return items;
     }
 
-    /// <summary>Switches to the icons in another folder.</summary>
+    /// <summary>Switches to the icons in another folder, and to the name that goes with them; see <see cref="AppName"/>.</summary>
     public void SetIcons(string assets)
     {
         _assets = assets;
         _item?.SetIcon(IconFile);
+        _item?.SetTitle(AppName.Shown);
+        _item?.SetMenu(Menu());
         _macItem?.SetIcon(IconFile);
+        _macItem?.SetMenu(Menu());
     }
 
     /// <summary>Shows how many chats are unread, in the icon and its tooltip.</summary>
     public void SetUnread(int chats)
     {
-        string tooltip = chats > 0 ? Loc.Plural("notify.trayUnread", chats) : "TwoTicks";
+        string tooltip = chats > 0 ? Loc.Plural("notify.trayUnread", chats, ("app", AppName.Shown)) : AppName.Shown;
         if (_unread != chats > 0)
         {
             _unread = chats > 0;
