@@ -463,7 +463,12 @@ public sealed partial class MediaViewer : UserControl
         {
             return;
         }
+#if HAS_UNO
+        // Command on a Mac.
+        bool control = Controls.EmojiClipboard.CommandKeyDown();
+#else
         bool control = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Control).HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
+#endif
         switch (e.Key)
         {
             case VirtualKey.Left:

@@ -1,6 +1,9 @@
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Input;
+using Windows.Foundation;
 using Windows.Graphics;
+using Windows.System;
 using WinWhatsApp.Core;
 
 namespace WinWhatsApp.App;
@@ -19,6 +22,19 @@ public sealed partial class MainWindow
     {
         CaptionButtons.Visibility = Visibility.Collapsed;
         Controls.EmojiClipboard.Attach(Root);
+        if (OperatingSystem.IsMacOS())
+        {
+            // The shortcuts with Control, as XAML has them, also with Command, as a Mac has them.
+            AddCommandKey(VirtualKey.F, OnFindInvoked);
+            AddCommandKey(VirtualKey.N, OnNewChatInvoked);
+        }
+    }
+
+    private void AddCommandKey(VirtualKey key, TypedEventHandler<KeyboardAccelerator, KeyboardAcceleratorInvokedEventArgs> invoked)
+    {
+        var accelerator = new KeyboardAccelerator { Key = key, Modifiers = VirtualKeyModifiers.Windows };
+        accelerator.Invoked += invoked;
+        Root.KeyboardAccelerators.Add(accelerator);
     }
 
     private void OnCloseClick(object sender, RoutedEventArgs e) => Close();
