@@ -44,7 +44,7 @@ internal sealed partial class VoipEngine
         {
             _browser = null;
             _profile = null;
-            CallBrowser.Stop(browser, profile);
+            CallBrowser.Stop(browser, profile, wait: _disposed);
         }
     }
 }

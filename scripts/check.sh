@@ -26,7 +26,8 @@ if [ ! -x "$app/TwoTicks" ]; then
 fi
 
 work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+# A browser the app ran its calling engine in may still be closing in there.
+trap 'rm -rf "$work" 2> /dev/null || true' EXIT
 # The stand-in for the WhatsApp helper; see scripts/screenshots/README.md.
 (cd "$repo/scripts/screenshots/demo-bridge" && go build -o "$work/TwoTicks.Bridge" .)
 

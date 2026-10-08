@@ -227,31 +227,42 @@ internal sealed class CallBrowser
 
         """;
 
-    /// <summary>Stops a browser this started and deletes its profile. Does not wait for either.</summary>
-    public static void Stop(Process process, string profile) => _ = Task.Run(async () =>
+    /// <summary>
+    /// Stops a browser this started and deletes its profile. That takes a
+    /// moment, which the app only waits for when it quits: otherwise the
+    /// browser would write into a profile nobody deletes any more.
+    /// </summary>
+    public static void Stop(Process process, string profile, bool wait)
     {
-        try
+        Task stopping = Task.Run(async () =>
         {
-            // Closing the pipe asks the browser to quit; it gets a moment for that.
-            process.StandardInput.Close();
-            using var patience = new CancellationTokenSource(TimeSpan.FromSeconds(3));
             try
             {
-                await process.WaitForExitAsync(patience.Token);
+                // Closing the pipe asks the browser to quit; it gets a moment for that.
+                process.StandardInput.Close();
+                using var patience = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+                try
+                {
+                    await process.WaitForExitAsync(patience.Token);
+                }
+                catch (OperationCanceledException)
+                {
+                    process.Kill(entireProcessTree: true);
+                    await process.WaitForExitAsync();
+                }
             }
-            catch (OperationCanceledException)
+            catch (Exception e) when (e is InvalidOperationException or IOException or System.ComponentModel.Win32Exception)
             {
-                process.Kill(entireProcessTree: true);
-                await process.WaitForExitAsync();
+                Log.Error("Could not stop the calling engine's browser", e);
             }
-        }
-        catch (Exception e) when (e is InvalidOperationException or IOException or System.ComponentModel.Win32Exception)
+            process.Dispose();
+            Remove(profile);
+        });
+        if (wait)
         {
-            Log.Error("Could not stop the calling engine's browser", e);
+            stopping.Wait(TimeSpan.FromSeconds(5));
         }
-        process.Dispose();
-        Remove(profile);
-    });
+    }
 
     private static void Remove(string profile)
     {
