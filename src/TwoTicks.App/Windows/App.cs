@@ -15,6 +15,8 @@ public partial class App
     /// <summary>Ties a file picker to the main window, which a picker needs before it can show.</summary>
     public void InitializePicker(object picker) => WinRT.Interop.InitializeWithWindow.Initialize(picker, WindowHandle);
 
+    partial void Launched() => FormerName.Forget();
+
     private partial void ListenForSecondStart(Action started) =>
         AppInstance.GetCurrent().Activated += (_, _) => started();
 

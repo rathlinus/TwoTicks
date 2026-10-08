@@ -6,6 +6,11 @@
 ; current user, adds it to the Start menu and, if wanted, to the programs that
 ; start at sign-in. The messages and the session stay in %LOCALAPPDATA%\TwoTicks;
 ; the uninstaller asks before deleting them.
+;
+; Up to version 0.5 the app was called WinWhatsApp. Setup replaces an install
+; of that name: the AppId is the same, and what carries the old name is removed
+; or renamed where FormerName is mentioned below. The app does the rest when it
+; starts; see Windows\FormerName.cs.
 
 #ifndef AppVersion
   #error Pass the version with /DAppVersion=<major.minor.patch>
@@ -37,6 +42,8 @@ WizardSmallImageFile=installer-small.bmp
 ; Installed for the current user only. No administrator is needed.
 PrivilegesRequired=lowest
 DefaultDirName={localappdata}\Programs\TwoTicks
+; Not the folder of an install of the former name, which is deleted below.
+UsePreviousAppDir=no
 DisableDirPage=yes
 DisableProgramGroupPage=yes
 DisableReadyPage=yes
@@ -87,6 +94,9 @@ Name: "autostart"; Description: "{cm:AutostartTask}"
 ; The files of the Windows App SDK differ from version to version; leftovers of
 ; an older one must not mix with the new.
 Type: filesandordirs; Name: "{app}\*"
+; What an install of the former name left: its folder and its Start menu entry.
+Type: filesandordirs; Name: "{localappdata}\Programs\WinWhatsApp"
+Type: files; Name: "{userprograms}\WinWhatsApp.lnk"
 
 [Files]
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Excludes: "*.pdb"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -101,6 +111,8 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 ; TwoTicks writes this itself at every start; listing it here lets the
 ; uninstaller remove it.
 Root: HKCU; Subkey: "Software\Classes\AppUserModelId\TwoTicks"; Flags: uninsdeletekey dontcreatekey
+; The same under the former name, which nothing writes any more.
+Root: HKCU; Subkey: "Software\Classes\AppUserModelId\WinWhatsApp"; Flags: deletekey dontcreatekey
 
 [Run]
 Filename: "{app}\TwoTicks.exe"; Description: "{cm:StartApp}"; Flags: postinstall nowait skipifsilent
@@ -120,13 +132,20 @@ Filename: "{sys}\taskkill.exe"; Parameters: "/IM TwoTicks.Bridge.exe /F"; Flags:
 //   /UPDATEWINDOW=<left>,<top>,<width>,<height>,<dpi>
 //                   where the app shows its update window, in pixels
 //   /LOGO=<file>    the logo for that window, as a PNG of the right size
+//   /UPDATETITLE=<text>
+//                   the title of that window, by which the app finds it
 //
 // With /UPDATEWINDOW, setup draws the same window at the same place before the
 // app quits, so the window stays on screen until the new version starts. Its
 // layout and the hop of the logo match UpdateWindow.xaml in the app.
 
 const
-  UpdateWindowTitle = 'TwoTicks update';
+  // What the app was called up to version 0.5.
+  FormerName = 'WinWhatsApp';
+  // A version of that name does not pass a title for the update window and
+  // looks for this one.
+  FormerUpdateWindowTitle = 'WinWhatsApp update';
+  RunKey = 'Software\Microsoft\Windows\CurrentVersion\Run';
   // The logo hops this high, in DIPs, for HopTime milliseconds out of every HopPeriod.
   HopHeight = 14;
   HopTime = 700;
@@ -318,7 +337,7 @@ begin
   UpdateForm.BorderStyle := bsNone;
   UpdateForm.Position := poDesigned;
   UpdateForm.FormStyle := fsStayOnTop;
-  UpdateForm.Caption := UpdateWindowTitle;
+  UpdateForm.Caption := ExpandConstant('{param:updatetitle|' + FormerUpdateWindowTitle + '}');
   UpdateForm.Color := $1A140B;
   UpdateForm.SetBounds(Left, Top, Width, Height);
 
@@ -378,6 +397,17 @@ begin
     ShowUpdateWindow;
 end;
 
+// Ends a version of the former name that still runs. Restart Manager does not
+// see it: it only looks at the files setup is about to write, and those are in
+// another folder now.
+procedure StopFormerVersion;
+var
+  Code: Integer;
+begin
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM ' + FormerName + '.exe', '', SW_HIDE, ewWaitUntilTerminated, Code);
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM ' + FormerName + '.Bridge.exe', '', SW_HIDE, ewWaitUntilTerminated, Code);
+end;
+
 // The app quits after it started setup, and passes /NOCLOSEAPPLICATIONS:
 // waiting for it here is quicker than Restart Manager, which looks through
 // every file for programs that use it.
@@ -390,7 +420,10 @@ begin
   Result := '';
   Process := OpenProcess(SYNCHRONIZE, False, StrToIntDef(ExpandConstant('{param:waitpid|0}'), 0));
   if Process = 0 then
+  begin
+    StopFormerVersion;
     Exit;
+  end;
   try
     Log('Waiting for TwoTicks to quit');
     Start := GetTickCount;
@@ -400,13 +433,14 @@ begin
     begin
       // The helper goes with it, as the app ties it to its own process.
       Log('TwoTicks did not quit; ending it');
-      Exec(ExpandConstant('{sys}	askkill.exe'), '/F /PID ' + ExpandConstant('{param:waitpid|0}'), '', SW_HIDE, ewWaitUntilTerminated, Code);
+      Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /PID ' + ExpandConstant('{param:waitpid|0}'), '', SW_HIDE, ewWaitUntilTerminated, Code);
       WaitForSingleObject(Process, 5000);
     end;
     Log(Format('Waited %d ms for TwoTicks to quit', [GetTickCount - Start]));
   finally
     CloseHandle(Process);
   end;
+  StopFormerVersion;
 end;
 
 procedure CurInstallProgressChanged(CurProgress, MaxProgress: Integer);
@@ -420,6 +454,12 @@ begin
   if CurStep = ssPostInstall then
   begin
     Installed := True;
+    // Starting at sign-in, as set under the former name, goes on under this one.
+    if RegValueExists(HKEY_CURRENT_USER, RunKey, FormerName) then
+    begin
+      RegDeleteValue(HKEY_CURRENT_USER, RunKey, FormerName);
+      RegWriteStringValue(HKEY_CURRENT_USER, RunKey, 'TwoTicks', '"' + ExpandConstant('{app}\TwoTicks.exe') + '" --background');
+    end;
     if UpdateForm <> nil then
     begin
       SetUpdateTitle(CustomMessage('UpdateStarting'));
@@ -445,11 +485,35 @@ begin
     UpdateForm.Free;
     UpdateForm := nil;
   end;
-  // An update that failed starts the old version again, so the app does not just vanish.
+  // An update that failed starts the old version again, so the app does not
+  // just vanish: the one of this name, or the one of the former name that
+  // started the update.
   if Relaunching and not Installed then
   try
     if FileExists(ExpandConstant('{app}\TwoTicks.exe')) then
-      Exec(ExpandConstant('{app}\TwoTicks.exe'), RelaunchParameters(''), '', SW_SHOW, ewNoWait, Code);
+      Exec(ExpandConstant('{app}\TwoTicks.exe'), RelaunchParameters(''), '', SW_SHOW, ewNoWait, Code)
+    else if FileExists(ExpandConstant('{localappdata}\Programs\' + FormerName + '\' + FormerName + '.exe')) then
+      Exec(ExpandConstant('{localappdata}\Programs\' + FormerName + '\' + FormerName + '.exe'), RelaunchParameters(''), '', SW_SHOW, ewNoWait, Code);
+  except
+  end;
+end;
+
+// The app gives its Start menu entry WhatsApp's name while it shows WhatsApp's
+// icon. Setup only knows the entry it wrote, so this removes the renamed one,
+// if it is the app's and not another program's.
+procedure DeleteRenamedShortcut;
+var
+  Shell, Shortcut: Variant;
+  Path: String;
+begin
+  Path := ExpandConstant('{userprograms}\WhatsApp.lnk');
+  if not FileExists(Path) then
+    Exit;
+  try
+    Shell := CreateOleObject('WScript.Shell');
+    Shortcut := Shell.CreateShortcut(Path);
+    if CompareText(Shortcut.TargetPath, ExpandConstant('{app}\TwoTicks.exe')) = 0 then
+      DeleteFile(Path);
   except
   end;
 end;
@@ -458,15 +522,22 @@ end;
 // go only when asked, so reinstalling keeps them.
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
-  DataDir: String;
+  DataDir, FormerDataDir: String;
 begin
+  if CurUninstallStep = usUninstall then
+    DeleteRenamedShortcut;
   if CurUninstallStep = usPostUninstall then
   begin
     DataDir := ExpandConstant('{localappdata}\TwoTicks');
-    if DirExists(DataDir) and not UninstallSilent then
+    // Still there when the app never started under its new name.
+    FormerDataDir := ExpandConstant('{localappdata}\' + FormerName);
+    if (DirExists(DataDir) or DirExists(FormerDataDir)) and not UninstallSilent then
     begin
       if MsgBox(CustomMessage('DeleteData'), mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then
+      begin
         DelTree(DataDir, True, True, True);
+        DelTree(FormerDataDir, True, True, True);
+      end;
     end;
   end;
 end;

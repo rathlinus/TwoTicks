@@ -97,6 +97,10 @@ func newBridge(dataDir string, log *fileLogger, out *output) (*Bridge, error) {
 		cancel()
 		return nil, err
 	}
+	if err := rebasePaths(ctx, b.w, dataDir); err != nil {
+		// The files are still there; they only show as not downloaded.
+		log.Warnf("Failed to point the database at the data folder: %v", err)
+	}
 
 	sessionPath := filepath.ToSlash(filepath.Join(dataDir, "session.db"))
 	b.container, err = sqlstore.New(ctx, "sqlite",

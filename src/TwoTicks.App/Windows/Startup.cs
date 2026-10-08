@@ -1,4 +1,5 @@
 using Microsoft.Win32;
+using TwoTicks.Core;
 
 namespace TwoTicks.App;
 
@@ -32,10 +33,24 @@ internal static class Startup
         }
     }
 
-    /// <summary>Points the entry at this copy of the app, in case it moved since it was set.</summary>
+    /// <summary>
+    /// Points the entry at this copy of the app, in case it moved since it was
+    /// set. An entry under the app's former name becomes one under this name;
+    /// see <see cref="FormerName"/>.
+    /// </summary>
     public static void Refresh()
     {
-        if (IsEnabled)
+        bool hadFormer = false;
+        if (FormerName.Applies)
+        {
+            using RegistryKey? key = Registry.CurrentUser.OpenSubKey(RunKey, writable: true);
+            if (key?.GetValue(FormerName.Name) is string)
+            {
+                key.DeleteValue(FormerName.Name, throwOnMissingValue: false);
+                hadFormer = true;
+            }
+        }
+        if (hadFormer || IsEnabled)
         {
             SetEnabled(true);
         }

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"unicode/utf8"
 
 	_ "modernc.org/sqlite"
 )
@@ -94,6 +95,12 @@ CREATE TABLE IF NOT EXISTS avatars (
 	picture_id TEXT NOT NULL DEFAULT '',
 	path       TEXT NOT NULL DEFAULT '',
 	checked_at INTEGER NOT NULL DEFAULT 0
+);
+
+-- What the database knows about itself, such as the folder it is kept in.
+CREATE TABLE IF NOT EXISTS meta (
+	key   TEXT PRIMARY KEY,
+	value TEXT NOT NULL
 );
 `
 
@@ -490,4 +497,51 @@ func truncate(s string, n int) string {
 		i++
 	}
 	return s
+}
+
+// rebasePaths points the files the database remembers at the data folder as
+// it is now. Downloaded files and profile pictures are stored with their full
+// path, so a data folder that was moved or renamed, as when the app got a new
+// name, left every one of them pointing at where it used to be.
+//
+// The folder is written down from now on. A database from before that does
+// not say where it was, but its profile pictures do: they are always kept in
+// the data folder. Files that were sent from somewhere else stay as they are.
+func rebasePaths(ctx context.Context, db *sql.DB, dataDir string) error {
+	dataDir, err := filepath.Abs(dataDir)
+	if err != nil {
+		return err
+	}
+	var former string
+	err = db.QueryRowContext(ctx, `SELECT value FROM meta WHERE key = 'data_dir'`).Scan(&former)
+	if errors.Is(err, sql.ErrNoRows) {
+		var picture string
+		err = db.QueryRowContext(ctx, `SELECT path FROM avatars WHERE path != '' LIMIT 1`).Scan(&picture)
+		if errors.Is(err, sql.ErrNoRows) {
+			err = nil
+		} else if err == nil && filepath.Base(filepath.Dir(picture)) == "avatars" {
+			former = filepath.Dir(filepath.Dir(picture))
+		}
+	}
+	if err != nil {
+		return err
+	}
+	if former != "" && former != dataDir {
+		from := former + string(filepath.Separator)
+		to := dataDir + string(filepath.Separator)
+		// SQLite counts characters, not bytes.
+		length := utf8.RuneCountInString(from)
+		for _, query := range []string{
+			`UPDATE messages SET local_path = ?1 || substr(local_path, ?2) WHERE substr(local_path, 1, ?3) = ?4`,
+			`UPDATE avatars SET path = ?1 || substr(path, ?2) WHERE substr(path, 1, ?3) = ?4`,
+		} {
+			if _, err := db.ExecContext(ctx, query, to, length+1, length, from); err != nil {
+				return err
+			}
+		}
+	}
+	_, err = db.ExecContext(ctx, `
+		INSERT INTO meta (key, value) VALUES ('data_dir', ?)
+		ON CONFLICT (key) DO UPDATE SET value = excluded.value`, dataDir)
+	return err
 }

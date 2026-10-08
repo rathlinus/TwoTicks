@@ -6,6 +6,12 @@ namespace TwoTicks.Core;
 public static class AppPaths
 {
     /// <summary>
+    /// What the app was called up to version 0.5. On Windows, what a version
+    /// of that time put on the computer still carries the name.
+    /// </summary>
+    public const string FormerName = "WinWhatsApp";
+
+    /// <summary>
     /// Where everything lives: the session, the messages, downloaded media, the
     /// settings and the logs. TWOTICKS_DATA points a second copy elsewhere,
     /// for trying things without touching the real account.
@@ -13,7 +19,33 @@ public static class AppPaths
     public static string DataFolder { get; } =
         Environment.GetEnvironmentVariable("TWOTICKS_DATA") is { Length: > 0 } custom
             ? Path.GetFullPath(custom)
-            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TwoTicks");
+            : TakeOver(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
+
+    /// <summary>
+    /// The data folder in a folder of the system. A version under the app's
+    /// former name kept it there under that name; that folder is renamed,
+    /// once, so the account and the messages come along. When that cannot be
+    /// done now, because something still has files open in it, the app goes
+    /// on in the old folder and tries again the next time it starts.
+    /// </summary>
+    public static string TakeOver(string parent)
+    {
+        string folder = Path.Combine(parent, AppName.Own);
+        string former = Path.Combine(parent, FormerName);
+        if (Directory.Exists(folder) || !Directory.Exists(former))
+        {
+            return folder;
+        }
+        try
+        {
+            Directory.Move(former, folder);
+            return folder;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return former;
+        }
+    }
 
     /// <summary>Whether the data folder is the usual one, or one set for testing.</summary>
     public static bool IsDefaultDataFolder => Environment.GetEnvironmentVariable("TWOTICKS_DATA") is not { Length: > 0 };
@@ -46,7 +78,7 @@ public sealed class AppSettings
     /// <summary>The language of the app, such as "de"; null for the one Windows shows.</summary>
     public string? Language { get; set; }
 
-    /// <summary>Shows WhatsApp's own icon instead of the TwoTicks logo.</summary>
+    /// <summary>Shows WhatsApp's own icon instead of the TwoTicks logo, and with it WhatsApp's name; see <see cref="AppName"/>.</summary>
     public bool WhatsAppIcon { get; set; }
 
     public WindowPlacement? Window { get; set; }

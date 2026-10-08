@@ -32,6 +32,8 @@ public static class Program
             Log.Info("Handed over to the running instance");
             return 0;
         }
+        // Before the first look at the data, which a version of the old name may still have open.
+        FormerName.StopRunning();
 
         UseLanguage(SettingsStore.Load().Language);
 

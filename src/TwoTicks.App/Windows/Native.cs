@@ -286,11 +286,53 @@ internal static partial class Native
 
     // Shortcuts: the Start menu entry and a pinned taskbar button get the icon picked in the settings.
 
-    public const int SHCNE_UPDATEITEM = 0x2000, SHCNE_ASSOCCHANGED = 0x08000000;
+    public const int SHCNE_RENAMEITEM = 0x1, SHCNE_DELETE = 0x4, SHCNE_UPDATEITEM = 0x2000, SHCNE_ASSOCCHANGED = 0x08000000;
     public const uint SHCNF_IDLIST = 0x0, SHCNF_PATHW = 0x5;
 
     [LibraryImport("shell32.dll", StringMarshalling = StringMarshalling.Utf16)]
     public static partial void SHChangeNotify(int eventId, uint flags, string? item1, nint item2);
+
+    /// <summary>The same, for a file that got another name: the old path and the new one.</summary>
+    [LibraryImport("shell32.dll", EntryPoint = "SHChangeNotify", StringMarshalling = StringMarshalling.Utf16)]
+    public static partial void SHChangeNotifyRename(int eventId, uint flags, string from, string to);
+
+    // The AppUserModelID of a shortcut is one of its properties, not part of the link itself.
+
+    public const ushort VT_LPWSTR = 31;
+    public const uint STGM_READWRITE = 0x2;
+
+    /// <summary>System.AppUserModel.ID.</summary>
+    public static PropertyKey AppUserModelIdKey => new() { FormatId = new Guid("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3"), PropertyId = 5 };
+
+    [StructLayout(LayoutKind.Sequential, Pack = 4)]
+    public struct PropertyKey
+    {
+        public Guid FormatId;
+        public uint PropertyId;
+    }
+
+    /// <summary>A PROPVARIANT that holds a string: its type, and after padding the pointer to the text.</summary>
+    [StructLayout(LayoutKind.Explicit, Size = 24)]
+    public struct PropVariant
+    {
+        [FieldOffset(0)]
+        public ushort Type;
+
+        [FieldOffset(8)]
+        public nint Pointer;
+    }
+
+    [ComImport]
+    [Guid("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface IPropertyStore
+    {
+        void GetCount(out uint count);
+        void GetAt(uint index, out PropertyKey key);
+        void GetValue(ref PropertyKey key, out PropVariant value);
+        void SetValue(ref PropertyKey key, ref PropVariant value);
+        void Commit();
+    }
 
     [ComImport]
     [Guid("000214F9-0000-0000-C000-000000000046")]

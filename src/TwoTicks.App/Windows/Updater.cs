@@ -55,7 +55,8 @@ internal sealed partial class Updater
         if (window is not null && window.SaveLogoForSetup(DownloadFolder) is { } logo)
         {
             (Windows.Graphics.RectInt32 bounds, uint dpi) = window.Placement;
-            arguments += $" /UPDATEWINDOW={bounds.X},{bounds.Y},{bounds.Width},{bounds.Height},{dpi} /LOGO=\"{logo}\"";
+            arguments += $" /UPDATEWINDOW={bounds.X},{bounds.Y},{bounds.Width},{bounds.Height},{dpi} /LOGO=\"{logo}\"" +
+                $" /UPDATETITLE=\"{UpdateWindow.SetupWindowTitle}\"";
         }
         else
         {

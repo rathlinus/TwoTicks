@@ -48,6 +48,12 @@ jobs:
         shell: powershell
         run: scripts\release.ps1 -Version 0.0.1
 
+      # Up to version 0.5 the app had another name. This installs that version,
+      # updates it with the setup program just built and looks at what is left.
+      - name: Check the update from the former name
+        shell: powershell
+        run: scripts\check-upgrade.ps1 -Setup (Get-ChildItem artifacts\release\*-Setup.exe).FullName
+
       # Enough to try out what a change produced: run the setup program, or unpack
       # the zip and start TwoTicks.exe.
       - uses: actions/upload-artifact@v7

@@ -23,6 +23,7 @@ public sealed partial class UpdateWindow : Window
     private const int LogoSize = 96;
 
     /// <summary>The window class and title of setup's copy of the window.</summary>
+    // Passed to setup with /UPDATETITLE, so that each finds the other's window; see packaging\TwoTicks.iss.
     internal const string SetupWindowClass = "TSetupForm", SetupWindowTitle = "TwoTicks update";
 
     // The logo hops this high for HopTime out of every HopPeriod; setup's copy
