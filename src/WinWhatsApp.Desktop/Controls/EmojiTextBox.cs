@@ -16,6 +16,13 @@ public sealed partial class EmojiTextBox : TextBox
     public EmojiTextBox()
     {
         TextChanged += OnTextChanged;
+        // A class of its own does not get the look the app gives every
+        // TextBox: Uno falls back to an older one, with a fill of its own that
+        // the XAML around the box cannot take away.
+        if (Application.Current.Resources.TryGetValue("DefaultTextBoxStyle", out object? style) && style is Style look)
+        {
+            Style = look;
+        }
     }
 
     /// <summary>The text, with the emoji as emoji and line breaks as \n.</summary>
