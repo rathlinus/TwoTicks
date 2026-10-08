@@ -91,13 +91,96 @@ public sealed class MessageItem : Observable
 
     private void Apply(MessageData data)
     {
-        Spans = WhatsAppText.Parse(DisplayText(data), data.Mentions);
+        MessageData captioned = _album?.FirstOrDefault(m => !string.IsNullOrEmpty(m._data.Text))?._data ?? data;
+        Spans = WhatsAppText.Parse(DisplayText(captioned), captioned.Mentions);
         IsJumbo = data.Kind == "text" && data.Quote is null && WhatsAppText.IsJumboEmoji(data.Text);
         TimeText = Formatting.MessageTime(data.Ts);
 
         // Everything else is computed from the data; tell the bindings it changed.
         OnPropertyChanged(string.Empty);
+        // The album's bubble shows the ticks, reactions and caption of its photos.
+        if (_albumLead is { } lead)
+        {
+            lead.Apply(lead._data);
+        }
     }
+
+    // ---- Albums ----
+
+    // How many photos an album shows; the last one tells how many more there are.
+    private const int MaxAlbumTiles = 4;
+
+    private List<MessageItem>? _album;
+    private MessageItem? _albumLead;
+
+    /// <summary>The album the photo or video was sent in; null for anything else.</summary>
+    public string? AlbumId => _data.Kind is "image" or "video" or "gif" && !string.IsNullOrEmpty(_data.Album) ? _data.Album : null;
+
+    /// <summary>
+    /// On the first photo of an album: all its photos and videos, this one
+    /// included. They share its row and its bubble.
+    /// </summary>
+    public IReadOnlyList<MessageItem>? Album => _album;
+
+    public bool IsAlbum => _album is not null;
+
+    /// <summary>The message whose row shows this one: the first of its album, or itself.</summary>
+    public MessageItem Row => _albumLead ?? this;
+
+    /// <summary>Whether a message that follows this one belongs in the same album bubble.</summary>
+    public bool CanJoin(MessageItem next) =>
+        AlbumId is { } id && next.AlbumId == id && next.FromMe == FromMe && next.Data.Sender == _data.Sender && next.Day == Day;
+
+    /// <summary>Makes this message the first of an album with the given photos, or a message of its own again.</summary>
+    public void SetAlbum(List<MessageItem>? members)
+    {
+        var before = _album;
+        _album = members is { Count: > 1 } ? members : null;
+        foreach (MessageItem member in before ?? [])
+        {
+            if (member != this && member._albumLead == this && _album?.Contains(member) != true)
+            {
+                member._albumLead = null;
+                member.OnPropertyChanged(string.Empty);
+            }
+        }
+        foreach (MessageItem member in _album ?? [])
+        {
+            if (member != this)
+            {
+                member._albumLead = this;
+                member.OnPropertyChanged(string.Empty);
+            }
+        }
+        if (_realized)
+        {
+            foreach (MessageItem tile in AlbumTiles ?? [])
+            {
+                if (tile != this && !tile._realized)
+                {
+                    tile.Realize();
+                }
+            }
+        }
+        Apply(_data);
+    }
+
+    /// <summary>The photos the album's bubble shows.</summary>
+    public IReadOnlyList<MessageItem>? AlbumTiles => _album?.Take(MaxAlbumTiles).ToList();
+
+    public const double AlbumWidth = 326;
+
+    /// <summary>On the last photo an album shows: how many more it has.</summary>
+    public string AlbumMoreText =>
+        Row._album is { Count: > MaxAlbumTiles } all && all[MaxAlbumTiles - 1] == this ? $"+{all.Count - MaxAlbumTiles}" : "";
+
+    public Visibility AlbumMoreVisibility => AlbumMoreText.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+    /// <summary>The play button of a video among an album's photos, unless the count covers it.</summary>
+    public Visibility AlbumPlayVisibility => IsPlayable && !_isBusy && AlbumMoreText.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+    /// <summary>A photo or video in a bubble of its own.</summary>
+    public bool ShowsVisual => HasVisual && !IsAlbum;
 
     private static string DisplayText(MessageData data) => data.Kind switch
     {
@@ -231,7 +314,8 @@ public sealed class MessageItem : Observable
 
     // ---- Ticks and time ----
 
-    public int Status => _data.Status;
+    /// <summary>The ticks: of the message, or of the photo of its album that got the least far.</summary>
+    public int Status => _album?.Min(m => m._data.Status) ?? _data.Status;
     public bool IsFailed => FromMe && _data.Status == MessageStatus.Failed;
     public Visibility EditedVisibility => _data.Edited ? Visibility.Visible : Visibility.Collapsed;
     public Visibility PinnedVisibility => _data.Pinned ? Visibility.Visible : Visibility.Collapsed;
@@ -263,13 +347,17 @@ public sealed class MessageItem : Observable
 
     // ---- Reactions ----
 
-    public bool HasReactions => _data.Reactions is { Count: > 0 };
+    /// <summary>The reactions under the bubble: to the message, or to any photo of its album.</summary>
+    private List<ReactionData>? ShownReactions =>
+        _album is null ? _data.Reactions : _album.SelectMany(m => m._data.Reactions ?? []).ToList();
+
+    public bool HasReactions => ShownReactions is { Count: > 0 };
 
     public string ReactionsText
     {
         get
         {
-            if (_data.Reactions is not { Count: > 0 } reactions)
+            if (ShownReactions is not { Count: > 0 } reactions)
             {
                 return "";
             }
@@ -278,7 +366,7 @@ public sealed class MessageItem : Observable
         }
     }
 
-    public string ReactionsTooltip => _data.Reactions is { } reactions
+    public string ReactionsTooltip => ShownReactions is { } reactions
         ? string.Join("\n", reactions.Select(r => $"{r.Emoji}  {r.Name ?? r.Sender}"))
         : "";
 
@@ -311,7 +399,8 @@ public sealed class MessageItem : Observable
     public Thickness BubblePadding => HasVisual ? new Thickness(3) : new Thickness(4, 3, 4, 4);
 
     /// <summary>A photo's bubble is as wide as the photo, and its caption wraps below it, as in WhatsApp.</summary>
-    public double BubbleMaxWidth => HasVisual ? VisualWidth + BubblePadding.Left + BubblePadding.Right : 600;
+    public double BubbleMaxWidth => IsAlbum ? AlbumWidth + BubblePadding.Left + BubblePadding.Right
+        : HasVisual ? VisualWidth + BubblePadding.Left + BubblePadding.Right : 600;
     public Visibility TimeOverVisualVisibility => TimeOverVisual ? Visibility.Visible : Visibility.Collapsed;
 
     public ImageSource? Visual { get => _visual; private set => Set(ref _visual, value); }
@@ -345,6 +434,7 @@ public sealed class MessageItem : Observable
             if (Set(ref _isBusy, value))
             {
                 OnPropertyChanged(nameof(PlayVisibility));
+                OnPropertyChanged(nameof(AlbumPlayVisibility));
                 OnPropertyChanged(nameof(DownloadVisibility));
             }
         }
@@ -360,6 +450,13 @@ public sealed class MessageItem : Observable
     {
         _realized = true;
         LoadVisual();
+        foreach (MessageItem tile in AlbumTiles ?? [])
+        {
+            if (tile != this)
+            {
+                tile.Realize();
+            }
+        }
     }
 
     /// <summary>Lets go of the full-size picture when the row leaves the view.</summary>
@@ -372,7 +469,17 @@ public sealed class MessageItem : Observable
             _visualIsFull = false;
             Visual = null;
         }
+        foreach (MessageItem tile in AlbumTiles ?? [])
+        {
+            if (tile != this)
+            {
+                tile.Unrealize();
+            }
+        }
     }
+
+    /// <summary>Whether the row of the message is in view.</summary>
+    public bool IsRealized => _realized;
 
     private void LoadVisual()
     {

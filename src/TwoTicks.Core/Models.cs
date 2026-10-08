@@ -78,6 +78,9 @@ public sealed class MessageData
 
     /// <summary>Set on new incoming messages that should raise a notification.</summary>
     public bool Notify { get; set; }
+
+    /// <summary>The album a photo or video was sent in, which the ones sent together share.</summary>
+    public string? Album { get; set; }
 }
 
 public sealed class MediaData

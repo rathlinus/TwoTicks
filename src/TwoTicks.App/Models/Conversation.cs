@@ -5,7 +5,8 @@ namespace TwoTicks.App.Models;
 
 /// <summary>
 /// The rows of an open chat: messages, with a label at each new day and, when
-/// the chat opened with unread messages, a line above the first of them.
+/// the chat opened with unread messages, a line above the first of them. The
+/// photos and videos of an album share one row, that of the first of them.
 /// </summary>
 public sealed class Conversation
 {
@@ -29,7 +30,8 @@ public sealed class Conversation
 
     public MessageItem? Find(string id) => _byId.GetValueOrDefault(id);
 
-    public IEnumerable<MessageItem> Messages => Items.OfType<MessageItem>();
+    /// <summary>Every loaded message, the photos of an album each by itself.</summary>
+    public IEnumerable<MessageItem> Messages => Items.OfType<MessageItem>().SelectMany(m => m.Album ?? (IEnumerable<MessageItem>)[m]);
 
     public Cursor? Oldest => Messages.FirstOrDefault() is { } m ? new Cursor { Ts = m.Ts, Seq = m.Data.Seq } : null;
     public Cursor? Newest => Messages.LastOrDefault() is { } m ? new Cursor { Ts = m.Ts, Seq = m.Data.Seq } : null;
@@ -67,6 +69,7 @@ public sealed class Conversation
         for (int i = 0; i < page.Messages.Count; i++)
         {
             var item = new MessageItem(page.Messages[i], Chat.IsGroup);
+            _byId[item.Id] = item;
             if (day != item.Day)
             {
                 rows.Add(new DayItem(item.Day));
@@ -79,9 +82,13 @@ public sealed class Conversation
                 rows.Add(_unreadLine);
                 previous = null;
             }
+            if (previous?.CanJoin(item) == true)
+            {
+                Join(previous, item);
+                continue;
+            }
             item.IsFirstInRun = StartsRun(previous, item);
             rows.Add(item);
-            _byId[item.Id] = item;
             previous = item;
         }
         foreach (object row in rows)
@@ -112,20 +119,33 @@ public sealed class Conversation
         foreach (MessageData data in fresh)
         {
             var item = new MessageItem(data, Chat.IsGroup);
+            _byId[item.Id] = item;
             if (day != item.Day)
             {
                 rows.Add(new DayItem(item.Day));
                 day = item.Day;
                 previous = null;
             }
+            if (previous?.CanJoin(item) == true)
+            {
+                Join(previous, item);
+                continue;
+            }
             item.IsFirstInRun = StartsRun(previous, item);
             rows.Add(item);
-            _byId[item.Id] = item;
             previous = item;
         }
         for (int i = rows.Count - 1; i >= 0; i--)
         {
             Items.Insert(0, rows[i]);
+        }
+        if (rows.Count < Items.Count && Items[rows.Count] is MessageItem split && previous?.CanJoin(split) == true)
+        {
+            // The page ended in the middle of an album: its later photos move up into the row of its first.
+            List<MessageItem> later = [.. split.Album ?? [split]];
+            split.SetAlbum(null);
+            Items.RemoveAt(rows.Count);
+            previous.SetAlbum([.. previous.Album ?? [previous], .. later]);
         }
         if (rows.Count < Items.Count && Items[rows.Count] is MessageItem next)
         {
@@ -147,13 +167,23 @@ public sealed class Conversation
         }
     }
 
-    /// <summary>Adds a new message or updates a known one. Returns the new row, or null for an update.</summary>
+    /// <summary>Adds a new message or updates a known one. Returns the new message, or null for an update.</summary>
     public MessageItem? Upsert(MessageData data)
     {
         if (_byId.TryGetValue(data.Id, out MessageItem? existing))
         {
             string template = existing.TemplateKey;
+            MessageItem row = existing.Row;
             existing.Update(data);
+            if (row.IsAlbum)
+            {
+                if (existing.AlbumId is null)
+                {
+                    // Deleted for everyone: no photo of the album any more.
+                    Regroup(row, null);
+                }
+                return null;
+            }
             if (existing.TemplateKey != template)
             {
                 // A row shows with the template chosen when it was added.
@@ -175,8 +205,14 @@ public sealed class Conversation
     private MessageItem Append(MessageData data)
     {
         var item = new MessageItem(data, Chat.IsGroup);
+        _byId[item.Id] = item;
         MessageItem? previous = Items.Count > 0 ? Items[^1] as MessageItem : null;
-        MessageItem? lastMessage = Messages.LastOrDefault();
+        if (previous?.CanJoin(item) == true)
+        {
+            Join(previous, item);
+            return item;
+        }
+        MessageItem? lastMessage = Items.OfType<MessageItem>().LastOrDefault();
         if (lastMessage is null || lastMessage.Day != item.Day)
         {
             Items.Add(new DayItem(item.Day));
@@ -184,7 +220,6 @@ public sealed class Conversation
         }
         item.IsFirstInRun = StartsRun(previous, item);
         Items.Add(item);
-        _byId[item.Id] = item;
         return item;
     }
 
@@ -192,6 +227,11 @@ public sealed class Conversation
     {
         if (!_byId.Remove(id, out MessageItem? item))
         {
+            return;
+        }
+        if (item.Row.IsAlbum)
+        {
+            Regroup(item.Row, item);
             return;
         }
         int index = Items.IndexOf(item);
@@ -222,6 +262,40 @@ public sealed class Conversation
                     next.IsFirstInRun = StartsRun(index > 0 ? Items[index - 1] as MessageItem : null, next);
                 }
             }
+        }
+    }
+
+    /// <summary>Adds a photo or video to the album whose row is that of its first photo.</summary>
+    private static void Join(MessageItem first, MessageItem item) => first.SetAlbum([.. first.Album ?? [first], item]);
+
+    /// <summary>
+    /// Lays the photos of an album out again after one of them left it or was
+    /// deleted: what is left before and after it forms rows of its own.
+    /// </summary>
+    private void Regroup(MessageItem first, MessageItem? removed)
+    {
+        int index = Items.IndexOf(first);
+        List<MessageItem> members = first.Album!.Where(m => m != removed).ToList();
+        bool firstInRun = first.IsFirstInRun;
+        first.SetAlbum(null);
+        Items.RemoveAt(index);
+
+        var rows = new List<MessageItem>();
+        foreach (MessageItem member in members)
+        {
+            if (rows.Count > 0 && rows[^1].CanJoin(member))
+            {
+                Join(rows[^1], member);
+            }
+            else
+            {
+                rows.Add(member);
+            }
+        }
+        for (int i = 0; i < rows.Count; i++)
+        {
+            rows[i].IsFirstInRun = i == 0 ? firstInRun : StartsRun(rows[i - 1], rows[i]);
+            Items.Insert(index + i, rows[i]);
         }
     }
 

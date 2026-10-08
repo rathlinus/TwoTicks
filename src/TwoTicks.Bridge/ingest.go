@@ -48,7 +48,7 @@ func (b *Bridge) isOwn(jid types.JID) bool {
 // messages that only change other messages (reactions, edits, deletions) or
 // that carry nothing to show.
 func (b *Bridge) convert(ctx context.Context, evt *events.Message) *Message {
-	msg := albumItem(evt.Message)
+	msg, rel := unwrap(evt.Message)
 	if msg == nil {
 		return nil
 	}
@@ -86,6 +86,9 @@ func (b *Bridge) convert(ctx context.Context, evt *events.Message) *Message {
 	}
 	if !info.IsFromMe {
 		m.Status = 0
+	}
+	if kind == "image" || kind == "video" || kind == "gif" {
+		m.Album = rel.album
 	}
 	if ext := msg.GetExtendedTextMessage(); ext != nil && ext.GetMatchedText() != "" && (ext.GetTitle() != "" || ext.GetDescription() != "") {
 		m.Link = &Link{URL: ext.GetMatchedText(), Title: ext.GetTitle(), Description: ext.GetDescription(), Thumb: ext.GetJPEGThumbnail()}
@@ -179,6 +182,10 @@ func (b *Bridge) onMessage(evt *events.Message, live bool) {
 	}
 	if keep := msg.GetKeepInChatMessage(); keep != nil {
 		b.applyKeep(chat.String(), keep.GetKey().GetID(), keep.GetKeepType() == waE2E.KeepType_KEEP_FOR_ALL)
+		return
+	}
+	if content, rel := unwrap(msg); rel.child != "" {
+		b.saveChild(ctx, chat.String(), info.ID, rel, content)
 		return
 	}
 
@@ -322,12 +329,13 @@ func (b *Bridge) mayRevoke(ctx context.Context, chat, sender types.JID, fromMe b
 
 func (b *Bridge) revoke(chat, id string) {
 	_, err := b.w.ExecContext(b.ctx,
-		`UPDATE messages SET kind = 'revoked', text = '', media = NULL, quote = NULL, link = NULL, raw = NULL WHERE chat = ? AND id = ?`, chat, id)
+		`UPDATE messages SET kind = 'revoked', text = '', media = NULL, quote = NULL, link = NULL, raw = NULL, album = '' WHERE chat = ? AND id = ?`, chat, id)
 	if err != nil {
 		b.log.Errorf("Failed to delete message %s: %v", id, err)
 		return
 	}
 	_, _ = b.w.ExecContext(b.ctx, `DELETE FROM reactions WHERE chat = ? AND msg_id = ?`, chat, id)
+	_, _ = b.w.ExecContext(b.ctx, `DELETE FROM children WHERE chat = ? AND parent = ?`, chat, id)
 	if res, err := b.w.ExecContext(b.ctx, `DELETE FROM pins WHERE chat = ? AND msg_id = ?`, chat, id); err == nil {
 		if n, _ := res.RowsAffected(); n > 0 {
 			b.out.event("pins", map[string]string{"chat": chat})
@@ -776,6 +784,10 @@ func (b *Bridge) convertHistory(ctx context.Context, chat types.JID, web *waWeb.
 		// As ParseWebMessage does with a plain edit: the new content under the original ID.
 		evt.Info.ID = enc.GetTargetMessageKey().GetID()
 		evt.Message = edited
+	}
+	if content, rel := unwrap(evt.Message); rel.child != "" {
+		b.saveChild(ctx, b.canonical(ctx, evt.Info.Chat).String(), evt.Info.ID, rel, content)
+		return nil
 	}
 	m := b.convert(ctx, evt)
 	if m == nil {

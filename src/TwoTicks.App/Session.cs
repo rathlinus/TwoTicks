@@ -781,6 +781,22 @@ public sealed class Session : Observable
         }
     }
 
+    /// <summary>Sends photos and videos picked together, which go as an album.</summary>
+    public async Task SendFilesAsync(string chat, string? replyTo, IReadOnlyList<OutgoingMedia> files)
+    {
+        try
+        {
+            foreach (MessageData message in await Client.SendAlbumAsync(chat, replyTo, files))
+            {
+                OnSent(message);
+            }
+        }
+        catch (BridgeException e)
+        {
+            ShowError(Loc.T("session.fileNotSent", ("file", string.Join(", ", files.Select(f => Path.GetFileName(f.Path)))), ("error", e.Message)));
+        }
+    }
+
     /// <summary>
     /// Shows a message just sent. The helper may have reported on it already,
     /// as sent or failed, before its answer to the request arrived; then that

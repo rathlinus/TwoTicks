@@ -13,6 +13,26 @@
     Drop="OnDrop">
 
     <UserControl.Resources>
+        <!-- One photo or video of an album, among the others in the album's bubble. -->
+        <DataTemplate x:Key="AlbumTileTemplate" x:DataType="m:MessageItem">
+            <Grid Background="{ThemeResource QuoteBackgroundBrush}" Tag="AlbumTile" Tapped="OnVisualTapped">
+                <Image Source="{x:Bind Visual, Mode=OneWay}" Stretch="UniformToFill" />
+                <Grid Width="44" Height="44" Visibility="{x:Bind AlbumPlayVisibility, Mode=OneWay}">
+                    <Ellipse Fill="#99000000" />
+                    <c:WaIcon HorizontalAlignment="Center" VerticalAlignment="Center" Kind="Play" Size="26" Foreground="White" />
+                </Grid>
+                <ProgressRing Width="32" Height="32" Foreground="White" IsActive="{x:Bind IsBusy, Mode=OneWay}" />
+                <Border Margin="6" Padding="6,1" HorizontalAlignment="Left" VerticalAlignment="Bottom" Background="#80000000" CornerRadius="8"
+                        Visibility="{x:Bind DurationVisibility, Mode=OneWay}">
+                    <TextBlock FontSize="11" Foreground="White" Text="{x:Bind DurationText, Mode=OneWay}" />
+                </Border>
+                <!-- How many more photos the album has than it shows. -->
+                <Border Background="#99000000" Visibility="{x:Bind AlbumMoreVisibility, Mode=OneWay}">
+                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="28" Foreground="White" Text="{x:Bind AlbumMoreText, Mode=OneWay}" />
+                </Border>
+            </Grid>
+        </DataTemplate>
+
         <!-- A message in a bubble, incoming on the left and one's own on the right. -->
         <DataTemplate x:Key="BubbleTemplate" x:DataType="m:MessageItem">
             <Grid Padding="{x:Bind RowPadding, Mode=OneWay}" Background="Transparent" PointerEntered="OnRowPointerEntered" PointerExited="OnRowPointerExited">
@@ -63,7 +83,7 @@
                             </StackPanel>
                         </Grid>
 
-                        <Grid x:Name="VisualBox" x:Load="{x:Bind HasVisual, Mode=OneWay}" Width="{x:Bind VisualWidth, Mode=OneWay}" Height="{x:Bind VisualHeight, Mode=OneWay}"
+                        <Grid x:Name="VisualBox" x:Load="{x:Bind ShowsVisual, Mode=OneWay}" Width="{x:Bind VisualWidth, Mode=OneWay}" Height="{x:Bind VisualHeight, Mode=OneWay}"
                               CornerRadius="6" Background="{ThemeResource QuoteBackgroundBrush}" Tapped="OnVisualTapped">
                             <Image Source="{x:Bind Visual, Mode=OneWay}" Stretch="UniformToFill" />
                             <Grid Width="54" Height="54" Visibility="{x:Bind PlayVisibility, Mode=OneWay}">
@@ -83,6 +103,27 @@
                                     <c:WaIcon VerticalAlignment="Center" Kind="Kept" Size="14" Foreground="White" Visibility="{x:Bind KeptVisibility, Mode=OneWay}" />
                                     <TextBlock FontSize="11" Foreground="White" Text="{x:Bind TimeText}" />
                                     <c:Ticks x:Name="VisualTicks" x:Load="{x:Bind FromMe}" Status="{x:Bind Status, Mode=OneWay}" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <!-- Photos and videos sent together, as WhatsApp shows an album. A click opens the one clicked. -->
+                        <Grid x:Name="AlbumBox" x:Load="{x:Bind IsAlbum, Mode=OneWay}" CornerRadius="6">
+                            <ItemsControl IsTabStop="False" ItemTemplate="{StaticResource AlbumTileTemplate}" ItemsSource="{x:Bind AlbumTiles, Mode=OneWay}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <c:AlbumPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                            <Border Margin="6" Padding="6,1,5,1" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="#80000000" CornerRadius="8"
+                                    IsHitTestVisible="False" Visibility="{x:Bind TimeOverVisualVisibility, Mode=OneWay}">
+                                <StackPanel Orientation="Horizontal" Spacing="3">
+                                    <c:WaIcon VerticalAlignment="Center" Kind="StarFilled" Size="14" Foreground="White" Visibility="{x:Bind StarredVisibility, Mode=OneWay}" />
+                                    <c:WaIcon VerticalAlignment="Center" Kind="Pin" Size="14" Foreground="White" Visibility="{x:Bind PinnedVisibility, Mode=OneWay}" />
+                                    <c:WaIcon VerticalAlignment="Center" Kind="Kept" Size="14" Foreground="White" Visibility="{x:Bind KeptVisibility, Mode=OneWay}" />
+                                    <TextBlock FontSize="11" Foreground="White" Text="{x:Bind TimeText}" />
+                                    <c:Ticks x:Name="AlbumTicks" x:Load="{x:Bind FromMe}" Status="{x:Bind Status, Mode=OneWay}" />
                                 </StackPanel>
                             </Border>
                         </Grid>

@@ -69,6 +69,11 @@ func (b *Bridge) doDownload(ctx context.Context, chat, id string) (string, error
 	if err != nil || len(raw) == 0 {
 		return "", userError("noFile")
 	}
+	// The high quality version, when the photo or video came with one.
+	hd := b.loadChild(ctx, chat, id, childHD)
+	if len(hd) > 0 {
+		raw = hd
+	}
 	var msg waE2E.Message
 	if err := proto.Unmarshal(raw, &msg); err != nil {
 		return "", err
@@ -97,7 +102,7 @@ func (b *Bridge) doDownload(ctx context.Context, chat, id string) (string, error
 		directPath, err = b.requestMediaRetry(ctx, m, part.GetMediaKey())
 		if err == nil {
 			setDirectPath(&msg, directPath)
-			if updated, mErr := proto.Marshal(&msg); mErr == nil {
+			if updated, mErr := proto.Marshal(&msg); mErr == nil && len(hd) == 0 {
 				_, _ = b.w.ExecContext(ctx, `UPDATE messages SET raw = ? WHERE chat = ? AND id = ?`, updated, chat, id)
 			}
 			part, _, _ = downloadablePart(&msg)

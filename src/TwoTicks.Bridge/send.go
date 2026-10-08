@@ -151,17 +151,135 @@ func (b *Bridge) sendText(ctx context.Context, p sendParams) (*Message, error) {
 	return b.dispatch(ctx, chat, m, func(context.Context, *Message) (*waE2E.Message, error) { return msg, nil })
 }
 
+type sendAlbumParams struct {
+	Chat    string            `json:"chat"`
+	ReplyTo string            `json:"replyTo"`
+	Files   []sendMediaParams `json:"files"`
+}
+
+// outgoingMedia is a file ready to be stored and sent.
+type outgoingMedia struct {
+	m     *Message
+	build func(context.Context, *Message) (*waE2E.Message, error)
+}
+
 func (b *Bridge) sendMedia(ctx context.Context, p sendMediaParams) (*Message, error) {
 	chat, err := types.ParseJID(p.Chat)
 	if err != nil {
 		return nil, err
 	}
-	info, err := os.Stat(p.Path)
+	media, err := b.prepareMedia(ctx, chat, p)
 	if err != nil {
 		return nil, err
 	}
+	return b.dispatch(ctx, chat, media.m, media.build)
+}
+
+// sendAlbum sends several files at once. The photos and videos among them go
+// as an album when there are at least two, as WhatsApp's apps send them: a
+// message that says how many are coming, then each one naming that message.
+// Other files, and a single photo, go as they would alone.
+func (b *Bridge) sendAlbum(ctx context.Context, p sendAlbumParams) ([]*Message, error) {
+	chat, err := types.ParseJID(p.Chat)
+	if err != nil {
+		return nil, err
+	}
+	if b.cli.Store.ID == nil {
+		return nil, errNotLoggedIn
+	}
+	var files []outgoingMedia
+	images, videos := 0, 0
+	for i, f := range p.Files {
+		f.Chat, f.ReplyTo = p.Chat, ""
+		if i == 0 {
+			f.ReplyTo = p.ReplyTo
+		}
+		media, err := b.prepareMedia(ctx, chat, f)
+		if err != nil {
+			return nil, err
+		}
+		switch media.m.Kind {
+		case "image":
+			images++
+		case "video":
+			videos++
+		}
+		files = append(files, media)
+	}
+
+	sent := []*Message{}
+	if images+videos < 2 {
+		for _, f := range files {
+			stored, err := b.dispatch(ctx, chat, f.m, f.build)
+			if err != nil {
+				return sent, err
+			}
+			sent = append(sent, stored)
+		}
+		return sent, nil
+	}
+
+	album := string(b.cli.GenerateMessageID())
+	var inAlbum []outgoingMedia
+	for _, f := range files {
+		if f.m.Kind != "image" && f.m.Kind != "video" {
+			stored, err := b.dispatch(ctx, chat, f.m, f.build)
+			if err != nil {
+				return sent, err
+			}
+			sent = append(sent, stored)
+			continue
+		}
+		f.m.Album = album
+		stored, err := b.store(ctx, chat, f.m)
+		if err != nil {
+			return sent, err
+		}
+		sent = append(sent, stored)
+		inAlbum = append(inAlbum, f)
+	}
+	ci, _ := b.replyContext(ctx, chat, p.ReplyTo)
+	go b.deliverAlbum(chat, album, images, videos, ci, inAlbum)
+	return sent, nil
+}
+
+// deliverAlbum announces an album and then sends its photos and videos one
+// after the other, so they arrive in their order.
+func (b *Bridge) deliverAlbum(chat types.JID, album string, images, videos int, ci *waE2E.ContextInfo, files []outgoingMedia) {
+	announcement := &waE2E.Message{AlbumMessage: &waE2E.AlbumMessage{
+		ExpectedImageCount: proto.Uint32(uint32(images)),
+		ExpectedVideoCount: proto.Uint32(uint32(videos)),
+		ContextInfo:        ci,
+	}}
+	_, err := b.cli.SendMessage(b.ctx, chat, announcement, whatsmeow.SendRequestExtra{ID: types.MessageID(album)})
+	if err != nil {
+		// The photos still go, each by itself.
+		b.log.Warnf("Failed to announce the album %s in %s: %v", album, chat, err)
+	}
+	announced := err == nil
+	for _, f := range files {
+		build := f.build
+		b.deliver(chat, f.m, func(ctx context.Context, m *Message) (*waE2E.Message, error) {
+			msg, err := build(ctx, m)
+			if err == nil && announced {
+				msg.MessageContextInfo = &waE2E.MessageContextInfo{MessageAssociation: &waE2E.MessageAssociation{
+					AssociationType:  waE2E.MessageAssociation_MEDIA_ALBUM.Enum(),
+					ParentMessageKey: b.cli.BuildMessageKey(chat, types.EmptyJID, types.MessageID(album)),
+				}}
+			}
+			return msg, err
+		})
+	}
+}
+
+// prepareMedia reads a file to send and makes the message that will show it.
+func (b *Bridge) prepareMedia(ctx context.Context, chat types.JID, p sendMediaParams) (outgoingMedia, error) {
+	info, err := os.Stat(p.Path)
+	if err != nil {
+		return outgoingMedia{}, err
+	}
 	if info.IsDir() {
-		return nil, userError("cannotSendFolder")
+		return outgoingMedia{}, userError("cannotSendFolder")
 	}
 	mimeType := mimeFor(p.Path)
 	name := filepath.Base(p.Path)
@@ -263,7 +381,7 @@ func (b *Bridge) sendMedia(ctx context.Context, p sendMediaParams) (*Message, er
 		}
 		return &waE2E.Message{DocumentMessage: doc}, nil
 	}
-	return b.dispatch(ctx, chat, m, build)
+	return outgoingMedia{m: m, build: build}, nil
 }
 
 // isPlayableAudio reports whether WhatsApp's apps play a file of this type in
@@ -288,6 +406,16 @@ func optional(s string) *string {
 // and sends it in the background. build makes the message to send; for media
 // that includes the upload.
 func (b *Bridge) dispatch(ctx context.Context, chat types.JID, m *Message, build func(context.Context, *Message) (*waE2E.Message, error)) (*Message, error) {
+	stored, err := b.store(ctx, chat, m)
+	if err != nil {
+		return nil, err
+	}
+	go b.deliver(chat, m, build)
+	return stored, nil
+}
+
+// store keeps an outgoing message before it is sent and returns it as the app shows it.
+func (b *Bridge) store(ctx context.Context, chat types.JID, m *Message) (*Message, error) {
 	if b.cli.Store.ID == nil {
 		return nil, errNotLoggedIn
 	}
@@ -303,8 +431,6 @@ func (b *Bridge) dispatch(ctx context.Context, chat types.JID, m *Message, build
 	}
 	b.decorateMessages(ctx, []*Message{stored})
 	b.emitChat(m.Chat)
-
-	go b.deliver(chat, m, build)
 	return stored, nil
 }
 

@@ -101,6 +101,9 @@ func newBridge(dataDir string, log *fileLogger, out *output) (*Bridge, error) {
 		// The files are still there; they only show as not downloaded.
 		log.Warnf("Failed to point the database at the data folder: %v", err)
 	}
+	if err := repairAlbums(ctx, b.w); err != nil {
+		log.Warnf("Failed to sort the stored photos into their albums: %v", err)
+	}
 
 	sessionPath := filepath.ToSlash(filepath.Join(dataDir, "session.db"))
 	b.container, err = sqlstore.New(ctx, "sqlite",
@@ -362,7 +365,7 @@ func (b *Bridge) afterConnect() {
 // wipe deletes everything that belongs to the account after it was logged
 // out, as unlinking a device on the phone should.
 func (b *Bridge) wipe() {
-	for _, table := range []string{"chats", "messages", "reactions", "receipts", "avatars"} {
+	for _, table := range []string{"chats", "messages", "reactions", "receipts", "children", "avatars"} {
 		if _, err := b.w.ExecContext(b.ctx, "DELETE FROM "+table); err != nil {
 			b.log.Errorf("Failed to clear %s: %v", table, err)
 		}
@@ -430,6 +433,7 @@ func (b *Bridge) deleteChat(jid types.JID, keepChat bool, lastTimestamp int64) {
 		`DELETE FROM reactions WHERE chat = ?1 AND msg_id NOT IN (SELECT id FROM messages WHERE chat = ?1)`,
 		`DELETE FROM receipts WHERE chat = ?1 AND msg_id NOT IN (SELECT id FROM messages WHERE chat = ?1)`,
 		`DELETE FROM pins WHERE chat = ?1 AND msg_id NOT IN (SELECT id FROM messages WHERE chat = ?1)`,
+		`DELETE FROM children WHERE chat = ?1 AND parent NOT IN (SELECT id FROM messages WHERE chat = ?1)`,
 		`UPDATE chats SET unread = (SELECT COUNT(*) FROM messages WHERE chat = ?1 AND unread = 1),
 			last_id = COALESCE((SELECT id FROM messages WHERE chat = ?1 ORDER BY ts DESC, rowid DESC LIMIT 1), '')
 			WHERE jid = ?1`,
@@ -452,6 +456,7 @@ func (b *Bridge) deleteMessage(jid types.JID, id string) {
 		b.log.Errorf("Failed to delete message: %v", err)
 		return
 	}
+	_, _ = b.w.ExecContext(b.ctx, `DELETE FROM children WHERE chat = ? AND parent = ?`, chat, id)
 	if res, err := b.w.ExecContext(b.ctx, `DELETE FROM pins WHERE chat = ? AND msg_id = ?`, chat, id); err == nil {
 		if n, _ := res.RowsAffected(); n > 0 {
 			b.out.event("pins", map[string]string{"chat": chat})
@@ -543,6 +548,8 @@ func (b *Bridge) mergeChat(from, to string) {
 		`DELETE FROM receipts WHERE chat = ?1`,
 		`UPDATE OR IGNORE pins SET chat = ?2 WHERE chat = ?1`,
 		`DELETE FROM pins WHERE chat = ?1`,
+		`UPDATE OR IGNORE children SET chat = ?2 WHERE chat = ?1`,
+		`DELETE FROM children WHERE chat = ?1`,
 		`INSERT INTO chats (jid, name, is_group, last_ts, last_id, unread, marked_unread, muted_until, pinned, archived, read_only, members, ephemeral)
 			SELECT ?2, name, is_group, last_ts, last_id, unread, marked_unread, muted_until, pinned, archived, read_only, members, ephemeral FROM chats WHERE jid = ?1
 			ON CONFLICT (jid) DO UPDATE SET

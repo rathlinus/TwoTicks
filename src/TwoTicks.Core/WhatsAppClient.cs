@@ -269,7 +269,25 @@ public sealed class WhatsAppClient : IDisposable
         return result.ValueKind == JsonValueKind.Object ? result.Deserialize(BridgeJson.Default.LinkData) : null;
     }
 
-    public Task<MessageData> SendMediaAsync(OutgoingMedia media)
+    public Task<MessageData> SendMediaAsync(OutgoingMedia media) =>
+        CallAsync("sendMedia", MediaParameters(media), BridgeJson.Default.MessageData);
+
+    /// <summary>
+    /// Sends several files to a chat at once. The photos and videos among them
+    /// go as an album when there are at least two.
+    /// </summary>
+    public Task<List<MessageData>> SendAlbumAsync(string chat, string? replyTo, IEnumerable<OutgoingMedia> files)
+    {
+        var parameters = new JsonObject
+        {
+            ["chat"] = chat,
+            ["replyTo"] = replyTo,
+            ["files"] = new JsonArray(files.Select(f => (JsonNode)MediaParameters(f)).ToArray()),
+        };
+        return CallAsync("sendAlbum", parameters, BridgeJson.Default.ListMessageData);
+    }
+
+    private static JsonObject MediaParameters(OutgoingMedia media)
     {
         var parameters = new JsonObject
         {
@@ -286,7 +304,7 @@ public sealed class WhatsAppClient : IDisposable
         {
             parameters["thumb"] = Convert.ToBase64String(media.Thumbnail);
         }
-        return CallAsync("sendMedia", parameters, BridgeJson.Default.MessageData);
+        return parameters;
     }
 
     public Task RetryAsync(string chat, string id) => CallAsync("retry", new JsonObject { ["chat"] = chat, ["id"] = id });

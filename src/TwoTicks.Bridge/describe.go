@@ -15,7 +15,7 @@ func describe(msg *waE2E.Message) (kind, text string, media *Media, ci *waE2E.Co
 	if msg == nil {
 		return "", "", nil, nil
 	}
-	msg = albumItem(msg)
+	msg, _ = unwrap(msg)
 	switch {
 	case msg.Conversation != nil:
 		return "text", msg.GetConversation(), nil, nil
@@ -158,15 +158,6 @@ func describe(msg *waE2E.Message) (kind, text string, media *Media, ci *waE2E.Co
 		return "", "", nil, nil
 	}
 	return "unsupported", "", nil, nil
-}
-
-// albumItem unwraps a photo or video sent as part of an album. WhatsApp wraps
-// each item in associatedChildMessage, which whatsmeow leaves in place.
-func albumItem(msg *waE2E.Message) *waE2E.Message {
-	if inner := msg.GetAssociatedChildMessage().GetMessage(); inner != nil {
-		return inner
-	}
-	return msg
 }
 
 // hasContent reports whether a message has any field set apart from the

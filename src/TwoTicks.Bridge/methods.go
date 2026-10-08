@@ -238,6 +238,15 @@ func (b *Bridge) methods() map[string]handler {
 			return b.sendMedia(ctx, p)
 		},
 
+		// Several files at once; the photos and videos among them as an album.
+		"sendAlbum": func(ctx context.Context, raw json.RawMessage) (any, error) {
+			p, err := params[sendAlbumParams](raw)
+			if err != nil {
+				return nil, err
+			}
+			return b.sendAlbum(ctx, p)
+		},
+
 		"retry": func(ctx context.Context, raw json.RawMessage) (any, error) {
 			p, err := params[messageParams](raw)
 			if err != nil {

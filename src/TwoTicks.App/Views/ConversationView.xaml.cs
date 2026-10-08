@@ -185,7 +185,7 @@ public sealed partial class ConversationView : UserControl
         if (aroundMessage is not null && conversation.Find(aroundMessage) is { } target)
         {
             _atBottom = false;
-            ScrollTo(target);
+            ScrollTo(target.Row);
         }
 #if HAS_UNO
         // Uno's list only guesses how tall the rows it has not made are, and a
@@ -266,7 +266,8 @@ public sealed partial class ConversationView : UserControl
         {
             return false;
         }
-        ScrollTo(item);
+        // A photo of an album is in the row of the album's first.
+        ScrollTo(item.Row);
         return true;
     }
 
@@ -401,6 +402,11 @@ public sealed partial class ConversationView : UserControl
 
     private void OnMessageAppended(MessageItem item)
     {
+        if (item.Row != item && item.Row.IsRealized && item.Row.AlbumTiles?.Contains(item) == true)
+        {
+            // It joined an album that is in view, whose row the list does not make again.
+            Prepare(item);
+        }
         if (item.FromMe || _atBottom)
         {
             ScrollToBottom(animate: true);
@@ -441,7 +447,15 @@ public sealed partial class ConversationView : UserControl
             item.SenderAvatarRequested = true;
             _ = LoadSenderAvatarAsync(item);
         }
+        foreach (MessageItem shown in item.AlbumTiles ?? [item])
+        {
+            Prepare(shown);
+        }
+    }
 
+    /// <summary>Fetches the photo of a message that came into view, or its preview.</summary>
+    private void Prepare(MessageItem item)
+    {
         // Videos from history sync have no preview at all; small ones are fetched to show a frame.
         bool smallVideoWithoutPreview = item.IsPlayable && item.Data.Media is { Thumb: null, Size: > 0 and < 8_000_000 };
         bool wanted = item.IsSticker || ((item.Kind == "image" || smallVideoWithoutPreview) && Session.Settings.AutoDownloadImages);
@@ -776,6 +790,18 @@ public sealed partial class ConversationView : UserControl
         string? replyTo = _replyTo?.Id;
         CancelReply();
         FocusComposer();
+        if (!asDocument && files.Count(f => f.IsMedia) > 1)
+        {
+            // Photos and videos picked together go as an album.
+            var album = new List<OutgoingMedia>();
+            foreach (PendingFile file in files)
+            {
+                string caption = file.Caption.Trim();
+                album.Add(await MediaInfo.DescribeAsync(conversation.Jid, file.Path, caption.Length > 0 ? caption : null, null, false));
+            }
+            await Session.SendFilesAsync(conversation.Jid, replyTo, album);
+            return;
+        }
         for (int i = 0; i < files.Count; i++)
         {
             string caption = files[i].Caption.Trim();
@@ -973,7 +999,8 @@ public sealed partial class ConversationView : UserControl
         }
         e.Handled = true;
         Point? point = e.TryGetPosition(MessageList, out Point p) ? p : null;
-        MenuFlyout menu = BuildMessageMenu(item, e.OriginalSource as RichTextBlock, point);
+        // On one photo of an album the menu is that photo's; beside them it is the album's.
+        MenuFlyout menu = BuildMessageMenu(item, e.OriginalSource as RichTextBlock, point, IsInAlbumTile(e.OriginalSource) ? null : item.Album);
         if (point is { } at)
         {
             menu.ShowAt(MessageList, at);
@@ -994,7 +1021,7 @@ public sealed partial class ConversationView : UserControl
         // The button goes once the pointer leaves the message for the menu,
         // so the menu and what it opens are placed by where it was.
         Point at = button.TransformToVisual(MessageList).TransformPoint(new Point(button.ActualWidth, button.ActualHeight));
-        MenuFlyout menu = BuildMessageMenu(item, null, at);
+        MenuFlyout menu = BuildMessageMenu(item, null, at, item.Album);
         menu.ShowAt(MessageList, new FlyoutShowOptions { Position = at, Placement = FlyoutPlacementMode.BottomEdgeAlignedRight });
     }
 
@@ -1017,8 +1044,24 @@ public sealed partial class ConversationView : UserControl
 
     private void OnRowPointerExited(object sender, PointerRoutedEventArgs e) => ItemOf(sender)?.SetHover(false, false);
 
-    private MenuFlyout BuildMessageMenu(MessageItem item, RichTextBlock? textBlock, Point? point)
+    private static bool IsInAlbumTile(object? source)
     {
+        var element = source as DependencyObject;
+        while (element is not null and not ListViewItem)
+        {
+            if (element is FrameworkElement { Tag: "AlbumTile" })
+            {
+                return true;
+            }
+            element = VisualTreeHelper.GetParent(element);
+        }
+        return false;
+    }
+
+    /// <param name="album">All photos of the album when the menu is for the whole of it: forwarding, starring and deleting then go for each.</param>
+    private MenuFlyout BuildMessageMenu(MessageItem item, RichTextBlock? textBlock, Point? point, IReadOnlyList<MessageItem>? album = null)
+    {
+        IReadOnlyList<MessageItem> all = album ?? [item];
         var menu = new MenuFlyout();
         MenuFlyoutItem Add(string text, string icon, Action action)
         {
@@ -1064,7 +1107,7 @@ public sealed partial class ConversationView : UserControl
         }
         if (item.CanForward)
         {
-            Add(Loc.T("conversation.forward"), "Forward", () => _ = ForwardAsync(item));
+            Add(Loc.T("conversation.forward"), "Forward", () => _ = ForwardAsync(all));
         }
         if (item.CanAddOn && writable)
         {
@@ -1091,13 +1134,14 @@ public sealed partial class ConversationView : UserControl
         }
         if (item.CanAddOn)
         {
-            Add(item.IsStarred ? Loc.T("conversation.unstar") : Loc.T("conversation.star"), item.IsStarred ? "StarFilled" : "Star", () => _ = Session.StarAsync(item, !item.IsStarred));
+            bool star = !item.IsStarred;
+            Add(star ? Loc.T("conversation.star") : Loc.T("conversation.unstar"), star ? "Star" : "StarFilled", () => _ = ForEachAsync(all, m => Session.StarAsync(m, star)));
         }
         if (item.CanEdit)
         {
             Add(Loc.T("conversation.edit"), "Edit", () => StartEdit(item));
         }
-        if (item.HasMedia)
+        if (item.HasMedia && all.Count == 1)
         {
             if (item.IsDownloaded)
             {
@@ -1110,10 +1154,19 @@ public sealed partial class ConversationView : UserControl
         menu.Items.Add(new MenuFlyoutSeparator());
         if (item.CanRevoke)
         {
-            Add(Loc.T("conversation.deleteForEveryone"), "Delete", () => _ = ConfirmRevokeAsync(item));
+            Add(Loc.T("conversation.deleteForEveryone"), "Delete", () => _ = ConfirmRevokeAsync(all));
         }
-        Add(Loc.T("conversation.deleteForMe"), "Delete", () => _ = Session.DeleteForMeAsync(item));
+        Add(Loc.T("conversation.deleteForMe"), "Delete", () => _ = ForEachAsync(all, Session.DeleteForMeAsync));
         return menu;
+    }
+
+    private static async Task ForEachAsync(IReadOnlyList<MessageItem> items, Func<MessageItem, Task> action)
+    {
+        // A copy: deleting takes the photos out of their album as it goes.
+        foreach (MessageItem item in items.ToList())
+        {
+            await action(item);
+        }
     }
 
     /// <summary>WhatsApp's row of quick reactions, on its own above the message.</summary>
@@ -1185,12 +1238,12 @@ public sealed partial class ConversationView : UserControl
         ShowFlyout(pickerFlyout, point);
     }
 
-    private async Task ForwardAsync(MessageItem item)
+    private async Task ForwardAsync(IReadOnlyList<MessageItem> items)
     {
         var dialog = new ForwardDialog(Session) { XamlRoot = XamlRoot, RequestedTheme = ActualTheme };
         if (await dialog.ShowAsync() == ContentDialogResult.Primary && dialog.Chosen is { Count: > 0 } chosen)
         {
-            await Session.ForwardAsync(item, chosen);
+            await ForEachAsync(items.Where(m => m.CanForward).ToList(), m => Session.ForwardAsync(m, chosen));
         }
     }
 
@@ -1228,7 +1281,7 @@ public sealed partial class ConversationView : UserControl
             : new TextBlock { Text = emoji, FontSize = size * 0.8, HorizontalAlignment = HorizontalAlignment.Center };
     }
 
-    private async Task ConfirmRevokeAsync(MessageItem item)
+    private async Task ConfirmRevokeAsync(IReadOnlyList<MessageItem> items)
     {
         var dialog = new ContentDialog
         {
@@ -1243,7 +1296,7 @@ public sealed partial class ConversationView : UserControl
         };
         if (await dialog.ShowAsync() == ContentDialogResult.Primary)
         {
-            await Session.RevokeAsync(item);
+            await ForEachAsync(items.Where(m => m.CanRevoke).ToList(), Session.RevokeAsync);
         }
     }
 
