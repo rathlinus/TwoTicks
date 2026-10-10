@@ -572,7 +572,9 @@ func (b *Bridge) tcToken(ctx context.Context, jid types.JID) string {
 // <participant>s and the <voip_settings> of each device in an offer's ack, or
 // it cannot read the stanza. whatsmeow writes the device form for any
 // device above 0 and keeps only the low byte of the number, so device 256
-// comes out as device 0 in the device form.
+// comes out as device 0 in the device form. The call-creator of every call
+// stanza is a device too: a call from someone's phone otherwise reaches the
+// engine as a person, and it refuses the offer and all that follows.
 func marshalForEngine(node waBinary.Node) ([]byte, error) {
 	markDevices(&node)
 	return waBinary.Marshal(node)
@@ -583,16 +585,22 @@ var deviceTags = map[string]bool{"device": true, "participant": true, "voip_sett
 
 func markDevices(node *waBinary.Node) {
 	if deviceTags[node.Tag] {
-		if jid, ok := node.Attrs["jid"].(types.JID); ok && jid.Device == 0 &&
-			(jid.Server == types.DefaultUserServer || jid.Server == types.HiddenUserServer) {
-			jid.Device = 256
-			node.Attrs["jid"] = jid
-		}
+		markDevice(node, "jid")
 	}
+	markDevice(node, "call-creator")
 	if children, ok := node.Content.([]waBinary.Node); ok {
 		for i := range children {
 			markDevices(&children[i])
 		}
+	}
+}
+
+// markDevice writes the attribute as a device when it names device 0.
+func markDevice(node *waBinary.Node, attr string) {
+	if jid, ok := node.Attrs[attr].(types.JID); ok && jid.Device == 0 &&
+		(jid.Server == types.DefaultUserServer || jid.Server == types.HiddenUserServer) {
+		jid.Device = 256
+		node.Attrs[attr] = jid
 	}
 }
 
