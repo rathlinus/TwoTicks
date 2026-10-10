@@ -1,3 +1,5 @@
+using System.Text;
+using System.Text.Json;
 using Microsoft.Web.WebView2.Core;
 using TwoTicks.Core;
 
@@ -59,6 +61,68 @@ internal sealed partial class VoipEngine
     }
 
     private void OnWebMessage(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs args) => OnMessage(args.WebMessageAsJson);
+
+    /// <summary>
+    /// Pauses the page's thread with the browser's debugger for a moment and
+    /// reads where it is. A thread that runs script, even in a loop, stops for
+    /// the debugger; one that waits inside the browser does not answer it.
+    /// </summary>
+    private async partial Task<string> DescribeStallAsync()
+    {
+        if (_web is not { } web)
+        {
+            return "the page is closed";
+        }
+        var paused = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        CoreWebView2DevToolsProtocolEventReceiver receiver = web.GetDevToolsProtocolEventReceiver("Debugger.paused");
+        void OnPaused(CoreWebView2 sender, CoreWebView2DevToolsProtocolEventReceivedEventArgs e) => paused.TrySetResult(e.ParameterObjectAsJson);
+        receiver.DevToolsProtocolEventReceived += OnPaused;
+        try
+        {
+            Task<string> enabling = web.CallDevToolsProtocolMethodAsync("Debugger.enable", "{}").AsTask();
+            if (await Task.WhenAny(enabling, Task.Delay(TimeSpan.FromSeconds(3))) != enabling)
+            {
+                return "its thread does not answer the debugger, so it waits inside the browser rather than running script";
+            }
+            _ = web.CallDevToolsProtocolMethodAsync("Debugger.pause", "{}");
+            if (await Task.WhenAny(paused.Task, Task.Delay(TimeSpan.FromSeconds(3))) != paused.Task)
+            {
+                return "its thread did not stop for the debugger";
+            }
+            return DescribeFrames(await paused.Task);
+        }
+        finally
+        {
+            receiver.DevToolsProtocolEventReceived -= OnPaused;
+            // Turning the debugger off lets the page go on.
+            _ = web.CallDevToolsProtocolMethodAsync("Debugger.disable", "{}");
+        }
+    }
+
+    private static string DescribeFrames(string json)
+    {
+        using JsonDocument document = JsonDocument.Parse(json);
+        var text = new StringBuilder();
+        int count = 0;
+        foreach (JsonElement frame in document.RootElement.GetProperty("callFrames").EnumerateArray())
+        {
+            if (count++ == 30)
+            {
+                text.Append(Environment.NewLine).Append("    …");
+                break;
+            }
+            string name = frame.GetProperty("functionName").GetString() is { Length: > 0 } function ? function : "(anonymous)";
+            string url = frame.TryGetProperty("url", out JsonElement u) ? u.GetString() ?? "" : "";
+            JsonElement location = frame.GetProperty("location");
+            text.Append(Environment.NewLine)
+                .Append("    at ").Append(name)
+                .Append(" (").Append(url[(url.LastIndexOf('/') + 1)..])
+                .Append(':').Append(location.GetProperty("lineNumber").GetInt32() + 1)
+                .Append(':').Append(location.TryGetProperty("columnNumber", out JsonElement c) ? c.GetInt32() + 1 : 0)
+                .Append(')');
+        }
+        return count == 0 ? "no script on its thread" : text.ToString();
+    }
 
 
     private partial void ClosePage()

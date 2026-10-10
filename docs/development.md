@@ -218,6 +218,8 @@ What goes where:
 
 Video and group calls are not handled: their offers show a notification to answer on the phone.
 
+The page tells the app every second that it is alive. When it stops for 4 seconds the app logs that, and on Windows it pauses the page's thread with the browser's debugger and logs where it is, right away and again after 20 seconds. During a call the page logs every 10 seconds what went to and from the relays, the microphone and the speaker, and it logs calls into the engine that hold its thread up for more than 100 ms, the browser freezing the page, sound devices changing and relays closing. All of this lands in `app.log`, with or without `TWOTICKS_DEBUG`.
+
 To take a newer engine, make or take a call in WhatsApp Web in Firefox, so that the cache has it, then run:
 
 ```

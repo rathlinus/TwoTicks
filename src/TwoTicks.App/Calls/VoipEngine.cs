@@ -32,6 +32,15 @@ internal sealed partial class VoipEngine : IDisposable
     private string? _wasmFile;
     private bool _disposed;
 
+    // The page says it is alive every second; see host.js. The watchdog logs
+    // when it stops, and where the page's thread is, where the browser can say.
+    private static readonly TimeSpan s_stalledAfter = TimeSpan.FromSeconds(4);
+    private static readonly TimeSpan s_lookAgainAfter = TimeSpan.FromSeconds(20);
+    private DispatcherQueueTimer? _watchdog;
+    private long _lastHeard;
+    private bool _stalled;
+    private int _stallLooks;
+
     public VoipEngine(DispatcherQueue ui) => _ui = ui;
 
     /// <summary>A message from the page. Raised on the UI thread.</summary>
@@ -49,6 +58,9 @@ internal sealed partial class VoipEngine : IDisposable
     private partial Task OpenPageAsync();
 
     private partial void PostToPage(string json);
+
+    /// <summary>Where the page's thread is while it does not answer, as far as the browser can tell.</summary>
+    private partial Task<string> DescribeStallAsync();
 
     /// <summary>Closes the page and what it ran in.</summary>
     private partial void ClosePage();
@@ -70,6 +82,61 @@ internal sealed partial class VoipEngine : IDisposable
         {
             throw new TimeoutException("The calling engine's page did not load.");
         }
+        StartWatchdog();
+    }
+
+    private void StartWatchdog()
+    {
+        _lastHeard = Environment.TickCount64;
+        _stalled = false;
+        if (_watchdog is null)
+        {
+            _watchdog = _ui.CreateTimer();
+            _watchdog.Interval = TimeSpan.FromSeconds(1);
+            _watchdog.Tick += (_, _) => Watch();
+        }
+        _watchdog.Start();
+    }
+
+    private void Watch()
+    {
+        TimeSpan silent = TimeSpan.FromMilliseconds(Environment.TickCount64 - _lastHeard);
+        if (!_stalled && silent >= s_stalledAfter)
+        {
+            _stalled = true;
+            _stallLooks = 0;
+            Log.Error($"The calling engine's page has not answered for {silent.TotalSeconds:0} s");
+            _ = LookAtStallAsync();
+        }
+        else if (_stalled && _stallLooks == 1 && silent >= s_lookAgainAfter)
+        {
+            // A second look tells a thread stuck in one place from one that is busy.
+            _ = LookAtStallAsync();
+        }
+    }
+
+    private async Task LookAtStallAsync()
+    {
+        _stallLooks++;
+        try
+        {
+            Log.Info("Where the calling engine's page is stuck: " + await DescribeStallAsync());
+        }
+        catch (Exception e)
+        {
+            Log.Error("Could not see where the calling engine's page is stuck", e);
+        }
+    }
+
+    private void Heard()
+    {
+        long now = Environment.TickCount64;
+        if (_stalled)
+        {
+            _stalled = false;
+            Log.Info($"The calling engine's page answers again after {(now - _lastHeard) / 1000.0:0.0} s");
+        }
+        _lastHeard = now;
     }
 
     private void OnChannelMessage(string json) => _ui.TryEnqueue(() => OnMessage(json));
@@ -117,6 +184,7 @@ internal sealed partial class VoipEngine : IDisposable
         {
             return;
         }
+        Heard();
         string? type = message.TryGetProperty("type", out JsonElement t) ? t.GetString() : null;
         switch (type)
         {
@@ -126,6 +194,8 @@ internal sealed partial class VoipEngine : IDisposable
                     Log.Error("The calling engine's page is not isolated; its threads cannot share memory");
                 }
                 _loaded?.TrySetResult();
+                return;
+            case "alive":
                 return;
             case "log":
                 Log.Info(message.TryGetProperty("message", out JsonElement text) ? text.GetString() ?? "" : "");
@@ -208,6 +278,8 @@ internal sealed partial class VoipEngine : IDisposable
     /// <summary>Closes the page and the engine with it, which frees the memory a call takes.</summary>
     public void Stop()
     {
+        _watchdog?.Stop();
+        _stalled = false;
         _loaded?.TrySetCanceled();
         _loaded = null;
         PageServer? server = _server;

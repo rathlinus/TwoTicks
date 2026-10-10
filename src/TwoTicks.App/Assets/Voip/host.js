@@ -79,6 +79,88 @@ function byteList(text) {
   return list;
 }
 
+// ---- Health ----
+//
+// A call once went quiet halfway through: the page stopped doing anything and
+// its log showed nothing about why. So the page tells the app every second
+// that it is alive, and the app logs when that stops. The page logs calls into
+// the engine that hold up its thread, what goes in and out during a call, and
+// what the browser does to it: freezing it, sound devices, relays closing.
+
+const BEAT = 1000;
+// How long a call into the engine may hold up this thread before it is logged.
+const SLOW = 100;
+const STATS_EVERY = 10000;
+
+const health = {
+  slow: new Map(), // name -> { count, worst }, since the last beat
+  counts: null,
+  countingSince: 0,
+  lastBeat: performance.now(),
+};
+
+function resetCounts(now) {
+  health.counts = { relayIn: 0, relayOut: 0, relayDropped: 0, mic: 0, speaker: 0, signalsIn: 0, signalsOut: 0 };
+  health.countingSince = now;
+}
+resetCounts(performance.now());
+
+// Runs a call into the engine and notes when it holds up the thread.
+function timed(name, fn) {
+  const start = performance.now();
+  try {
+    return fn();
+  } finally {
+    const took = performance.now() - start;
+    if (took > SLOW) {
+      const slow = health.slow.get(name) || { count: 0, worst: 0 };
+      slow.count++;
+      slow.worst = Math.max(slow.worst, took);
+      health.slow.set(name, slow);
+    }
+  }
+}
+
+function audioState(side) {
+  if (!side) return 'off';
+  return side.context ? side.context.state : 'starting';
+}
+
+function logStats(now) {
+  const c = health.counts;
+  const seconds = Math.round((now - health.countingSince) / 1000);
+  log(2, 'voip: last ' + seconds + ' s: relays ' + c.relayIn + ' in, ' + c.relayOut + ' out, ' + c.relayDropped + ' dropped, ' +
+    sessions.size + ' open; microphone ' + c.mic + ' chunks, ' + audioState(audio.capture) + '; speaker ' + c.speaker +
+    ' chunks, ' + audioState(audio.playback) + '; signaling ' + c.signalsIn + ' in, ' + c.signalsOut + ' out');
+  resetCounts(now);
+}
+
+function beat() {
+  const now = performance.now();
+  const late = now - health.lastBeat - BEAT;
+  health.lastBeat = now;
+  if (late > 500) log(2, "voip: the page's thread was held up for " + Math.round(late) + ' ms');
+  if (health.slow.size) {
+    const list = [...health.slow].map(([name, s]) => name + (s.count > 1 ? ' ' + s.count + ' times, up to ' : ' ') + Math.round(s.worst) + ' ms');
+    log(2, "voip: slow on the page's thread: " + list.join(', '));
+    health.slow.clear();
+  }
+  post({ type: 'alive' });
+  if (!currentCall) resetCounts(now);
+  else if (now - health.countingSince >= STATS_EVERY) logStats(now);
+}
+
+setInterval(beat, BEAT);
+
+document.addEventListener('freeze', () => log(2, 'voip: the browser froze the page'));
+document.addEventListener('resume', () => log(2, 'voip: the browser resumed the page'));
+document.addEventListener('visibilitychange', () => log(2, 'voip: the page is ' + document.visibilityState));
+window.addEventListener('pagehide', () => log(2, 'voip: the page is going away'));
+window.addEventListener('error', (e) => log(1, 'voip: error on the page: ' + (e.error ? describe(e.error) : e.message + ' at ' + e.filename + ':' + e.lineno)));
+window.addEventListener('unhandledrejection', (e) => log(1, 'voip: unhandled on the page: ' + describe(e.reason)));
+if (navigator.mediaDevices) navigator.mediaDevices.addEventListener('devicechange', () => log(2, 'voip: the sound devices changed'));
+self.voipWorkerError = (e) => log(1, 'voip: a thread of the engine failed: ' + (e.message || 'unknown') + (e.filename ? ' at ' + e.filename + ':' + e.lineno : ''));
+
 // ---- Memory in the engine ----
 
 function heapBuffer() {
@@ -187,6 +269,7 @@ function openSession(relay) {
         if (done || session.closed) break;
         if (value) deliver(session, value);
       }
+      if (!session.closed) log(2, 'voip: relay ' + relay.domain + ' ended the session');
     } catch (e) {
       if (!session.closed) log(2, 'voip: relay ' + relay.domain + ' failed: ' + describe(e));
     } finally {
@@ -201,15 +284,22 @@ function deliver(session, bytes) {
   const ptr = ensureHeap(receiveBuffer, bytes.byteLength);
   if (!ptr) return;
   engine.GROWABLE_HEAP_U8().set(bytes, ptr);
-  engine.handleOnMessageFromHeap(ptr, bytes.byteLength, session.ip, session.port);
+  health.counts.relayIn++;
+  timed('relay packet', () => engine.handleOnMessageFromHeap(ptr, bytes.byteLength, session.ip, session.port));
 }
 
 function sendToRelay(ip, port, data) {
   const relay = relays.get(addressKey(ip, port));
-  if (!relay || !validDomain(relay.domain)) return;
+  if (!relay || !validDomain(relay.domain)) {
+    health.counts.relayDropped++;
+    return;
+  }
   let session = sessions.get(relay.domain);
   if (!session) {
-    if (sessions.size >= MAX_SESSIONS * 2) return;
+    if (sessions.size >= MAX_SESSIONS * 2) {
+      health.counts.relayDropped++;
+      return;
+    }
     session = openSession(relay);
   }
   session.ip = ip;
@@ -217,9 +307,13 @@ function sendToRelay(ip, port, data) {
   // A copy: the engine's memory is shared and changes under the write.
   const copy = new Uint8Array(data);
   if (session.writer) {
-    session.writer.write(copy).catch(() => {});
+    health.counts.relayOut++;
+    session.writer.write(copy).catch(() => health.counts.relayDropped++);
   } else if (session.queue.length < MAX_QUEUE) {
+    health.counts.relayOut++;
     session.queue.push(copy);
+  } else {
+    health.counts.relayDropped++;
   }
 }
 
@@ -272,7 +366,21 @@ async function openMicrophone() {
   const id = await findDevice('audioinput', chosen.microphone);
   const audio = { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 };
   if (id) audio.deviceId = { exact: id };
-  return navigator.mediaDevices.getUserMedia({ audio });
+  const stream = await navigator.mediaDevices.getUserMedia({ audio });
+  for (const track of stream.getAudioTracks()) {
+    // Not raised when the page stops the track itself.
+    track.addEventListener('ended', () => log(2, 'voip: the microphone ' + track.label + ' went away'));
+    track.addEventListener('mute', () => log(2, 'voip: the microphone ' + track.label + ' gives no sound'));
+    track.addEventListener('unmute', () => log(2, 'voip: the microphone ' + track.label + ' gives sound again'));
+  }
+  return stream;
+}
+
+// Logs what the browser does to the sound of a call, such as suspending it.
+function watchAudio(context, name, isCurrent) {
+  context.addEventListener('statechange', () => {
+    if (isCurrent()) log(2, 'voip: the ' + name + ' is ' + context.state);
+  });
 }
 
 async function applySpeaker(context) {
@@ -312,6 +420,7 @@ async function startCapture() {
   if (!capture || capture.context) return;
   const context = new AudioContext({ sampleRate: capture.params.rate, latencyHint: 'interactive' });
   capture.context = context;
+  watchAudio(context, 'microphone', () => audio.capture === capture);
   await context.audioWorklet.addModule(workletUrl);
   if (audio.capture !== capture) return context.close();
   const source = context.createMediaStreamSource(capture.stream);
@@ -332,7 +441,8 @@ function onCaptured(capture, samples) {
       const ptr = ensureHeap(capture.buffer, capture.pending.length * 4);
       if (ptr) {
         engine.GROWABLE_HEAP_F32().set(capture.pending, ptr >> 2);
-        engine.onAudioDataFromJs(ptr, capture.pending.length);
+        health.counts.mic++;
+        timed('microphone chunk', () => engine.onAudioDataFromJs(ptr, capture.pending.length));
       }
       capture.filled = 0;
     }
@@ -363,6 +473,7 @@ async function startPlayback() {
   const { rate, channels, chunk } = playback.params;
   const context = new AudioContext({ sampleRate: rate, latencyHint: 'interactive' });
   playback.context = context;
+  watchAudio(context, 'speaker', () => audio.playback === playback);
   await context.audioWorklet.addModule(workletUrl);
   if (audio.playback !== playback) return context.close();
   const node = new AudioWorkletNode(context, 'voip-playback', {
@@ -373,7 +484,8 @@ async function startPlayback() {
     const bytes = chunk * channels * 4;
     const ptr = ensureHeap(playback.buffer, bytes);
     if (!ptr) return;
-    engine.requestAudioDataFromWasmVoip(ptr, bytes);
+    health.counts.speaker++;
+    timed('speaker chunk', () => engine.requestAudioDataFromWasmVoip(ptr, bytes));
     node.port.postMessage(engine.GROWABLE_HEAP_F32().slice(ptr >> 2, (ptr >> 2) + bytes / 4));
   };
   node.connect(context.destination);
@@ -435,7 +547,7 @@ function onCallStateChanged(json) {
         ringTimer = null;
         log(3, 'voip: nobody answered');
         try {
-          engine.endCall(EndCallReason.Timeout, true);
+          timed('endCall', () => engine.endCall(EndCallReason.Timeout, true));
         } catch (e) {
           log(1, 'voip: ending the call failed: ' + describe(e));
         }
@@ -473,6 +585,7 @@ function onCallEvent(p) {
 const callbacks = {
   onSignalingXmpp: (p) => {
     try {
+      health.counts.signalsOut++;
       post({ type: 'signal', peer: p.peerJid, callId: p.callId, payload: base64(toBytes(p.xmlPayload)) });
     } catch (e) {
       log(1, 'voip: sending signaling failed: ' + describe(e));
@@ -630,8 +743,9 @@ function receive(m) {
     log(2, 'voip: ' + m.type + ' before the engine started');
     return;
   }
+  if (m.type === 'offer' || m.type === 'message' || m.type === 'receipt' || m.type === 'ack') health.counts.signalsIn++;
   Promise.resolve()
-    .then(() => handler(m))
+    .then(() => timed(m.type, () => handler(m)))
     .catch((err) => {
       log(1, 'voip: ' + m.type + ' failed: ' + describe(err));
       if (m.type === 'init') post({ type: 'failed', message: String(err && err.message ? err.message : err) });

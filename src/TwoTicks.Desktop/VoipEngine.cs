@@ -19,6 +19,9 @@ internal sealed partial class VoipEngine
 
     private partial void PostToPage(string json) => _server?.Send(json);
 
+    // The browser takes no commands from the app; see CallBrowser.
+    private partial Task<string> DescribeStallAsync() => Task.FromResult("this browser cannot be asked");
+
     private async partial Task OpenPageAsync()
     {
         CallBrowser browser = CallBrowser.Find() ?? throw new VoipSetupException(Loc.T("calls.noBrowser"));

@@ -124,7 +124,12 @@
   define('WorkerClient', { init() {} });
   define('WorkerMessagePort', { WorkerMessagePort: MessagePort, WorkerSyncedMessagePort: MessagePort });
   define('WorkerBundleResource', {
-    createDedicatedWebWorker: () => new Worker(g.voipUrls.worker),
+    createDedicatedWebWorker: () => {
+      const worker = new Worker(g.voipUrls.worker);
+      // The page logs these; see host.js.
+      worker.addEventListener('error', (e) => g.voipWorkerError && g.voipWorkerError(e));
+      return worker;
+    },
   });
   // Resource ids of WhatsApp's bundler. The only resource the script looks up is the binary.
   const bx = (id) => id;
