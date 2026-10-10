@@ -115,6 +115,8 @@ public sealed class CallManager : Observable
         Log.Info($"Call {signal.Kind} {signal.CallId} from {signal.Peer}");
         if (signal.Kind == "offer" && _phase == CallPhase.Idle)
         {
+            // The engine may still run from the last call, with its stop ahead.
+            _idle.Stop();
             _callId = signal.CallId;
             Show(signal.Chat ?? "", signal.Name ?? signal.Chat?.Split('@')[0] ?? "");
             Phase = CallPhase.Incoming;
@@ -447,6 +449,10 @@ public sealed class CallManager : Observable
 
     private void StopEngine()
     {
+        if (_engine.IsRunning)
+        {
+            Log.Info("Stopping the calling engine");
+        }
         _engineRun++;
         _idle.Stop();
         _engine.Stop();
