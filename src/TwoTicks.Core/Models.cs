@@ -256,10 +256,11 @@ public sealed class CallSignalData
     public string? TcToken { get; set; }
     public string CallId { get; set; } = "";
 
-    // For an offer: the chat of the caller and their name.
+    // For an offer: the chat of the caller and their name, and whether they call with video.
     public string? Chat { get; set; }
     public string? Name { get; set; }
     public bool NotContact { get; set; }
+    public bool Video { get; set; }
 }
 
 /// <summary>This device as the calling engine knows itself.</summary>

@@ -10,9 +10,10 @@ using TwoTicks.Core;
 namespace TwoTicks.App.Calls;
 
 /// <summary>
-/// A call in a window of its own: who it is with, how long it runs, and the
-/// buttons to answer, mute and hang up. It stays on top of other windows and
-/// shows also while the main window is closed to the notification area.
+/// A call in a window of its own: who it is with, how long it runs, the video
+/// of both sides, and the buttons to answer, mute, turn the camera on or off
+/// and hang up. It stays on top of other windows and shows also while the main
+/// window is closed to the notification area. It can be made larger for video.
 /// </summary>
 public sealed partial class CallWindow : Window
 {
@@ -32,7 +33,7 @@ public sealed partial class CallWindow : Window
 #endif
         if (AppWindow.Presenter is OverlappedPresenter presenter)
         {
-            presenter.IsResizable = false;
+            presenter.IsResizable = true;
             presenter.IsMaximizable = false;
             presenter.IsAlwaysOnTop = true;
         }
@@ -124,8 +125,49 @@ public sealed partial class CallWindow : Window
         AutomationProperties.SetName(MuteButton, mute);
         ToolTipService.SetToolTip(MuteButton, mute);
         // Muted shows as a light button, as in WhatsApp.
-        MuteButton.Background = new SolidColorBrush(_call.IsMuted ? Microsoft.UI.Colors.White : Windows.UI.Color.FromArgb(0xFF, 0x23, 0x31, 0x38));
-        MuteIcon.Foreground = new SolidColorBrush(_call.IsMuted ? Windows.UI.Color.FromArgb(0xFF, 0x0B, 0x14, 0x1A) : Microsoft.UI.Colors.White);
+        MuteButton.Background = new SolidColorBrush(_call.IsMuted ? Microsoft.UI.Colors.White : s_buttonColor);
+        MuteIcon.Foreground = new SolidColorBrush(_call.IsMuted ? s_darkColor : Microsoft.UI.Colors.White);
+
+        CameraButton.Visibility = MuteButton.Visibility;
+        CameraButton.IsEnabled = !ended;
+        string camera = _call.IsCameraOn ? Loc.T("calls.cameraOff") : Loc.T("calls.cameraOn");
+        AutomationProperties.SetName(CameraButton, camera);
+        ToolTipService.SetToolTip(CameraButton, camera);
+        CameraIcon.Kind = _call.IsCameraOn ? "Video" : "VideoOff";
+        // In a video call a camera turned off shows as a light button, as muting does.
+        bool cameraOff = _call.IsVideoCall && !_call.IsCameraOn;
+        CameraButton.Background = new SolidColorBrush(cameraOff ? Microsoft.UI.Colors.White : s_buttonColor);
+        CameraIcon.Foreground = new SolidColorBrush(cameraOff ? s_darkColor : Microsoft.UI.Colors.White);
+        AnswerIcon.Kind = _call.IsVideoCall ? "Video" : "Call";
+
+        RefreshVideo(ended);
+    }
+
+    private static readonly Windows.UI.Color s_buttonColor = Windows.UI.Color.FromArgb(0xFF, 0x23, 0x31, 0x38);
+    private static readonly Windows.UI.Color s_darkColor = Windows.UI.Color.FromArgb(0xFF, 0x0B, 0x14, 0x1A);
+
+    private void RefreshVideo(bool ended)
+    {
+        ImageSource? peer = _call.PeerPicture;
+        ImageSource? self = _call.IsCameraOn ? _call.SelfPicture : null;
+        ImageSource? full = peer ?? self;
+        FullVideo.Source = full;
+        FullVideo.Visibility = full is null ? Visibility.Collapsed : Visibility.Visible;
+        FullVideoMirror.ScaleX = peer is null && self is not null ? -1 : 1;
+        SmallVideo.Source = peer is not null ? self : null;
+        SmallVideoFrame.Visibility = peer is not null && self is not null ? Visibility.Visible : Visibility.Collapsed;
+
+        // Over the video, the name and the time move to the top and the picture goes.
+        bool video = full is not null;
+        InfoPanel.VerticalAlignment = video ? VerticalAlignment.Top : VerticalAlignment.Center;
+        InfoPanel.Margin = video ? new Thickness(0, 16, 0, 0) : new Thickness(0);
+        Picture.Visibility = video ? Visibility.Collapsed : Visibility.Visible;
+        EncryptedText.Visibility = video ? Visibility.Collapsed : Visibility.Visible;
+
+        NoticeText.Text = _call.Notice;
+        NoticeText.Visibility = _call.Notice.Length > 0 && !ended ? Visibility.Visible : Visibility.Collapsed;
+        VideoRequestBar.Visibility = _call.IsVideoRequested && !ended ? Visibility.Visible : Visibility.Collapsed;
+        VideoRequestText.Text = Loc.T("calls.videoRequest", ("name", _call.Name));
     }
 
     private void OnAnswerClick(object sender, RoutedEventArgs e) => _call.Answer();
@@ -133,4 +175,8 @@ public sealed partial class CallWindow : Window
     private void OnHangUpClick(object sender, RoutedEventArgs e) => _call.HangUp();
 
     private void OnMuteClick(object sender, RoutedEventArgs e) => _call.ToggleMute();
+
+    private void OnCameraClick(object sender, RoutedEventArgs e) => _call.ToggleCamera();
+
+    private void OnSwitchToVideoClick(object sender, RoutedEventArgs e) => _call.AcceptVideo();
 }

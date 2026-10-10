@@ -12,12 +12,19 @@
 const GLUE = 'WAWebVoipWebWasmLoader_ContentAddressed_internal';
 
 // Values of the engine's enums, from WhatsApp Web.
-const CallEvent = { CallStateChanged: 16, CallEnding: 38, MuteStateChanged: 73, SpeakerStatusChanged: 100, RelayListUpdate: 156 };
+const CallEvent = {
+  CallStateChanged: 16, CallEnding: 38, SelfVideoStateChanged: 51, PeerVideoStateChanged: 52, MuteStateChanged: 73,
+  SpeakerStatusChanged: 100, VideoStateChanged: 146, RelayListUpdate: 156,
+};
 const CallState = {
   None: 0, Calling: 1, PreacceptReceived: 2, ReceivedCall: 3, AcceptSent: 4, AcceptReceived: 5, CallActive: 6,
   CallActiveElseWhere: 7, ReceivedCallWithoutOffer: 8, Rejoining: 9, Link: 10, ConnectedLonely: 11, PreCalling: 12, CallStateEnding: 13,
 };
 const EndCallReason = { Timeout: 1, Self: 2 };
+const VideoState = {
+  Disabled: 0, Enabled: 1, Paused: 2, UpgradeRequest: 3, UpgradeAccept: 4, UpgradeReject: 5, Stopped: 6,
+  UpgradeRejectByTimeout: 7, UpgradeCancel: 8, UpgradeCancelByTimeout: 9, UnknownPeer: 10, UpgradeRequestV2: 11, Error: 20,
+};
 // Events too frequent to log.
 const QUIET_EVENTS = new Set([CallEvent.SpeakerStatusChanged, 75, 117, 123]);
 // How long a call rings before it gives up, as in WhatsApp Web.
@@ -27,6 +34,12 @@ const CALLEE_TIMEOUT = 60000;
 let engine = null;
 let starting = null;
 let debug = false;
+// The user parts of this account's phone number and LID.
+let ownUsers = new Set();
+
+function userOf(jid) {
+  return String(jid || '').split('@')[0].split(':')[0];
+}
 
 // ---- Talking to the app ----
 
@@ -100,7 +113,7 @@ const health = {
 };
 
 function resetCounts(now) {
-  health.counts = { relayIn: 0, relayOut: 0, relayDropped: 0, mic: 0, speaker: 0, signalsIn: 0, signalsOut: 0 };
+  health.counts = { relayIn: 0, relayOut: 0, relayDropped: 0, mic: 0, speaker: 0, camera: 0, pictures: 0, signalsIn: 0, signalsOut: 0 };
   health.countingSince = now;
 }
 resetCounts(performance.now());
@@ -131,7 +144,8 @@ function logStats(now) {
   const seconds = Math.round((now - health.countingSince) / 1000);
   log(2, 'voip: last ' + seconds + ' s: relays ' + c.relayIn + ' in, ' + c.relayOut + ' out, ' + c.relayDropped + ' dropped, ' +
     sessions.size + ' open; microphone ' + c.mic + ' chunks, ' + audioState(audio.capture) + '; speaker ' + c.speaker +
-    ' chunks, ' + audioState(audio.playback) + '; signaling ' + c.signalsIn + ' in, ' + c.signalsOut + ' out');
+    ' chunks, ' + audioState(audio.playback) + '; camera ' + c.camera + ' frames, other side ' + c.pictures +
+    ' pictures; signaling ' + c.signalsIn + ' in, ' + c.signalsOut + ' out');
   resetCounts(now);
 }
 
@@ -341,10 +355,10 @@ const audio = {
 };
 let workletUrl = 'audio-worklet.js';
 
-// The microphone and speaker picked in the app's settings, by their names in
-// Windows, which the browser uses as the labels of the devices; null for the
-// Windows default.
-const chosen = { microphone: null, speaker: null };
+// The microphone, speaker and camera picked in the app's settings, by their
+// names in Windows, which the browser uses as the labels of the devices; null
+// for the Windows default.
+const chosen = { microphone: null, speaker: null, camera: null };
 
 // The browser's ID of the device with that name, or null for the default.
 async function findDevice(kind, name) {
@@ -510,7 +524,7 @@ function stopPlayback() {
 // The engine asks to set up the microphone and to start it right after,
 // without waiting; setting up waits for the browser. Each side's steps run
 // in order, one after the other, as in WhatsApp Web.
-const queues = { capture: Promise.resolve(), playback: Promise.resolve() };
+const queues = { capture: Promise.resolve(), playback: Promise.resolve(), video: Promise.resolve() };
 
 function run(queue, name, step) {
   queues[queue] = queues[queue].then(step).catch((e) => {
@@ -518,6 +532,258 @@ function run(queue, name, step) {
     if (queue === 'capture') post({ type: 'micFailed', message: String(e && e.message ? e.message : e) });
   });
   return queues[queue];
+}
+
+// ---- Video ----
+//
+// The engine encodes and decodes the video itself, as in WhatsApp Web. The page
+// hands it the camera's pictures as NV12, at the size it asks for, and gets the
+// other side's pictures back as NV12, I420 or RGBA. The page is never shown,
+// so both go to the app as JPEG, and the call window draws them.
+
+const VideoFormat = { NV12: 0, I420: 1, RGBA: 3 };
+const FRAME_FORMATS = { [VideoFormat.NV12]: 'NV12', [VideoFormat.I420]: 'I420', [VideoFormat.RGBA]: 'RGBA' };
+const Orientation = { Normal: 1, Rotate90: 2, Rotate180: 3, Rotate270: 4 };
+// The longest side of the pictures the app gets, and how often it gets its own.
+const PICTURE_SIZE = { self: 320, peer: 960 };
+const SELF_PICTURE_EVERY = 66;
+
+const video = {
+  capture: null, // { stream, width, height, fps, canvas, context, nv12, buffer, last, stopped, reader, element, timer }
+  callIsVideo: false,
+  selfState: null,
+  // Per picture the app gets: a canvas to draw it on, and whether one is on its way.
+  pictures: { self: { canvas: null, busy: false, last: 0 }, peer: { canvas: null, busy: false, last: 0 } },
+};
+
+async function startVideoCapture(p) {
+  stopVideoCapture();
+  const width = p.width || 640;
+  const height = p.height || 480;
+  const fps = p.max_fps || 15;
+  const stream = await openCamera({ width: { ideal: width }, height: { ideal: height }, frameRate: { ideal: fps } });
+  if (!stream) {
+    // As WhatsApp Web does: without a camera the call goes on with the video off.
+    if (engine) engine.setCallVideoMute(true);
+    return;
+  }
+  const canvas = new OffscreenCanvas(width, height);
+  const capture = {
+    stream, width, height, fps, canvas, context: canvas.getContext('2d', { willReadFrequently: true }),
+    nv12: new Uint8Array(width * height + 2 * Math.ceil(width / 2) * Math.ceil(height / 2)),
+    buffer: heapBuffer(), last: 0, stopped: false, reader: null, element: null, timer: null,
+  };
+  video.capture = capture;
+  const track = stream.getVideoTracks()[0];
+  log(2, 'voip: camera ' + track.label + ' at ' + width + 'x' + height + ', ' + fps + ' fps');
+  track.addEventListener('ended', () => {
+    if (video.capture === capture) log(2, 'voip: the camera ' + track.label + ' went away');
+  });
+  if (typeof MediaStreamTrackProcessor === 'function') readCamera(capture, track);
+  else await pollCamera(capture);
+}
+
+// The camera picked in the settings, or the default one; when that does not
+// start, each other camera in turn, virtual ones too. A virtual camera often
+// gives no picture until the program behind it sends one, and the browser
+// gives up on it after a while.
+async function openCamera(constraints) {
+  const tried = [];
+  const attempt = async (id, name) => {
+    try {
+      return await navigator.mediaDevices.getUserMedia({ video: id ? Object.assign({ deviceId: { exact: id } }, constraints) : constraints });
+    } catch (e) {
+      log(1, 'voip: the camera ' + name + ' did not start: ' + describe(e));
+      tried.push(name + ' (' + (e && e.message ? e.message : e) + ')');
+      return null;
+    }
+  };
+  let chosenId = null;
+  try {
+    chosenId = await findDevice('videoinput', chosen.camera);
+  } catch (e) {
+    log(2, 'voip: looking for the chosen camera failed: ' + describe(e));
+  }
+  let stream = await attempt(chosenId, chosen.camera || 'default');
+  if (stream) return stream;
+  let cameras = [];
+  try {
+    cameras = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput' && d.deviceId !== chosenId);
+  } catch (e) {
+    log(2, 'voip: listing the cameras failed: ' + describe(e));
+  }
+  for (const camera of cameras) {
+    stream = await attempt(camera.deviceId, camera.label || camera.deviceId.slice(0, 8));
+    if (stream) return stream;
+  }
+  post({ type: 'cameraFailed', message: tried.length ? tried.join(', ') : 'no camera' });
+  return null;
+}
+
+// Takes the camera's pictures as the browser has them, where it can hand them over.
+async function readCamera(capture, track) {
+  const reader = new MediaStreamTrackProcessor({ track }).readable.getReader();
+  capture.reader = reader;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      try {
+        if (!capture.stopped) onCameraFrame(capture, value, value.displayWidth, value.displayHeight);
+      } finally {
+        value.close();
+      }
+      if (capture.stopped) break;
+    }
+  } catch (e) {
+    if (!capture.stopped) log(1, 'voip: reading the camera failed: ' + describe(e));
+  }
+}
+
+// The same through a video element, for browsers without MediaStreamTrackProcessor.
+async function pollCamera(capture) {
+  const element = document.createElement('video');
+  element.muted = true;
+  element.playsInline = true;
+  element.srcObject = capture.stream;
+  capture.element = element;
+  await element.play();
+  const tick = () => {
+    if (capture.stopped) return;
+    if (element.videoWidth) onCameraFrame(capture, element, element.videoWidth, element.videoHeight);
+    capture.timer = setTimeout(tick, 1000 / capture.fps);
+  };
+  tick();
+}
+
+function onCameraFrame(capture, source, sourceWidth, sourceHeight) {
+  const now = performance.now();
+  if (now - capture.last < 1000 / capture.fps - 2 || !engine || !sourceWidth || !sourceHeight) return;
+  capture.last = now;
+  const { width, height, context } = capture;
+  // Filled to the size the engine asked for, cut at the sides as needed.
+  const scale = Math.max(width / sourceWidth, height / sourceHeight);
+  const w = sourceWidth * scale;
+  const h = sourceHeight * scale;
+  context.drawImage(source, (width - w) / 2, (height - h) / 2, w, h);
+  const nv12 = toNV12(context.getImageData(0, 0, width, height).data, width, height, capture.nv12);
+  const ptr = ensureHeap(capture.buffer, nv12.length);
+  if (!ptr) return;
+  engine.GROWABLE_HEAP_U8().set(nv12, ptr);
+  health.counts.camera++;
+  timed('camera frame', () => engine.onVideoDataFromJs(ptr, nv12.length, width, height, capture.fps, VideoFormat.NV12, Orientation.Normal));
+  if (now - video.pictures.self.last >= SELF_PICTURE_EVERY) postPicture('self', capture.canvas, width, height, Orientation.Normal);
+}
+
+// RGBA to NV12 with the BT.601 coefficients WhatsApp Web uses: the full
+// brightness plane, then the colour at half the size, U and V interleaved.
+function toNV12(rgba, width, height, out) {
+  for (let i = 0, j = 0, n = width * height; i < n; i++, j += 4) {
+    out[i] = (16 + ((66 * rgba[j] + 129 * rgba[j + 1] + 25 * rgba[j + 2] + 128) >> 8));
+  }
+  let k = width * height;
+  for (let y = 0; y < height; y += 2) {
+    for (let x = 0; x < width; x += 2) {
+      const a = (y * width + x) * 4;
+      const b = x + 1 < width ? a + 4 : a;
+      const c = y + 1 < height ? a + width * 4 : a;
+      const d = x + 1 < width ? c + 4 : c;
+      const r = (rgba[a] + rgba[b] + rgba[c] + rgba[d]) >> 2;
+      const g = (rgba[a + 1] + rgba[b + 1] + rgba[c + 1] + rgba[d + 1]) >> 2;
+      const bl = (rgba[a + 2] + rgba[b + 2] + rgba[c + 2] + rgba[d + 2]) >> 2;
+      out[k++] = Math.max(0, Math.min(255, ((-38 * r - 74 * g + 112 * bl + 128) >> 8) + 128));
+      out[k++] = Math.max(0, Math.min(255, ((112 * r - 94 * g - 18 * bl + 128) >> 8) + 128));
+    }
+  }
+  return out;
+}
+
+function stopVideoCapture() {
+  const capture = video.capture;
+  video.capture = null;
+  if (!capture) return;
+  capture.stopped = true;
+  if (capture.reader) capture.reader.cancel().catch(() => {});
+  if (capture.timer) clearTimeout(capture.timer);
+  if (capture.element) capture.element.srcObject = null;
+  for (const track of capture.stream.getTracks()) track.stop();
+  freeHeap(capture.buffer);
+  post({ type: 'picture', who: 'self', jpeg: '' });
+}
+
+// A decoded picture of the other side.
+function onPeerFrame(p) {
+  if (p.userJid === 'selfPreviewJid' || video.pictures.peer.busy) return;
+  const format = FRAME_FORMATS[p.format];
+  if (!format) {
+    log(2, 'voip: a picture in format ' + p.format + ', which the page cannot show');
+    return;
+  }
+  health.counts.pictures++;
+  let frame;
+  try {
+    frame = new VideoFrame(new Uint8Array(p.frameBuffer), { format, codedWidth: p.width, codedHeight: p.height, timestamp: 0 });
+    postPicture('peer', frame, p.width, p.height, p.orientation || Orientation.Normal);
+  } catch (e) {
+    log(1, 'voip: showing a picture failed: ' + describe(e));
+  } finally {
+    if (frame) frame.close();
+  }
+}
+
+// Draws a picture upright and small enough, and sends it to the app as JPEG.
+// The drawing is done before this returns, so the source may be closed then.
+function postPicture(who, source, sourceWidth, sourceHeight, orientation) {
+  const picture = video.pictures[who];
+  if (picture.busy) return;
+  const sideways = orientation === Orientation.Rotate90 || orientation === Orientation.Rotate270;
+  const uprightWidth = sideways ? sourceHeight : sourceWidth;
+  const uprightHeight = sideways ? sourceWidth : sourceHeight;
+  const scale = Math.min(1, PICTURE_SIZE[who] / Math.max(uprightWidth, uprightHeight));
+  const width = Math.max(1, Math.round(uprightWidth * scale));
+  const height = Math.max(1, Math.round(uprightHeight * scale));
+  if (!picture.canvas || picture.canvas.width !== width || picture.canvas.height !== height) picture.canvas = new OffscreenCanvas(width, height);
+  const canvas = picture.canvas;
+  const context = canvas.getContext('2d');
+  context.save();
+  context.translate(width / 2, height / 2);
+  context.rotate((Math.PI * ((orientation || 1) - 1)) / 2);
+  const w = sideways ? height : width;
+  const h = sideways ? width : height;
+  context.drawImage(source, -w / 2, -h / 2, w, h);
+  context.restore();
+  picture.busy = true;
+  picture.last = performance.now();
+  canvas.convertToBlob({ type: 'image/jpeg', quality: 0.8 })
+    .then((blob) => blob.arrayBuffer())
+    .then((data) => post({ type: 'picture', who, width, height, jpeg: base64(new Uint8Array(data)) }))
+    .catch((e) => log(1, 'voip: encoding a picture failed: ' + describe(e)))
+    .finally(() => {
+      picture.busy = false;
+    });
+}
+
+function onVideoState(json) {
+  const data = JSON.parse(json);
+  // Some events say whose video it is only by the JID, as WhatsApp Web reads them.
+  const self = data.is_self != null ? data.is_self === true : ownUsers.has(userOf(data.jid && data.jid.raw_jid));
+  if (self) video.selfState = data.video_state;
+  post({ type: 'video', self, state: data.video_state });
+}
+
+// Turns the camera on or off as WhatsApp Web does: in a voice call, turning it
+// on asks the other side to switch to video.
+function setCamera(on) {
+  const s = video.selfState;
+  const inactive = s == null || s === VideoState.Disabled || s === VideoState.Error || s === VideoState.Stopped ||
+    s === VideoState.UpgradeCancel || s === VideoState.UpgradeCancelByTimeout || s === VideoState.UpgradeReject ||
+    s === VideoState.UpgradeRejectByTimeout;
+  const upgrade = on && !video.callIsVideo && inactive;
+  const status = upgrade ? engine.requestVideoUpgrade() : engine.setCallVideoMute(!on);
+  if (status !== 0) {
+    log(1, 'voip: ' + (upgrade ? 'asking for video' : 'turning the camera ' + (on ? 'on' : 'off')) + ' failed with ' + status);
+    post({ type: 'error', request: 'camera', message: 'status ' + status });
+  }
 }
 
 // ---- The engine's callbacks ----
@@ -556,7 +822,12 @@ function onCallStateChanged(json) {
   } else {
     clearRingTimer();
   }
-  if (terminal) closeRelays();
+  video.callIsVideo = !terminal && info.video_enabled === true;
+  if (terminal) {
+    closeRelays();
+    stopVideoCapture();
+    video.selfState = null;
+  }
 
   post({
     type: 'state',
@@ -576,6 +847,7 @@ function onCallEvent(p) {
   try {
     if (type === CallEvent.CallStateChanged) onCallStateChanged(json);
     else if (type === CallEvent.RelayListUpdate) onRelayList(json);
+    else if (type === CallEvent.SelfVideoStateChanged || type === CallEvent.PeerVideoStateChanged || type === CallEvent.VideoStateChanged) onVideoState(json);
     else if (type === CallEvent.CallEnding) post({ type: 'ending', data: JSON.parse(json) });
   } catch (e) {
     log(1, 'voip: handling event ' + type + ' failed: ' + describe(e));
@@ -613,10 +885,9 @@ const callbacks = {
   initPlaybackDriverJS: (p) => run('playback', 'initPlayback', () => initPlayback(p)),
   startPlaybackJS: () => run('playback', 'startPlayback', startPlayback),
   stopPlaybackJS: () => run('playback', 'stopPlayback', stopPlayback),
-  // Video is not supported: the engine is told there is no camera.
-  startVideoCaptureJS: () => {},
-  stopVideoCaptureJS: () => {},
-  onVideoFrameWasmToJs: () => {},
+  startVideoCaptureJS: (p) => run('video', 'startVideoCapture', () => startVideoCapture(p || {})),
+  stopVideoCaptureJS: () => run('video', 'stopVideoCapture', stopVideoCapture),
+  onVideoFrameWasmToJs: onPeerFrame,
   startDesktopCaptureJS: () => {},
   stopDesktopCaptureJS: () => {},
   dataChannelStateCallback: () => {},
@@ -659,6 +930,7 @@ async function startEngine(m) {
   if (typeof module.initVoipLogging === 'function') module.initVoipLogging();
   if (m.countryCode && typeof module.setABPropString === 'function') module.setABPropString('self_country_code', m.countryCode);
   module.initVoipStack(m.pn, m.pnUser, m.lid);
+  ownUsers = new Set([m.pn, m.pnUser, m.lid].map(userOf).filter((u) => u.length > 0));
   // Calls go through WhatsApp's relays only, never straight to the other side.
   if (typeof module.setHideMyIp === 'function') module.setHideMyIp(true);
   engine = module;
@@ -711,14 +983,15 @@ const handlers = {
     const token = byteList(m.tcToken);
     try {
       for (const device of m.devices) devices.push_back(device);
-      engine.startVoipCall(m.peer, devices, m.callId, false, m.peerPn, false, token);
+      engine.startVoipCall(m.peer, devices, m.callId, m.video === true, m.peerPn, false, token);
     } finally {
       devices.delete();
       token.delete();
     }
   },
-  accept() {
-    engine.acceptCall(true, false);
+  accept(m) {
+    // With the microphone on, and the camera as the person chose.
+    engine.acceptCall(true, m.video === true);
   },
   reject() {
     engine.rejectCall();
@@ -729,9 +1002,17 @@ const handlers = {
   mute(m) {
     engine.setCallMute(m.muted === true);
   },
+  camera(m) {
+    setCamera(m.on === true);
+  },
+  acceptVideo(m) {
+    const status = engine.acceptPeerVideo(m.peer);
+    if (status !== 0) log(1, 'voip: switching to video failed with ' + status);
+  },
   async devices(m) {
     chosen.microphone = m.microphone || null;
     chosen.speaker = m.speaker || null;
+    chosen.camera = m.camera || null;
     await run('capture', 'applyDevices', applyDevices);
   },
 };

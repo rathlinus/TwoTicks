@@ -91,6 +91,9 @@ public sealed class AppSettings
     /// <summary>The speakers or headphones for calls, by name; null for the Windows default.</summary>
     public string? Speaker { get; set; }
 
+    /// <summary>The camera for video calls, by name; null for the Windows default.</summary>
+    public string? Camera { get; set; }
+
     /// <summary>Looks for new versions on GitHub at start and every few hours.</summary>
     public bool CheckForUpdates { get; set; } = true;
 

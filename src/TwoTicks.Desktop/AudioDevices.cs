@@ -4,14 +4,15 @@ using System.Text.Json;
 namespace TwoTicks.App;
 
 /// <summary>
-/// The microphones and speakers of the computer, by the names the browser
-/// that runs the calling engine knows them by: the settings store a name, and
-/// the engine's page looks for the device of that name.
+/// The microphones, speakers and cameras of the computer, by the names the
+/// browser that runs the calling engine knows them by: the settings store a
+/// name, and the engine's page looks for the device of that name.
 /// </summary>
 /// <remarks>
 /// Asked of the system's own tools: pactl on Linux, which PulseAudio and
-/// PipeWire both answer, and system_profiler on macOS. Where the tool is
-/// missing the list is empty and the settings only offer the system's default.
+/// PipeWire both answer, and system_profiler on macOS. Cameras on Linux are
+/// the video devices the kernel lists. Where the tool is missing the list is
+/// empty and the settings only offer the system's default.
 /// </remarks>
 internal static class AudioDevices
 {
@@ -31,6 +32,34 @@ internal static class AudioDevices
         catch (Exception e) when (e is JsonException or InvalidOperationException or KeyNotFoundException or System.ComponentModel.Win32Exception or OperationCanceledException)
         {
             Log.Info("Could not list the sound devices: " + e.Message);
+        }
+        return [];
+    }
+
+    public static async Task<IReadOnlyList<string>> CameraNamesAsync()
+    {
+        try
+        {
+            if (OperatingSystem.IsLinux())
+            {
+                // A camera often has a second device for its metadata, under the same name.
+                return Directory.GetDirectories("/sys/class/video4linux")
+                    .Select(device => Path.Combine(device, "name"))
+                    .Where(File.Exists)
+                    .Select(file => File.ReadAllText(file).Trim())
+                    .Where(name => name.Length > 0)
+                    .Distinct()
+                    .ToList();
+            }
+            if (OperatingSystem.IsMacOS())
+            {
+                return FromCameraProfiler(await RunAsync("system_profiler", "SPCameraDataType", "-json"));
+            }
+        }
+        catch (Exception e) when (e is JsonException or IOException or UnauthorizedAccessException or InvalidOperationException or KeyNotFoundException
+            or System.ComponentModel.Win32Exception or OperationCanceledException)
+        {
+            Log.Info("Could not list the cameras: " + e.Message);
         }
         return [];
     }
@@ -102,6 +131,25 @@ internal static class AudioDevices
                 {
                     names.Add(text);
                 }
+            }
+        }
+        return names;
+    }
+
+    /// <summary>The cameras in system_profiler's report.</summary>
+    private static List<string> FromCameraProfiler(string json)
+    {
+        var names = new List<string>();
+        if (json.Length == 0)
+        {
+            return names;
+        }
+        using JsonDocument document = JsonDocument.Parse(json);
+        foreach (JsonElement camera in document.RootElement.GetProperty("SPCameraDataType").EnumerateArray())
+        {
+            if (camera.TryGetProperty("_name", out JsonElement name) && name.GetString() is { Length: > 0 } text)
+            {
+                names.Add(text);
             }
         }
         return names;

@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Media.Core;
 using Windows.Media.Playback;
 using TwoTicks.App.Models;
@@ -32,14 +33,22 @@ public enum CallPhase
 
 /// <summary>
 /// The one call there can be at a time: answering, placing, muting and ending
-/// it, and what the call window shows. Call stanzas go between the helper and
-/// the calling engine through here. Everything runs on the UI thread.
+/// it, the video of both sides, and what the call window shows. Call stanzas go
+/// between the helper and the calling engine through here. Everything runs on
+/// the UI thread.
 /// </summary>
 public sealed class CallManager : Observable
 {
     // The engine's call states, from WhatsApp Web.
     private const int StateNone = 0, StateCalling = 1, StatePreacceptReceived = 2, StateReceivedCall = 3, StateAcceptSent = 4,
         StateAcceptReceived = 5, StateActive = 6, StateActiveElsewhere = 7, StateConnectedLonely = 11, StatePreCalling = 12, StateEnding = 13;
+
+    // A picture of the other side that has no newer one after this long is taken away.
+    private static readonly TimeSpan s_pictureStale = TimeSpan.FromSeconds(3);
+
+    // The engine's states of one side's video, from WhatsApp Web.
+    private const int VideoDisabled = 0, VideoEnabled = 1, VideoPaused = 2, VideoUpgradeRequest = 3, VideoUpgradeAccept = 4,
+        VideoUpgradeReject = 5, VideoUpgradeRejectByTimeout = 7, VideoUpgradeRequestV2 = 11;
 
     private static readonly string s_sounds = Path.Combine(AppContext.BaseDirectory, "Assets", "WhatsAppSounds");
 
@@ -68,6 +77,16 @@ public sealed class CallManager : Observable
     private bool _muted;
     private DateTime _activeSince;
     private bool _wasActive;
+    private string? _peer;
+    private bool _videoCall;
+    private bool _cameraOn;
+    private bool _videoRequested;
+    private DateTime _peerPictureAt;
+    private string _notice = "";
+    private ImageSource? _peerPicture;
+    private ImageSource? _selfPicture;
+    private readonly PictureSlot _peerSlot = new();
+    private readonly PictureSlot _selfSlot = new();
 
     internal CallManager(DispatcherQueue ui, WhatsAppClient client, Notifier notifier, AppSettings settings, Func<string, ChatItem?> chatOf)
     {
@@ -81,7 +100,11 @@ public sealed class CallManager : Observable
 
         _clock = ui.CreateTimer();
         _clock.Interval = TimeSpan.FromSeconds(1);
-        _clock.Tick += (_, _) => UpdateDuration();
+        _clock.Tick += (_, _) =>
+        {
+            UpdateDuration();
+            DropStalePicture();
+        };
         // The engine takes a few hundred megabytes; it stops a while after the last call.
         _idle = ui.CreateTimer();
         _idle.Interval = TimeSpan.FromMinutes(2);
@@ -105,6 +128,24 @@ public sealed class CallManager : Observable
     public bool IsMuted { get => _muted; private set => Set(ref _muted, value); }
     public bool IsRinging => _phase == CallPhase.Incoming;
 
+    /// <summary>Whether the call was placed or answered with video, or has switched to it.</summary>
+    public bool IsVideoCall { get => _videoCall; private set => Set(ref _videoCall, value); }
+    public bool IsCameraOn { get => _cameraOn; private set => Set(ref _cameraOn, value); }
+
+    /// <summary>The other side asks to switch the voice call to video.</summary>
+    public bool IsVideoRequested { get => _videoRequested; private set => Set(ref _videoRequested, value); }
+
+    /// <summary>Something about the video the window says for a while, such as a camera that could not be used.</summary>
+    public string Notice { get => _notice; private set => Set(ref _notice, value); }
+
+    /// <summary>
+    /// The other side's video and one's own; each picture comes into the same
+    /// image. The other side's shows whenever pictures come, whatever state the
+    /// engine reports for it, and goes when they stop.
+    /// </summary>
+    public ImageSource? PeerPicture { get => _peerPicture; private set => Set(ref _peerPicture, value); }
+    public ImageSource? SelfPicture { get => _selfPicture; private set => Set(ref _selfPicture, value); }
+
     /// <summary>Whether the calling engine is up and takes what a call has for it.</summary>
     public bool IsEngineReady => _ready;
 
@@ -119,10 +160,11 @@ public sealed class CallManager : Observable
             _idle.Stop();
             _callId = signal.CallId;
             Show(signal.Chat ?? "", signal.Name ?? signal.Chat?.Split('@')[0] ?? "");
+            IsVideoCall = signal.Video;
             Phase = CallPhase.Incoming;
-            Status = Loc.T("calls.incomingVoiceCall");
+            Status = signal.Video ? Loc.T("calls.incomingVideoCall") : Loc.T("calls.incomingVoiceCall");
             PlaySound("whatsapp_windows_ringtone_02.m4a", loop: true);
-            _notifier.ShowIncomingCall(Name, _chatOf(_chat ?? "")?.AvatarPath);
+            _notifier.ShowIncomingCall(Name, _chatOf(_chat ?? "")?.AvatarPath, signal.Video);
             ShowWindow(activate: false);
         }
         else if (signal.Kind != "offer" && !_engine.IsRunning)
@@ -148,8 +190,8 @@ public sealed class CallManager : Observable
 
     // ---- What the user does ----
 
-    /// <summary>Calls the person of a chat, or shows the call there is.</summary>
-    public async Task StartAsync(string chat, string name)
+    /// <summary>Calls the person of a chat, with video or without, or shows the call there is.</summary>
+    public async Task StartAsync(string chat, string name, bool video = false)
     {
         if (_phase != CallPhase.Idle)
         {
@@ -157,8 +199,10 @@ public sealed class CallManager : Observable
             return;
         }
         _callId = NewCallId();
-        Log.Info($"Calling {chat}, call {_callId}");
+        Log.Info($"Calling {chat}{(video ? " with video" : "")}, call {_callId}");
         Show(chat, name);
+        IsVideoCall = video;
+        IsCameraOn = video;
         Phase = CallPhase.Outgoing;
         Status = Loc.T("calls.calling");
         ShowWindow(activate: true);
@@ -179,6 +223,7 @@ public sealed class CallManager : Observable
                 ["peerPn"] = target.PeerPn,
                 ["devices"] = new JsonArray(target.Devices.Select(d => (JsonNode)d).ToArray()),
                 ["callId"] = callId,
+                ["video"] = video,
                 ["tcToken"] = target.TcToken ?? "",
             });
         }
@@ -199,7 +244,9 @@ public sealed class CallManager : Observable
         _notifier.ClearIncomingCall();
         Phase = CallPhase.Connecting;
         Status = Loc.T("calls.connecting");
-        Send(new JsonObject { ["type"] = "accept" });
+        // A video call is answered with the camera on, as in WhatsApp; it can be turned off after.
+        IsCameraOn = IsVideoCall;
+        Send(new JsonObject { ["type"] = "accept", ["video"] = IsVideoCall });
     }
 
     public void Decline()
@@ -242,6 +289,30 @@ public sealed class CallManager : Observable
         }
         IsMuted = !IsMuted;
         Send(new JsonObject { ["type"] = "mute", ["muted"] = IsMuted });
+    }
+
+    /// <summary>Turns the camera on or off. In a voice call, turning it on asks the other side to switch to video.</summary>
+    public void ToggleCamera()
+    {
+        if (_phase is not (CallPhase.Outgoing or CallPhase.Connecting or CallPhase.Active))
+        {
+            return;
+        }
+        IsCameraOn = !IsCameraOn;
+        Notice = "";
+        Send(new JsonObject { ["type"] = "camera", ["on"] = IsCameraOn });
+    }
+
+    /// <summary>Switches to video as the other side asked, with the camera on.</summary>
+    public void AcceptVideo()
+    {
+        if (!IsVideoRequested || _peer is null)
+        {
+            return;
+        }
+        IsVideoRequested = false;
+        IsCameraOn = true;
+        Send(new JsonObject { ["type"] = "acceptVideo", ["peer"] = _peer });
     }
 
     /// <summary>Ends a call when the app quits.</summary>
@@ -287,6 +358,7 @@ public sealed class CallManager : Observable
         ["type"] = "devices",
         ["microphone"] = _settings.Microphone,
         ["speaker"] = _settings.Speaker,
+        ["camera"] = _settings.Camera,
     };
 
     private async Task StartEngineAsync()
@@ -346,7 +418,26 @@ public sealed class CallManager : Observable
                 _ = SendSignalAsync(message.GetProperty("peer").GetString() ?? "", message.GetProperty("payload").GetString() ?? "");
                 break;
             case "state":
+                if (message.GetProperty("peer").GetString() is { Length: > 0 } peer)
+                {
+                    _peer = peer;
+                }
+                if (message.TryGetProperty("video", out JsonElement video) && video.GetBoolean())
+                {
+                    IsVideoCall = true;
+                }
                 OnState(message.GetProperty("state").GetInt32(), message.GetProperty("callId").GetString() ?? "");
+                break;
+            case "video":
+                OnVideoState(message.GetProperty("self").GetBoolean(), message.GetProperty("state").GetInt32());
+                break;
+            case "picture":
+                ShowPicture(message.GetProperty("who").GetString() == "self", message.GetProperty("jpeg").GetString() ?? "");
+                break;
+            case "cameraFailed":
+                Log.Error("No camera for the call: " + message.GetProperty("message").GetString());
+                IsCameraOn = false;
+                Notice = Loc.T("calls.cameraFailed");
                 break;
             case "micFailed":
                 Log.Error("No microphone for the call: " + message.GetProperty("message").GetString());
@@ -386,6 +477,148 @@ public sealed class CallManager : Observable
         {
             Log.Error("Failed to send a call stanza", e);
         }
+    }
+
+    private void OnVideoState(bool self, int state)
+    {
+        Log.Info($"The video of {(self ? "this side" : "the other side")} is in state {state}");
+        if (_phase is CallPhase.Idle or CallPhase.Ended)
+        {
+            return;
+        }
+        string requested = Loc.T("calls.videoRequested");
+        switch (state)
+        {
+            case VideoEnabled or VideoUpgradeAccept:
+                if (self)
+                {
+                    IsCameraOn = true;
+                }
+                else
+                {
+                    IsVideoRequested = false;
+                }
+                IsVideoCall = true;
+                if (Notice == requested)
+                {
+                    Notice = "";
+                }
+                break;
+            case VideoUpgradeRequest or VideoUpgradeRequestV2:
+                if (self)
+                {
+                    Notice = requested;
+                }
+                else if (!IsCameraOn)
+                {
+                    IsVideoRequested = true;
+                }
+                break;
+            case VideoUpgradeReject or VideoUpgradeRejectByTimeout:
+                IsCameraOn = false;
+                Notice = Loc.T("calls.videoDeclined");
+                break;
+            case VideoPaused:
+                break;
+            default:
+                // Turned off, cancelled, stopped or failed.
+                if (self)
+                {
+                    IsCameraOn = false;
+                }
+                else
+                {
+                    IsVideoRequested = false;
+                }
+                if (Notice == requested)
+                {
+                    Notice = "";
+                }
+                break;
+        }
+    }
+
+    /// <summary>A picture of a video, as JPEG; none when that video stopped.</summary>
+    private async void ShowPicture(bool self, string jpeg)
+    {
+        PictureSlot slot = self ? _selfSlot : _peerSlot;
+        if (jpeg.Length == 0)
+        {
+            slot.Image = null;
+            SetPicture(self, null);
+            return;
+        }
+        // The page sends the next picture only after this one, but decoding may lag behind.
+        if (slot.Busy)
+        {
+            return;
+        }
+        byte[] data;
+        try
+        {
+            data = Convert.FromBase64String(jpeg);
+        }
+        catch (FormatException)
+        {
+            return;
+        }
+        slot.Busy = true;
+        try
+        {
+            BitmapImage image = slot.Image ??= new BitmapImage();
+            await Images.SetSourceAsync(image, data);
+            if (slot.Image == image && _phase is not (CallPhase.Idle or CallPhase.Ended))
+            {
+                if (!self)
+                {
+                    _peerPictureAt = DateTime.UtcNow;
+                }
+                SetPicture(self, image);
+            }
+        }
+        finally
+        {
+            slot.Busy = false;
+        }
+    }
+
+    private void SetPicture(bool self, ImageSource? image)
+    {
+        if (self)
+        {
+            SelfPicture = image;
+        }
+        else
+        {
+            PeerPicture = image;
+        }
+    }
+
+    /// <summary>Takes the other side's picture away once no new ones come, as when they turned their camera off.</summary>
+    private void DropStalePicture()
+    {
+        if (PeerPicture is not null && DateTime.UtcNow - _peerPictureAt > s_pictureStale)
+        {
+            _peerSlot.Image = null;
+            PeerPicture = null;
+        }
+    }
+
+    private void ClearVideo()
+    {
+        IsCameraOn = false;
+        IsVideoRequested = false;
+        Notice = "";
+        _peerSlot.Image = null;
+        _selfSlot.Image = null;
+        PeerPicture = null;
+        SelfPicture = null;
+    }
+
+    private sealed class PictureSlot
+    {
+        public BitmapImage? Image;
+        public bool Busy;
     }
 
     private void OnState(int state, string callId)
@@ -497,6 +730,7 @@ public sealed class CallManager : Observable
         StopSound();
         _notifier.ClearIncomingCall();
         _clock.Stop();
+        ClearVideo();
         Phase = CallPhase.Ended;
         Status = status;
         if (sound)
@@ -514,6 +748,9 @@ public sealed class CallManager : Observable
         Phase = CallPhase.Idle;
         _callId = null;
         _chat = null;
+        _peer = null;
+        IsVideoCall = false;
+        ClearVideo();
         Status = "";
     }
 

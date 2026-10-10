@@ -361,6 +361,7 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <c:PlainButton x:Name="HeaderButton" HorizontalAlignment="Left" VerticalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center"
                            Click="OnHeaderClick">
@@ -377,11 +378,15 @@
                     </StackPanel>
                 </Grid>
             </c:PlainButton>
-            <Button x:Name="CallButton" Grid.Column="1" AutomationProperties.Name="{app:L Key=conversation.voiceCall}" Click="OnCallClick" Style="{StaticResource IconButtonStyle}"
+            <Button x:Name="VideoCallButton" Grid.Column="1" AutomationProperties.Name="{app:L Key=conversation.videoCall}" Click="OnVideoCallClick" Style="{StaticResource IconButtonStyle}"
+                    ToolTipService.ToolTip="{app:L Key=conversation.videoCall}" Visibility="{x:Bind CallVisibility(Session.Current.Chat), Mode=OneWay}">
+                <c:WaIcon Kind="Video" Size="22" />
+            </Button>
+            <Button x:Name="CallButton" Grid.Column="2" AutomationProperties.Name="{app:L Key=conversation.voiceCall}" Click="OnCallClick" Style="{StaticResource IconButtonStyle}"
                     ToolTipService.ToolTip="{app:L Key=conversation.voiceCall}" Visibility="{x:Bind CallVisibility(Session.Current.Chat), Mode=OneWay}">
                 <c:WaIcon Kind="Call" Size="22" />
             </Button>
-            <Button Grid.Column="2" AutomationProperties.Name="{app:L Key=conversation.more}" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="{app:L Key=conversation.more}">
+            <Button Grid.Column="3" AutomationProperties.Name="{app:L Key=conversation.more}" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="{app:L Key=conversation.more}">
                 <c:WaIcon Kind="MoreVert" Size="22" />
                 <Button.Flyout>
                     <MenuFlyout x:Name="ChatMenu" Opening="OnChatMenuOpening" Placement="BottomEdgeAlignedRight" />

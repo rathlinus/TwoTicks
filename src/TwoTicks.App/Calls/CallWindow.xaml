@@ -51,16 +51,48 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <StackPanel VerticalAlignment="Center" Spacing="10">
-            <TextBlock HorizontalAlignment="Center" FontSize="13" Foreground="#8696A0" Text="{app:L Key=calls.encrypted}" />
+        <!-- The video: the other side's over the whole window, one's own in the corner.
+             Before the other side's video comes, one's own takes the whole window. -->
+        <Image x:Name="FullVideo" Grid.RowSpan="2" Stretch="UniformToFill" RenderTransformOrigin="0.5,0.5" Visibility="Collapsed">
+            <Image.RenderTransform>
+                <ScaleTransform x:Name="FullVideoMirror" />
+            </Image.RenderTransform>
+        </Image>
+        <Border x:Name="SmallVideoFrame" Width="96" Height="128" Margin="0,0,12,12" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="#233138" CornerRadius="8" Visibility="Collapsed">
+            <!-- Mirrored, as one sees oneself in a mirror. -->
+            <Image x:Name="SmallVideo" Stretch="UniformToFill" RenderTransformOrigin="0.5,0.5">
+                <Image.RenderTransform>
+                    <ScaleTransform ScaleX="-1" />
+                </Image.RenderTransform>
+            </Image>
+        </Border>
+
+        <StackPanel x:Name="InfoPanel" VerticalAlignment="Center" Spacing="10">
+            <TextBlock x:Name="EncryptedText" HorizontalAlignment="Center" FontSize="13" Foreground="#8696A0" Text="{app:L Key=calls.encrypted}" />
             <c:Avatar x:Name="Picture" Margin="0,18,0,8" HorizontalAlignment="Center" Size="120" />
             <c:EmojiLabel x:Name="NameText" HorizontalAlignment="Center" FontSize="24" Foreground="#E9EDEF" />
             <TextBlock x:Name="StatusText" HorizontalAlignment="Center" FontSize="15" Foreground="#8696A0" />
+            <TextBlock x:Name="NoticeText" Margin="16,0" HorizontalAlignment="Center" FontSize="13" Foreground="#E9EDEF" TextAlignment="Center" TextWrapping="Wrap" Visibility="Collapsed" />
         </StackPanel>
 
-        <StackPanel Grid.Row="1" Margin="0,0,0,36" HorizontalAlignment="Center" Orientation="Horizontal" Spacing="40">
+        <!-- The other side asks to switch to video. -->
+        <Border x:Name="VideoRequestBar" Margin="16,0,16,12" Padding="14,10" VerticalAlignment="Bottom" Background="#233138" CornerRadius="8" Visibility="Collapsed">
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="VideoRequestText" VerticalAlignment="Center" Foreground="#E9EDEF" TextWrapping="Wrap" />
+                <Button Grid.Column="1" Background="#25D366" Click="OnSwitchToVideoClick" Content="{app:L Key=calls.switchToVideo}" Foreground="#0B141A" />
+            </Grid>
+        </Border>
+
+        <StackPanel Grid.Row="1" Margin="0,0,0,36" HorizontalAlignment="Center" Orientation="Horizontal" Spacing="24">
             <Button x:Name="MuteButton" AutomationProperties.Name="{app:L Key=calls.mute}" Background="#233138" Click="OnMuteClick" Style="{StaticResource CallButtonStyle}" ToolTipService.ToolTip="{app:L Key=calls.mute}">
                 <c:WaIcon x:Name="MuteIcon" Kind="Mic" Size="28" />
+            </Button>
+            <Button x:Name="CameraButton" AutomationProperties.Name="{app:L Key=calls.cameraOn}" Background="#233138" Click="OnCameraClick" Style="{StaticResource CallButtonStyle}" ToolTipService.ToolTip="{app:L Key=calls.cameraOn}">
+                <c:WaIcon x:Name="CameraIcon" Kind="VideoOff" Size="28" />
             </Button>
             <Button x:Name="DeclineButton" AutomationProperties.Name="{app:L Key=calls.decline}" Background="#EA0038" Click="OnHangUpClick" Style="{StaticResource CallButtonStyle}" ToolTipService.ToolTip="{app:L Key=calls.decline}">
                 <c:WaIcon Kind="Call" Size="28" RenderTransformOrigin="0.5,0.5">
@@ -70,7 +102,7 @@
                 </c:WaIcon>
             </Button>
             <Button x:Name="AnswerButton" AutomationProperties.Name="{app:L Key=calls.answer}" Background="#25D366" Click="OnAnswerClick" Style="{StaticResource CallButtonStyle}" ToolTipService.ToolTip="{app:L Key=calls.answer}">
-                <c:WaIcon Kind="Call" Size="28" />
+                <c:WaIcon x:Name="AnswerIcon" Kind="Call" Size="28" />
             </Button>
         </StackPanel>
     </Grid>

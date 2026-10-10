@@ -216,7 +216,9 @@ What goes where:
 - The sound of a call goes to WhatsApp's relays over WebTransport, as in WhatsApp Web. The engine sends packets to relay addresses; the page opens one WebTransport session per relay from the relay list the engine reports.
 - `CallManager` keeps the one call there can be, the call window and the sounds. The engine starts with the first call and stops two minutes after the last one, as it takes a few hundred megabytes.
 
-Video and group calls are not handled: their offers show a notification to answer on the phone.
+Video works as in WhatsApp Web: the engine encodes and decodes it itself. When it asks for the camera, the page takes the camera's pictures, scales them to the size the engine wants, turns them into NV12 and hands them over. The other side's pictures come back from the engine's threads as NV12, I420 or RGBA. The page is never shown, so it draws both upright and sends them to the app as JPEG, and the call window shows them. The other side's video shows whenever pictures come, whatever state the engine reports, and goes when none came for 3 seconds. The page tries the camera picked in the settings first and then every other one, virtual cameras too; the settings list DirectShow cameras on Windows besides the ones Windows lists, as OBS's virtual camera is often only that. In a voice call, turning the camera on asks the other side to switch to video, and the window offers to switch when the other side asks.
+
+Group calls are not handled: their offers show a notification to answer on the phone.
 
 The page tells the app every second that it is alive. When it stops for 4 seconds the app logs that, and on Windows it pauses the page's thread with the browser's debugger and logs where it is, right away and again after 20 seconds. During a call the page logs every 10 seconds what went to and from the relays, the microphone and the speaker, and it logs calls into the engine that hold its thread up for more than 100 ms, the browser freezing the page, sound devices changing and relays closing. All of this lands in `app.log`, with or without `TWOTICKS_DEBUG`.
 

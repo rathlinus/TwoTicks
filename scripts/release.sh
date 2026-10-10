@@ -61,8 +61,9 @@ if [ "$(uname -s)" = Darwin ]; then
     fi
 
     plist="$bundle/Contents/Info.plist"
-    # Calls ask for the microphone; macOS shows this text when it asks.
+    # Calls ask for the microphone and video calls for the camera; macOS shows these texts when it asks.
     /usr/libexec/PlistBuddy -c 'Add :NSMicrophoneUsageDescription string "TwoTicks uses the microphone for calls."' "$plist" 2> /dev/null || true
+    /usr/libexec/PlistBuddy -c 'Add :NSCameraUsageDescription string "TwoTicks uses the camera for video calls."' "$plist" 2> /dev/null || true
     /usr/libexec/PlistBuddy -c 'Add :LSApplicationCategoryType string "public.app-category.social-networking"' "$plist" 2> /dev/null || true
     find "$bundle" -name '*.pdb' -delete
 

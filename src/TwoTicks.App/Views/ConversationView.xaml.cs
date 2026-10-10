@@ -1539,6 +1539,14 @@ public sealed partial class ConversationView : UserControl
         }
     }
 
+    private void OnVideoCallClick(object sender, RoutedEventArgs e)
+    {
+        if (_shown?.Chat is { } chat)
+        {
+            _ = Session.Calls.StartAsync(chat.Jid, chat.Name, video: true);
+        }
+    }
+
     // ---- The chat's menu ----
 
     private void OnHeaderClick(object sender, RoutedEventArgs e)

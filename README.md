@@ -68,7 +68,7 @@ The info also holds what belongs to the chat, as in WhatsApp: its photos, videos
 
 ## Calls
 
-Call someone with the phone button at the top of their chat, and answer calls that come in, in a small window of their own or from the notification. The window shows how long the call runs and has buttons to mute and to hang up.
+Call someone with the phone or the camera button at the top of their chat, and answer calls that come in, in a small window of their own or from the notification. The window shows how long the call runs and has buttons to mute, to turn the camera on or off and to hang up. In a video call it shows the other person over the whole window and you in a corner; a voice call switches to video when you turn the camera on and the other person agrees. The camera is picked in the settings, with the microphone and the speaker.
 
 Calls use WhatsApp Web's own calling engine, which TwoTicks downloads from WhatsApp once, after linking. On macOS and Linux the engine runs in a browser you have installed, without a window: Chrome, Chromium, Edge, Brave, Vivaldi or Firefox.
 
@@ -101,7 +101,7 @@ Calls use WhatsApp Web's own calling engine, which TwoTicks downloads from Whats
 
 ## What it does not do
 
-Calls are voice calls with one person. Video calls and group calls show a notification to answer them on the phone. Status updates, channels and communities are not shown.
+Calls are voice and video calls with one person. Group calls show a notification to answer them on the phone. Status updates, channels and communities are not shown.
 
 ## Install
 
@@ -123,7 +123,7 @@ Download `TwoTicks-<version>-macos-arm64.dmg` for a Mac with Apple silicon, or `
 
 The app is not signed by Apple, so macOS refuses to open it with a double click the first time. Right-click it and choose **Open**, or allow it under System Settings, Privacy & Security.
 
-macOS asks whether TwoTicks may send notifications, and for the microphone at your first call.
+macOS asks whether TwoTicks may send notifications, for the microphone at your first call and for the camera at your first video call.
 
 ### Linux
 

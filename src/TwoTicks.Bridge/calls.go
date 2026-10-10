@@ -124,10 +124,11 @@ type callSignal struct {
 	TCToken  string `json:"tcToken,omitempty"`
 	CallID   string `json:"callId"`
 
-	// For an offer: who calls, as the app knows the chat.
+	// For an offer: who calls, as the app knows the chat, and whether with video.
 	Chat       string `json:"chat,omitempty"`
 	Name       string `json:"name,omitempty"`
 	NotContact bool   `json:"notContact,omitempty"`
+	Video      bool   `json:"video,omitempty"`
 }
 
 func (b *Bridge) onCallStanza(node *waBinary.Node) {
@@ -146,8 +147,8 @@ func (b *Bridge) onCallStanza(node *waBinary.Node) {
 
 	_, group := child.Attrs["group-jid"]
 	_, video := child.GetOptionalChildByTag("video")
-	if child.Tag == "offer" && (group || video) {
-		// The engine is set up for one-to-one voice calls; these ring on the phone.
+	if child.Tag == "offer" && group {
+		// The engine is set up for one-to-one calls; these ring on the phone.
 		b.notifyCall(from, creator, video, group)
 		return
 	}
@@ -190,6 +191,7 @@ func (b *Bridge) onCallStanza(node *waBinary.Node) {
 	}
 	if child.Tag == "offer" {
 		signal.Kind = "offer"
+		signal.Video = video
 		caller := creator
 		if caller.IsEmpty() {
 			caller = from

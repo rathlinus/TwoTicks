@@ -153,11 +153,11 @@ internal sealed class Notifier
     }
 
     /// <summary>A call that rings here, with buttons to answer and decline it. The app plays the ringtone.</summary>
-    public void ShowIncomingCall(string name, string? avatarPath) => Show(new SystemNotification(
+    public void ShowIncomingCall(string name, string? avatarPath, bool video) => Show(new SystemNotification(
         Group: IncomingCallGroup,
         Tag: IncomingCallTag,
         Title: name,
-        Text: Loc.T("calls.incomingVoiceCall"),
+        Text: video ? Loc.T("calls.incomingVideoCall") : Loc.T("calls.incomingVoiceCall"),
         Picture: avatarPath,
         Arguments: "action=showCall",
         Actions: [("action=decline", Loc.T("calls.decline")), ("action=answer", Loc.T("calls.answer"))],

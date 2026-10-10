@@ -48,8 +48,10 @@ internal sealed partial class VoipEngine
         web.Settings.IsStatusBarEnabled = false;
         web.PermissionRequested += (_, e) =>
         {
-            // The microphone, for calls; nothing else.
-            e.State = e.PermissionKind == CoreWebView2PermissionKind.Microphone ? CoreWebView2PermissionState.Allow : CoreWebView2PermissionState.Deny;
+            // The microphone and the camera, for calls; nothing else.
+            e.State = e.PermissionKind is CoreWebView2PermissionKind.Microphone or CoreWebView2PermissionKind.Camera
+                ? CoreWebView2PermissionState.Allow
+                : CoreWebView2PermissionState.Deny;
             // Kept, so that the page also sees the names of the microphones and speakers.
             e.SavesInProfile = true;
         };

@@ -59,14 +59,19 @@ internal sealed partial class SettingsDialog : ContentDialog
         panel.Children.Add(icon);
 
         panel.Children.Add(Heading(Loc.T("settings.calls")));
-        panel.Children.Add(DevicePicker(Loc.T("settings.microphone"), microphones: true, settings.Microphone, name =>
+        panel.Children.Add(DevicePicker(Loc.T("settings.microphone"), () => AudioDevices.NamesAsync(microphones: true), settings.Microphone, name =>
         {
             settings.Microphone = name;
             session.Calls.ApplyDevices();
         }));
-        panel.Children.Add(DevicePicker(Loc.T("settings.speaker"), microphones: false, settings.Speaker, name =>
+        panel.Children.Add(DevicePicker(Loc.T("settings.speaker"), () => AudioDevices.NamesAsync(microphones: false), settings.Speaker, name =>
         {
             settings.Speaker = name;
+            session.Calls.ApplyDevices();
+        }));
+        panel.Children.Add(DevicePicker(Loc.T("settings.camera"), AudioDevices.CameraNamesAsync, settings.Camera, name =>
+        {
+            settings.Camera = name;
             session.Calls.ApplyDevices();
         }));
 
@@ -226,7 +231,7 @@ internal sealed partial class SettingsDialog : ContentDialog
     /// system's default first. A device picked earlier that is not connected now
     /// stays in the list, so the choice is not lost.
     /// </summary>
-    private static ComboBox DevicePicker(string header, bool microphones, string? current, Action<string?> set)
+    private static ComboBox DevicePicker(string header, Func<Task<IReadOnlyList<string>>> list, string? current, Action<string?> set)
     {
         string windowsDefault = Loc.T("settings.windowsDefault");
         var box = new ComboBox { Header = header, MinWidth = 300, Margin = new Thickness(0, 4, 0, 4) };
@@ -238,7 +243,7 @@ internal sealed partial class SettingsDialog : ContentDialog
         box.SelectedIndex = current is null ? 0 : 1;
         box.Loaded += async (_, _) =>
         {
-            IReadOnlyList<string> devices = await AudioDevices.NamesAsync(microphones);
+            IReadOnlyList<string> devices = await list();
             foreach (string name in devices.Distinct().Order(StringComparer.CurrentCultureIgnoreCase))
             {
                 if (name != current)

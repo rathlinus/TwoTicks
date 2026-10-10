@@ -36,7 +36,8 @@ self.WhatsAppVoipWasmWorkerCompatibleCallbacks = {
   stopPlaybackJS: () => forward('stopPlaybackJS', {}),
   startVideoCaptureJS: (p) => forward('startVideoCaptureJS', p),
   stopVideoCaptureJS: () => forward('stopVideoCaptureJS', {}),
-  onVideoFrameWasmToJs: () => {},
+  // The picture is already a copy of its own, and moves to the page without another.
+  onVideoFrameWasmToJs: (p) => forward('onVideoFrameWasmToJs', p, [p.frameBuffer]),
   startDesktopCaptureJS: (p) => forward('startDesktopCaptureJS', p),
   stopDesktopCaptureJS: () => forward('stopDesktopCaptureJS', {}),
   dataChannelStateCallback: (p) => forward('dataChannelStateCallback', p),

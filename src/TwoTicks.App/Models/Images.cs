@@ -24,7 +24,8 @@ internal static class Images
         return image;
     }
 
-    private static async Task SetSourceAsync(BitmapImage image, byte[] data)
+    /// <summary>Gives an image new content, such as the next picture of a video call.</summary>
+    public static async Task SetSourceAsync(BitmapImage image, byte[] data)
     {
         try
         {

@@ -21,6 +21,7 @@
   "settings.appIcon": "Icon and name",
   "settings.calls": "Calls",
   "settings.microphone": "Microphone",
+  "settings.camera": "Camera",
   "settings.speaker": "Speaker",
   "settings.windowsDefault": "Windows default",
   "settings.windowsDefault@unix": "System default",

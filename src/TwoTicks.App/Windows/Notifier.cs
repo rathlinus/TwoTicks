@@ -128,12 +128,12 @@ internal sealed class Notifier
     }
 
     /// <summary>A call that rings here, with buttons to answer and decline it. The app plays the ringtone.</summary>
-    public void ShowIncomingCall(string name, string? avatarPath)
+    public void ShowIncomingCall(string name, string? avatarPath, bool video)
     {
         string xml =
             "<toast launch=\"action=showCall\" activationType=\"foreground\" scenario=\"incomingCall\">" +
             "<visual><binding template=\"ToastGeneric\">" +
-            $"<text>{Escape(name)}</text><text>{Escape(Loc.T("calls.incomingVoiceCall"))}</text>{Logo(avatarPath)}" +
+            $"<text>{Escape(name)}</text><text>{Escape(video ? Loc.T("calls.incomingVideoCall") : Loc.T("calls.incomingVoiceCall"))}</text>{Logo(avatarPath)}" +
             "</binding></visual>" +
             "<actions>" +
             $"<action content=\"{Escape(Loc.T("calls.decline"))}\" arguments=\"action=decline\" activationType=\"foreground\"/>" +
