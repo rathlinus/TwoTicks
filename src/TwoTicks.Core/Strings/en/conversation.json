@@ -71,5 +71,15 @@
   "message.forwardedMany": "Forwarded many times",
   "message.document": "Document",
   "message.pages.one": "{count} page",
-  "message.pages.other": "{count} pages"
+  "message.pages.other": "{count} pages",
+  "conversation.messageInfo": "Message info",
+  "conversation.info.read": "Read",
+  "conversation.info.delivered": "Delivered",
+  "conversation.info.played": "Played",
+  "conversation.info.readBy": "Read by",
+  "conversation.info.deliveredTo": "Delivered to",
+  "conversation.info.playedBy": "Played by",
+  "conversation.info.nobody": "Nobody yet",
+  "conversation.info.unknown": "Not known for messages from before this version",
+  "conversation.info.failed": "The message info could not be loaded."
 }

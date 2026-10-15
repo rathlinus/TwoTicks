@@ -56,6 +56,20 @@ public static class Formatting
         };
     }
 
+    /// <summary>When a message was delivered or read, as its info tells it.</summary>
+    public static string ReceiptTime(long unixSeconds, DateTime now)
+    {
+        DateTime time = ToLocal(unixSeconds);
+        string clock = time.ToString("t", CultureInfo.CurrentCulture);
+        int days = (now.Date - time.Date).Days;
+        return days switch
+        {
+            <= 0 => Loc.T("time.todayAt", ("time", clock)),
+            1 => Loc.T("time.yesterdayAt", ("time", clock)),
+            _ => Loc.T("time.dateAt", ("date", time.ToString("d", CultureInfo.CurrentCulture)), ("time", clock)),
+        };
+    }
+
     /// <summary>A length as minutes and seconds, such as 1:05.</summary>
     public static string Duration(TimeSpan duration)
     {

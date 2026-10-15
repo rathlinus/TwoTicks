@@ -644,6 +644,14 @@ func (b *Bridge) methods() map[string]handler {
 			return true, b.requestOlder(ctx, p.Chat)
 		},
 
+		"messageInfo": func(ctx context.Context, raw json.RawMessage) (any, error) {
+			p, err := params[messageParams](raw)
+			if err != nil {
+				return nil, err
+			}
+			return b.messageInfo(ctx, p.Chat, p.ID)
+		},
+
 		"groupInfo": func(ctx context.Context, raw json.RawMessage) (any, error) {
 			p, err := params[chatParams](raw)
 			if err != nil {
@@ -950,4 +958,41 @@ func (b *Bridge) requestOlder(ctx context.Context, chat string) error {
 	}
 	_, err = b.cli.SendPeerMessage(ctx, b.cli.BuildHistorySyncRequest(info, 50))
 	return err
+}
+
+// receipt is what the info of one of our messages shows of one person.
+type receipt struct {
+	JID       string `json:"jid"`
+	Name      string `json:"name"`
+	Delivered int64  `json:"delivered,omitempty"`
+	Read      int64  `json:"read,omitempty"`
+	Played    int64  `json:"played,omitempty"`
+}
+
+// messageInfo tells who got, read and played one of our messages, and when.
+func (b *Bridge) messageInfo(ctx context.Context, chat, id string) (map[string]any, error) {
+	rows, err := b.r.QueryContext(ctx, `
+		SELECT user, delivered_at, read_at, played_at FROM receipts WHERE chat = ? AND msg_id = ?
+		ORDER BY COALESCE(NULLIF(played_at, 0), NULLIF(read_at, 0), delivered_at) DESC`, chat, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	receipts := []receipt{}
+	for rows.Next() {
+		var r receipt
+		if err := rows.Scan(&r.JID, &r.Delivered, &r.Read, &r.Played); err != nil {
+			return nil, err
+		}
+		receipts = append(receipts, r)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	for i := range receipts {
+		if jid, err := types.ParseJID(receipts[i].JID); err == nil {
+			receipts[i].Name = b.nameOf(ctx, jid)
+		}
+	}
+	return map[string]any{"receipts": receipts}, nil
 }

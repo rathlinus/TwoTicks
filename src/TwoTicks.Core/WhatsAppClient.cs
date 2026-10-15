@@ -395,6 +395,9 @@ public sealed class WhatsAppClient : IDisposable
 
     public Task RequestOlderAsync(string chat) => CallAsync("requestOlder", new JsonObject { ["chat"] = chat });
 
+    public Task<MessageInfoData> GetMessageInfoAsync(string chat, string id) =>
+        CallAsync("messageInfo", new JsonObject { ["chat"] = chat, ["id"] = id }, BridgeJson.Default.MessageInfoData);
+
     public Task<GroupData> GetGroupInfoAsync(string chat) => CallAsync("groupInfo", new JsonObject { ["chat"] = chat }, BridgeJson.Default.GroupData);
 
     public Task<CallIdentityData> GetCallIdentityAsync() => CallAsync("callIdentity", null, BridgeJson.Default.CallIdentityData);

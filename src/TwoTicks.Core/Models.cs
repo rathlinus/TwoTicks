@@ -321,6 +321,22 @@ public sealed class GroupData
     public string? CreatedBy { get; set; }
 }
 
+/// <summary>Who got, read and played one of our messages, and when.</summary>
+public sealed class MessageInfoData
+{
+    public List<ReceiptData> Receipts { get; set; } = [];
+}
+
+/// <summary>One person's receipts for a message, in Unix seconds; 0 when it did not happen or was not recorded.</summary>
+public sealed class ReceiptData
+{
+    public string Jid { get; set; } = "";
+    public string Name { get; set; } = "";
+    public long Delivered { get; set; }
+    public long Read { get; set; }
+    public long Played { get; set; }
+}
+
 public sealed class GroupMember
 {
     public string Jid { get; set; } = "";
@@ -405,6 +421,7 @@ public static class MessageStatus
 [JsonSerializable(typeof(JidData))]
 [JsonSerializable(typeof(CodeData))]
 [JsonSerializable(typeof(GroupData))]
+[JsonSerializable(typeof(MessageInfoData))]
 [JsonSerializable(typeof(ProfileData))]
 [JsonSerializable(typeof(ChatInfoData))]
 [JsonSerializable(typeof(List<CommonGroupData>))]

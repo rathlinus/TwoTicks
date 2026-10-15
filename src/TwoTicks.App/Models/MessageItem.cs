@@ -653,6 +653,9 @@ public sealed class MessageItem : Observable
 
     public bool CanEdit => FromMe && _data.Kind == "text" && DateTimeOffset.UtcNow - DateTimeOffset.FromUnixTimeSeconds(_data.Ts) < TimeSpan.FromMinutes(20);
     public bool CanRevoke => FromMe && _data.Kind is not ("revoked" or "system" or "pending");
+
+    /// <summary>Our own message that went out: its info tells who got and read it.</summary>
+    public bool HasInfo => FromMe && _data.Kind is not ("revoked" or "system" or "pending") && _data.Status >= MessageStatus.Sent;
     public bool CanReact => _data.Kind is not ("revoked" or "system" or "pending" or "viewonce") && _data.Status != MessageStatus.Failed;
 
     /// <summary>A message that is there to see and was sent, which can be forwarded, pinned or kept.</summary>

@@ -33,5 +33,8 @@
   "helper.unknownError": "Unbekannter Fehler",
 
   "update.wrongSize": "Der Download hat {size} Byte statt {expected}.",
-  "update.wrongHash": "Der Download passt nicht zur Prüfsumme, die GitHub dafür angibt."
+  "update.wrongHash": "Der Download passt nicht zur Prüfsumme, die GitHub dafür angibt.",
+  "time.todayAt": "heute um {time}",
+  "time.yesterdayAt": "gestern um {time}",
+  "time.dateAt": "{date} um {time}"
 }

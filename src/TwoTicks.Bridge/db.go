@@ -71,8 +71,8 @@ CREATE TABLE IF NOT EXISTS reactions (
 	PRIMARY KEY (chat, msg_id, sender)
 );
 
--- Who has received and read each of our messages in a group. A group message
--- counts as read once every other member has read it.
+-- Who has received and read each of our messages, and when, for the message's
+-- info. A group message counts as read once every other member has read it.
 CREATE TABLE IF NOT EXISTS receipts (
 	chat   TEXT NOT NULL,
 	msg_id TEXT NOT NULL,
@@ -123,6 +123,9 @@ var migrations = []string{
 	`ALTER TABLE messages ADD COLUMN kept INTEGER NOT NULL DEFAULT 0`,
 	`ALTER TABLE messages ADD COLUMN starred INTEGER NOT NULL DEFAULT 0`,
 	`ALTER TABLE messages ADD COLUMN album TEXT NOT NULL DEFAULT ''`,
+	`ALTER TABLE receipts ADD COLUMN delivered_at INTEGER NOT NULL DEFAULT 0`,
+	`ALTER TABLE receipts ADD COLUMN read_at INTEGER NOT NULL DEFAULT 0`,
+	`ALTER TABLE receipts ADD COLUMN played_at INTEGER NOT NULL DEFAULT 0`,
 }
 
 // Message status, as the ticks show it.

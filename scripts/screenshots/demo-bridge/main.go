@@ -317,6 +317,8 @@ func handle(d *demo, state map[string]any, method string, p map[string]any) any 
 		return map[string]any{"jid": str(p, "jid"), "name": ""}
 	case "groupInfo":
 		return d.Groups[str(p, "chat")]
+	case "messageInfo":
+		return messageInfo(d, str(p, "chat"), str(p, "id"))
 	case "contacts":
 		return d.Contacts
 	case "subscribe":
@@ -346,4 +348,38 @@ func handle(d *demo, state map[string]any, method string, p map[string]any) any 
 		return map[string]string{"node": "", "error": "0"}
 	}
 	return true
+}
+
+// messageInfo makes up who got and read one of our messages, by its ticks:
+// in a group everyone but the last member read it, so both lists show.
+func messageInfo(d *demo, chat, id string) any {
+	receipts := []map[string]any{}
+	for _, m := range d.Messages[chat] {
+		if m["id"] != id {
+			continue
+		}
+		ts, _ := m["ts"].(float64)
+		status, _ := m["status"].(float64)
+		people := []map[string]any{{"jid": chat, "name": ""}}
+		if group, ok := d.Groups[chat]; ok {
+			people = nil
+			members, _ := group["members"].([]any)
+			for _, member := range members {
+				if person, ok := member.(map[string]any); ok && person["me"] != true {
+					people = append(people, person)
+				}
+			}
+		}
+		for i, person := range people {
+			r := map[string]any{"jid": person["jid"], "name": person["name"]}
+			if status >= 2 {
+				r["delivered"] = ts + float64(5+i*7)
+			}
+			if status >= 3 && (i < len(people)-1 || len(people) == 1) {
+				r["read"] = ts + float64(90+i*240)
+			}
+			receipts = append(receipts, r)
+		}
+	}
+	return map[string]any{"receipts": receipts}
 }

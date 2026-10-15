@@ -45,6 +45,18 @@ public class FormattingTests
         Assert.Equal("", Formatting.ChatListTime(0, now));
     }
 
+    [Fact]
+    public void TellsWhenAMessageWasRead()
+    {
+        CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+        var now = new DateTime(2026, 10, 6, 15, 0, 0, DateTimeKind.Local);
+        long Unix(DateTime t) => new DateTimeOffset(t).ToUnixTimeSeconds();
+
+        Assert.Equal("today at 09:30", Formatting.ReceiptTime(Unix(now.Date.AddHours(9.5)), now));
+        Assert.Equal("yesterday at 15:00", Formatting.ReceiptTime(Unix(now.AddDays(-1)), now));
+        Assert.Equal("10/02/2026 at 15:00", Formatting.ReceiptTime(Unix(now.AddDays(-4)), now));
+    }
+
     [Theory]
     [InlineData("Alice Example", "AE")]
     [InlineData("alice", "A")]

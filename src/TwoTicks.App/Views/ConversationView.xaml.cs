@@ -1090,6 +1090,10 @@ public sealed partial class ConversationView : UserControl
         {
             Add(Loc.T("conversation.sendAgain"), "Refresh", () => _ = Session.RetryAsync(item));
         }
+        if (item.HasInfo && all.Count == 1)
+        {
+            Add(Loc.T("conversation.messageInfo"), "Info", () => _ = ShowMessageInfoAsync(item));
+        }
         if (react)
         {
             Add(Loc.T("conversation.reply"), "Reply", () => StartReply(item));
@@ -1283,6 +1287,93 @@ public sealed partial class ConversationView : UserControl
         return index >= 0
             ? Emoji.Create(index, size)
             : new TextBlock { Text = emoji, FontSize = size * 0.8, HorizontalAlignment = HorizontalAlignment.Center };
+    }
+
+    /// <summary>Who got, read and played one of our messages, and when, as WhatsApp's message info shows it.</summary>
+    private async Task ShowMessageInfoAsync(MessageItem item)
+    {
+        MessageInfoData info;
+        try
+        {
+            info = await Session.Client.GetMessageInfoAsync(item.Chat, item.Id);
+        }
+        catch (BridgeException e)
+        {
+            Log.Info($"No info of message {item.Id}: {e.Message}");
+            Session.ShowError(Loc.T("conversation.info.failed"));
+            return;
+        }
+
+        DateTime now = DateTime.Now;
+        var content = new StackPanel { Spacing = 18, MinWidth = 320 };
+        StackPanel Section(string heading, int status)
+        {
+            var section = new StackPanel { Spacing = 6 };
+            var title = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+            title.Children.Add(new Ticks { Status = status, VerticalAlignment = VerticalAlignment.Center });
+            title.Children.Add(new TextBlock { Text = heading, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
+            section.Children.Add(title);
+            content.Children.Add(section);
+            return section;
+        }
+        TextBlock Detail(string text) => new() { Text = text, Foreground = (Brush)Application.Current.Resources["TextSecondaryBrush"], TextWrapping = TextWrapping.Wrap };
+        // Messages from before receipts had times, and receipts that never came.
+        string When(long time, int step) =>
+            time > 0 ? Formatting.ReceiptTime(time, now) : item.Status >= step ? Loc.T("conversation.info.unknown") : "—";
+
+        if (item.IsGroup)
+        {
+            void People(string heading, int status, IEnumerable<ReceiptData> people, Func<ReceiptData, long> time)
+            {
+                StackPanel section = Section(heading, status);
+                bool any = false;
+                foreach (ReceiptData person in people.OrderByDescending(time))
+                {
+                    any = true;
+                    var row = new Grid { ColumnSpacing = 16 };
+                    row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                    row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                    var name = new RichTextBlock { IsTextSelectionEnabled = false, TextWrapping = TextWrapping.NoWrap };
+                    EmojiText.SetText(name, person.Name.Length > 0 ? person.Name : person.Jid);
+                    TextBlock at = Detail(Formatting.ReceiptTime(time(person), now));
+                    Grid.SetColumn(at, 1);
+                    row.Children.Add(name);
+                    row.Children.Add(at);
+                    section.Children.Add(row);
+                }
+                if (!any)
+                {
+                    section.Children.Add(Detail(item.Status >= status ? Loc.T("conversation.info.unknown") : Loc.T("conversation.info.nobody")));
+                }
+            }
+            if (info.Receipts.Any(r => r.Played > 0))
+            {
+                People(Loc.T("conversation.info.playedBy"), MessageStatus.Played, info.Receipts.Where(r => r.Played > 0), r => r.Played);
+            }
+            People(Loc.T("conversation.info.readBy"), MessageStatus.Read, info.Receipts.Where(r => r.Read > 0 && r.Played == 0), r => r.Read);
+            People(Loc.T("conversation.info.deliveredTo"), MessageStatus.Delivered, info.Receipts.Where(r => r.Delivered > 0 && r.Read == 0), r => r.Delivered);
+        }
+        else
+        {
+            ReceiptData receipt = info.Receipts.FirstOrDefault() ?? new ReceiptData();
+            if (receipt.Played > 0 || item.Status >= MessageStatus.Played)
+            {
+                Section(Loc.T("conversation.info.played"), MessageStatus.Played).Children.Add(Detail(When(receipt.Played, MessageStatus.Played)));
+            }
+            Section(Loc.T("conversation.info.read"), MessageStatus.Read).Children.Add(Detail(When(receipt.Read, MessageStatus.Read)));
+            Section(Loc.T("conversation.info.delivered"), MessageStatus.Delivered).Children.Add(Detail(When(receipt.Delivered, MessageStatus.Delivered)));
+        }
+
+        var dialog = new ContentDialog
+        {
+            Title = Loc.T("conversation.messageInfo"),
+            Content = new ScrollViewer { Content = content, MaxHeight = 420, VerticalScrollBarVisibility = ScrollBarVisibility.Auto },
+            CloseButtonText = Loc.T("common.close"),
+            DefaultButton = ContentDialogButton.Close,
+            XamlRoot = XamlRoot,
+            RequestedTheme = ActualTheme,
+        };
+        await dialog.ShowAsync();
     }
 
     private async Task ConfirmRevokeAsync(IReadOnlyList<MessageItem> items)

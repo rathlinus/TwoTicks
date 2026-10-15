@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/sha1"
+	"database/sql"
 	"encoding/hex"
 	"fmt"
 	"sort"
@@ -507,15 +508,17 @@ func (b *Bridge) onReceipt(evt *events.Receipt) {
 	}
 
 	var changed []string
+	user := chat
 	if evt.IsGroup {
-		user := b.canonical(ctx, evt.Sender).String()
+		user = b.canonical(ctx, evt.Sender).String()
+	}
+	for _, id := range evt.MessageIDs {
+		_ = recordReceipt(ctx, b.w, chat, id, user, status, evt.Timestamp.Unix())
+	}
+	if evt.IsGroup {
 		var members int
 		_ = b.r.QueryRowContext(ctx, `SELECT members FROM chats WHERE jid = ?`, chat).Scan(&members)
 		for _, id := range evt.MessageIDs {
-			_, _ = b.w.ExecContext(ctx, `
-				INSERT INTO receipts (chat, msg_id, user, status) VALUES (?, ?, ?, ?)
-				ON CONFLICT (chat, msg_id, user) DO UPDATE SET status = MAX(receipts.status, excluded.status)`,
-				chat, id, user, status)
 			// Delivered as soon as one member has it; read once all others read it.
 			reached := statusDelivered
 			if members > 1 {
@@ -551,6 +554,31 @@ func (b *Bridge) onReceipt(evt *events.Receipt) {
 		}
 		b.emitChatIfLast(chat, changed)
 	}
+}
+
+// recordReceipt writes down that a person got, read or played one of our
+// messages, at the time given. Each step keeps the time it first happened, and
+// a later step stands for the earlier ones when their receipts never came.
+func recordReceipt(ctx context.Context, w *sql.DB, chat, id, user string, status int, at int64) error {
+	var delivered, read, played int64
+	if status >= statusDelivered {
+		delivered = at
+	}
+	if status >= statusRead {
+		read = at
+	}
+	if status >= statusPlayed {
+		played = at
+	}
+	_, err := w.ExecContext(ctx, `
+		INSERT INTO receipts (chat, msg_id, user, status, delivered_at, read_at, played_at) VALUES (?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT (chat, msg_id, user) DO UPDATE SET
+			status = MAX(receipts.status, excluded.status),
+			delivered_at = CASE WHEN receipts.delivered_at = 0 THEN excluded.delivered_at ELSE receipts.delivered_at END,
+			read_at = CASE WHEN receipts.read_at = 0 THEN excluded.read_at ELSE receipts.read_at END,
+			played_at = CASE WHEN receipts.played_at = 0 THEN excluded.played_at ELSE receipts.played_at END`,
+		chat, id, user, status, delivered, read, played)
+	return err
 }
 
 func (b *Bridge) raiseStatus(chat, id string, status int) bool {

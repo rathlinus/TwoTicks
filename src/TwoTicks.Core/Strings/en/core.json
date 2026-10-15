@@ -33,5 +33,8 @@
   "helper.unknownError": "Unknown error",
 
   "update.wrongSize": "The download has {size} bytes instead of {expected}.",
-  "update.wrongHash": "The download does not match the hash GitHub lists for it."
+  "update.wrongHash": "The download does not match the hash GitHub lists for it.",
+  "time.todayAt": "today at {time}",
+  "time.yesterdayAt": "yesterday at {time}",
+  "time.dateAt": "{date} at {time}"
 }

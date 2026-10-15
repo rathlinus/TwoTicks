@@ -71,5 +71,15 @@
   "message.forwardedMany": "Häufig weitergeleitet",
   "message.document": "Dokument",
   "message.pages.one": "{count} Seite",
-  "message.pages.other": "{count} Seiten"
+  "message.pages.other": "{count} Seiten",
+  "conversation.messageInfo": "Nachrichteninfo",
+  "conversation.info.read": "Gelesen",
+  "conversation.info.delivered": "Zugestellt",
+  "conversation.info.played": "Abgespielt",
+  "conversation.info.readBy": "Gelesen von",
+  "conversation.info.deliveredTo": "Zugestellt an",
+  "conversation.info.playedBy": "Abgespielt von",
+  "conversation.info.nobody": "Noch niemand",
+  "conversation.info.unknown": "Für Nachrichten von vor dieser Version nicht bekannt",
+  "conversation.info.failed": "Die Nachrichteninfo konnte nicht geladen werden."
 }
