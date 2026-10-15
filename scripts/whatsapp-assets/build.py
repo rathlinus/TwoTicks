@@ -2,8 +2,8 @@
 
 WhatsApp Web keeps its scripts and emoji sprites in the Firefox cache of
 whoever uses it. This reads them from there, fetches what is not cached (the
-stylesheet with the font and the page's list of images) from WhatsApp's
-servers, and writes what the app uses:
+stylesheet with the font, the page's list of images and the emoji sheets for
+dense screens) from WhatsApp's servers, and writes what the app uses:
 
     src/TwoTicks.App/Assets/WhatsApp/Emoji/<n>.webp   the emoji sprite sheets
     src/TwoTicks.App/Assets/WhatsApp/emoji.json        which emoji is in which cell
@@ -161,9 +161,18 @@ def extract_cache(cache, out):
     return count
 
 
-def fetch(url, page=False):
+def fetch(url, page=False, image=False):
     """Downloads a file the way Firefox asks for it; WhatsApp refuses requests that look otherwise."""
-    if page:
+    if image:
+        headers = {
+            'User-Agent': USER_AGENT,
+            'Accept': 'image/avif,image/webp,*/*',
+            'Referer': 'https://web.whatsapp.com/',
+            'Sec-Fetch-Dest': 'image',
+            'Sec-Fetch-Mode': 'no-cors',
+            'Sec-Fetch-Site': 'same-origin',
+        }
+    elif page:
         headers = {
             'User-Agent': USER_AGENT,
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -187,10 +196,14 @@ def fetch(url, page=False):
 # ---- Emoji ----
 
 def build_emoji(work, node):
+    # The cache holds the sheets of 40 pixels per emoji, the ones WhatsApp Web
+    # shows on screens of normal density. They tell the version of the set;
+    # the app takes the sharper sheets of the same version, 64 pixels per emoji.
     sprites = {}
     for path in glob.glob(os.path.join(work, '*emoji_v1_*_sprite_w_40_*.webp')):
-        sprites[int(re.search(r'_(\d+)\.webp$', path).group(1))] = path
-    if not sprites or sorted(sprites) != list(range(len(sprites))):
+        found = re.search(r'emoji_v1_(\d+)_(\d+)_(\d+)_sprite_w_40_(\d+)\.webp$', path)
+        sprites[int(found.group(4))] = '/'.join(found.group(1, 2, 3))
+    if not sprites or sorted(sprites) != list(range(len(sprites))) or len(set(sprites.values())) != 1:
         sys.exit('The emoji sprite sheets are not all in the cache. Scroll through the emoji panel of WhatsApp Web once, then run this again.')
 
     data_file = os.path.join(work, 'emoji-data.json')
@@ -215,8 +228,10 @@ def build_emoji(work, node):
     if os.path.isdir(target):
         shutil.rmtree(target)
     os.makedirs(target)
-    for number, path in sprites.items():
-        shutil.copyfile(path, os.path.join(target, f'{number}.webp'))
+    for number, version in sprites.items():
+        sheet = fetch(f'https://web.whatsapp.com/emoji/v1/{version}/sprite/w/64/{number}.webp', image=True)
+        with open(os.path.join(target, f'{number}.webp'), 'wb') as f:
+            f.write(sheet)
     with open(os.path.join(ASSETS, 'WhatsApp', 'emoji.json'), 'w', encoding='utf-8') as f:
         json.dump({'glyphs': glyphs, 'legacy': legacy, 'categories': data['categories']}, f, ensure_ascii=False, separators=(',', ':'))
     log(f'  {len(glyphs)} emoji on {len(sprites)} sheets')

@@ -52,10 +52,11 @@ public class EmojiTests
     public void PlacesEmojiFiveByFive()
     {
         EmojiSet set = Small(60);
-        Assert.Equal(new EmojiCell(0, 0, 0, 200, 200), set.CellOf(0));
-        Assert.Equal(new EmojiCell(0, 160, 0, 200, 200), set.CellOf(4));
-        Assert.Equal(new EmojiCell(0, 0, 40, 200, 200), set.CellOf(5));
-        Assert.Equal(new EmojiCell(1, 40, 0, 200, 200), set.CellOf(26));
+        const int c = EmojiSet.CellSize;
+        Assert.Equal(new EmojiCell(0, 0, 0, 5 * c, 5 * c), set.CellOf(0));
+        Assert.Equal(new EmojiCell(0, 4 * c, 0, 5 * c, 5 * c), set.CellOf(4));
+        Assert.Equal(new EmojiCell(0, 0, c, 5 * c, 5 * c), set.CellOf(5));
+        Assert.Equal(new EmojiCell(1, c, 0, 5 * c, 5 * c), set.CellOf(26));
     }
 
     [Fact]
@@ -63,9 +64,30 @@ public class EmojiTests
     {
         // 50 full, 7 left: two columns, four rows, as WhatsApp Web lays them out.
         EmojiSet set = Small(57);
-        Assert.Equal(new EmojiCell(2, 0, 0, 80, 160), set.CellOf(50));
-        Assert.Equal(new EmojiCell(2, 40, 0, 80, 160), set.CellOf(51));
-        Assert.Equal(new EmojiCell(2, 0, 120, 80, 160), set.CellOf(56));
+        const int c = EmojiSet.CellSize;
+        Assert.Equal(new EmojiCell(2, 0, 0, 2 * c, 4 * c), set.CellOf(50));
+        Assert.Equal(new EmojiCell(2, c, 0, 2 * c, 4 * c), set.CellOf(51));
+        Assert.Equal(new EmojiCell(2, 0, 3 * c, 2 * c, 4 * c), set.CellOf(56));
+    }
+
+    [Fact]
+    public void SheetsAreAsLargeAsTheCellsSay()
+    {
+        string folder = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "src", "TwoTicks.App", "Assets", "WhatsApp", "Emoji");
+        for (int index = 0; index < Set.Count; index += 25)
+        {
+            EmojiCell cell = Set.CellOf(index);
+            byte[] head = new byte[30];
+            using (FileStream file = File.OpenRead(Path.Combine(folder, $"{cell.Sheet}.webp")))
+            {
+                file.ReadExactly(head);
+            }
+            // The extended WebP header holds the canvas size, less one, in three bytes each.
+            Assert.Equal("VP8X", Encoding.ASCII.GetString(head, 12, 4));
+            int width = (head[24] | head[25] << 8 | head[26] << 16) + 1;
+            int height = (head[27] | head[28] << 8 | head[29] << 16) + 1;
+            Assert.Equal((cell.SheetWidth, cell.SheetHeight), (width, height));
+        }
     }
 
     [Fact]

@@ -17,13 +17,13 @@ public readonly record struct EmojiSegment(string Text, int Emoji)
 /// the sprite sheets WhatsApp Web draws them from.
 /// </summary>
 /// <remarks>
-/// The sheets hold 25 emoji each, five by five, 40 pixels per emoji, in the
+/// The sheets hold 25 emoji each, five by five, 64 pixels per emoji, in the
 /// order of the list. The last sheet holds what is left, in a square of
 /// columns as wide as fits.
 /// </remarks>
 public sealed class EmojiSet
 {
-    public const int CellSize = 40;
+    public const int CellSize = 64;
     private const int PerSheet = 25;
     private const int Columns = 5;
 

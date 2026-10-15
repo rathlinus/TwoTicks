@@ -42,7 +42,7 @@ REPO = os.path.abspath(os.path.join(HERE, '..', '..'))
 ASSETS = os.path.join(REPO, 'src', 'TwoTicks.App', 'Assets')
 
 # The sheets, as EmojiSet.CellOf in Core reads them.
-CELL = 40
+CELL = 64
 PER_SHEET = 25
 COLUMNS = 5
 
@@ -52,7 +52,7 @@ UPM = 1000
 SCALE = 1.33
 PPEM = round(CELL / SCALE)
 BELOW = round(CELL * 0.2)
-SIDE = 2
+SIDE = round(CELL / 20)
 
 VARIATION_SELECTOR = 0xFE0F
 
