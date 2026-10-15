@@ -271,9 +271,18 @@ public sealed class MessageItem : Observable
     // ---- The buttons that show while the pointer is over the message ----
 
     /// <summary>The pointer is over the message's row: its menu button shows, and the react button beside it.</summary>
-    public void SetHover(bool hovered, bool canReact)
+    /// <param name="room">How tall the react button may be: the row clips what reaches out of it.</param>
+    public void SetHover(bool hovered, bool canReact, double room = MaxReactButtonSize)
     {
         bool react = hovered && canReact;
+        double size = Math.Clamp(Math.Floor(room), 20, MaxReactButtonSize);
+        if (react && size != ReactButtonSize)
+        {
+            ReactButtonSize = size;
+            OnPropertyChanged(nameof(ReactButtonSize));
+            OnPropertyChanged(nameof(ReactButtonCorner));
+            OnPropertyChanged(nameof(ReactButtonMargin));
+        }
         if (_isHovered != hovered || _showReactButton != react)
         {
             _isHovered = hovered;
@@ -283,12 +292,20 @@ public sealed class MessageItem : Observable
         }
     }
 
+    private const double MaxReactButtonSize = 32;
+
+    /// <summary>Round, and smaller beside a bubble too short for the full size.</summary>
+    public double ReactButtonSize { get; private set; } = MaxReactButtonSize;
+    public CornerRadius ReactButtonCorner => new(ReactButtonSize / 2);
+
     public Visibility HoverVisibility => _isHovered ? Visibility.Visible : Visibility.Collapsed;
     public Visibility ReactButtonVisibility => _showReactButton ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>The react button sits in the gap beside the bubble, on the side away from its sender.</summary>
     public HorizontalAlignment ReactButtonAlignment => FromMe ? HorizontalAlignment.Left : HorizontalAlignment.Right;
-    public Thickness ReactButtonMargin => FromMe ? new Thickness(-44, -16, 0, -16) : new Thickness(0, -16, -44, -16);
+    public Thickness ReactButtonMargin => FromMe
+        ? new Thickness(-(ReactButtonSize + 12), -ReactButtonSize / 2, 0, -ReactButtonSize / 2)
+        : new Thickness(0, -ReactButtonSize / 2, -(ReactButtonSize + 12), -ReactButtonSize / 2);
 
     /// <summary>Briefly set when the conversation jumps to this message.</summary>
     public bool IsHighlighted

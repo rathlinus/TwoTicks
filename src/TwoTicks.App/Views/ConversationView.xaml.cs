@@ -1038,7 +1038,11 @@ public sealed partial class ConversationView : UserControl
     {
         if (ItemOf(sender) is { } item && item.Kind != "system")
         {
-            item.SetHover(true, item.CanReact && _shown?.Chat.IsReadOnly != true);
+            // The button is centred on the bubble and may reach into the row's padding above and below it.
+            double room = sender is Grid { Padding: var padding } row
+                ? row.ActualHeight - padding.Top - padding.Bottom + 2 * Math.Min(padding.Top, padding.Bottom)
+                : double.MaxValue;
+            item.SetHover(true, item.CanReact && _shown?.Chat.IsReadOnly != true, room);
         }
     }
 

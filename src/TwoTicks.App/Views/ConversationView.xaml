@@ -244,8 +244,8 @@
                             <c:WaIcon Kind="ChevronDown" Size="20" Foreground="{ThemeResource MetaTextBrush}" />
                         </Button>
                     </Grid>
-                    <Button Width="32" Height="32" Margin="{x:Bind ReactButtonMargin}" HorizontalAlignment="{x:Bind ReactButtonAlignment}" VerticalAlignment="Center"
-                            Background="{ThemeResource DayChipBrush}" Click="OnHoverReactClick" CornerRadius="16" Style="{StaticResource IconButtonStyle}"
+                    <Button Width="{x:Bind ReactButtonSize, Mode=OneWay}" Height="{x:Bind ReactButtonSize, Mode=OneWay}" Margin="{x:Bind ReactButtonMargin, Mode=OneWay}" HorizontalAlignment="{x:Bind ReactButtonAlignment}" VerticalAlignment="Center"
+                            Background="{ThemeResource DayChipBrush}" Click="OnHoverReactClick" CornerRadius="{x:Bind ReactButtonCorner, Mode=OneWay}" Style="{StaticResource IconButtonStyle}"
                             Visibility="{x:Bind ReactButtonVisibility, Mode=OneWay}" AutomationProperties.Name="{app:L Key=conversation.react}" ToolTipService.ToolTip="{app:L Key=conversation.react}">
                         <c:WaIcon Kind="Mood" Size="20" />
                     </Button>
@@ -294,8 +294,8 @@
                             AutomationProperties.Name="{app:L Key=conversation.messageMenu}">
                         <c:WaIcon Kind="ChevronDown" Size="20" Foreground="{ThemeResource MetaTextBrush}" />
                     </Button>
-                    <Button Width="32" Height="32" Margin="{x:Bind ReactButtonMargin}" HorizontalAlignment="{x:Bind ReactButtonAlignment}" VerticalAlignment="Center"
-                            Background="{ThemeResource DayChipBrush}" Click="OnHoverReactClick" CornerRadius="16" Style="{StaticResource IconButtonStyle}"
+                    <Button Width="{x:Bind ReactButtonSize, Mode=OneWay}" Height="{x:Bind ReactButtonSize, Mode=OneWay}" Margin="{x:Bind ReactButtonMargin, Mode=OneWay}" HorizontalAlignment="{x:Bind ReactButtonAlignment}" VerticalAlignment="Center"
+                            Background="{ThemeResource DayChipBrush}" Click="OnHoverReactClick" CornerRadius="{x:Bind ReactButtonCorner, Mode=OneWay}" Style="{StaticResource IconButtonStyle}"
                             Visibility="{x:Bind ReactButtonVisibility, Mode=OneWay}" AutomationProperties.Name="{app:L Key=conversation.react}" ToolTipService.ToolTip="{app:L Key=conversation.react}">
                         <c:WaIcon Kind="Mood" Size="20" />
                     </Button>
