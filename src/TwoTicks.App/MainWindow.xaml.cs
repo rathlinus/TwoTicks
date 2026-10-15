@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using Microsoft.UI;
 using Microsoft.UI.Dispatching;
@@ -392,6 +393,36 @@ public sealed partial class MainWindow : Window
         scroller.RegisterPropertyChangedCallback(ScrollViewer.VerticalOffsetProperty, (_, _) => UpdateChatListShadows());
         scroller.RegisterPropertyChangedCallback(ScrollViewer.ScrollableHeightProperty, (_, _) => UpdateChatListShadows());
         UpdateChatListShadows();
+        Session.Chats.Visible.CollectionChanged += OnChatsMoved;
+    }
+
+    // How far down the list, in rows, a chat that comes to the top still brings the list back up to it.
+    private const int ChatsToFollowToTop = 3;
+
+    /// <summary>
+    /// A chat with a new message moves up. Near the top of the list, the list
+    /// goes up with it; the list would otherwise stay where it was and keep
+    /// the chat just out of sight above.
+    /// </summary>
+    private void OnChatsMoved(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        bool movedUp = e.Action switch
+        {
+            NotifyCollectionChangedAction.Move => e.NewStartingIndex < e.OldStartingIndex,
+            NotifyCollectionChangedAction.Add => true,
+            _ => false,
+        };
+        if (!movedUp || _chatScroller is not { } scroller)
+        {
+            return;
+        }
+        double row = (ChatListView.ContainerFromIndex(0) as FrameworkElement)?.ActualHeight is > 0 and var height ? height : 72;
+        if (scroller.VerticalOffset > ChatsToFollowToTop * row + 0.5)
+        {
+            return;
+        }
+        // After the list has laid out the move, which may scroll it to keep the rows in view in place.
+        DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () => scroller.ChangeView(null, 0, null));
     }
 
     /// <summary>Shows the shadow at an edge of the chat list when more chats lie beyond it.</summary>
