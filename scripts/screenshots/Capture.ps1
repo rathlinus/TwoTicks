@@ -260,10 +260,14 @@ function Save-Notification([string]$Path) {
     $full = Save-Bitmap $window $Path
     $window.Dispose(); $before.Dispose(); $after.Dispose()
 
-    # Takes it off the screen and out of the notification centre. Only the demo
-    # chat's: your own TwoTicks shows its notifications under the same name.
+    # Takes it off the screen and out of the notification centre. The demo has
+    # its own data folder, so it files its notifications under a name of its
+    # own, made as in Notifier.NotificationId.
+    $data = [System.IO.Path]::GetFullPath((Join-Path $script:Root 'artifacts\demo\data')).ToLowerInvariant()
+    $hash = [System.Security.Cryptography.SHA256]::Create().ComputeHash([System.Text.Encoding]::UTF8.GetBytes($data))
+    $id = 'TwoTicks.Test.' + (($hash[0..3] | ForEach-Object { $_.ToString('X2') }) -join '')
     $history = [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime]::History
-    $history.RemoveGroup('120363000000000001@g.us', 'TwoTicks')
+    $history.Clear($id)
     $full
 }
 

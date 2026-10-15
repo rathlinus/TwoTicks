@@ -11,19 +11,22 @@ namespace TwoTicks.App;
 /// </summary>
 /// <remarks>
 /// TwoTicks is not installed as a package, so it registers the name and icon
-/// Windows shows its notifications with itself. Clicks and replies come back as
-/// events of the notification while the app runs, which it does for as long as
-/// it shows notifications.
+/// Windows shows its notifications with itself. Clicks and replies come back
+/// through <see cref="NotificationActivator"/>.
 /// </remarks>
 internal sealed class Notifier
 {
-    /// <summary>The name Windows files the notifications under, also the app's taskbar identity.</summary>
+    /// <summary>The app's taskbar identity, and the name Windows files the notifications under.</summary>
     public const string AppId = "TwoTicks";
+
+    /// <summary>
+    /// The name of this copy's notifications. A copy with its own data folder
+    /// has its own, so its notifications and their clicks stay apart from the usual one's.
+    /// </summary>
+    public static string NotificationId { get; } = AppPaths.IsDefaultDataFolder ? AppId : $"{AppId}.Test.{NotificationActivator.FolderTag}";
 
     private const string ReplyInput = "reply";
 
-    // Notifications whose clicks are still wanted; their events stop when they are collected.
-    private readonly LinkedList<ToastNotification> _shown = new();
     private ToastNotifier? _notifier;
 
     /// <summary>A notification was clicked. Raised on a background thread.</summary>
@@ -53,7 +56,11 @@ internal sealed class Notifier
         try
         {
             SetIcon(assets);
-            _notifier = ToastNotificationManager.CreateToastNotifier(AppId);
+            using (RegistryKey app = Registry.CurrentUser.CreateSubKey($@"Software\Classes\AppUserModelId\{NotificationId}"))
+            {
+                NotificationActivator.Register(app, OnActivated);
+            }
+            _notifier = ToastNotificationManager.CreateToastNotifier(NotificationId);
         }
         catch (Exception e)
         {
@@ -64,7 +71,7 @@ internal sealed class Notifier
     /// <summary>Sets the name and icon Windows shows with the notifications.</summary>
     public void SetIcon(string assets)
     {
-        using RegistryKey app = Registry.CurrentUser.CreateSubKey($@"Software\Classes\AppUserModelId\{AppId}");
+        using RegistryKey app = Registry.CurrentUser.CreateSubKey($@"Software\Classes\AppUserModelId\{NotificationId}");
         app.SetValue("DisplayName", AppName.Shown);
         app.SetValue("IconUri", Path.Combine(assets, "AppIcon.png"));
     }
@@ -74,7 +81,7 @@ internal sealed class Notifier
     {
         try
         {
-            ToastNotificationManager.History.Clear(AppId);
+            ToastNotificationManager.History.Clear(NotificationId);
         }
         catch (Exception e)
         {
@@ -149,7 +156,7 @@ internal sealed class Notifier
     {
         try
         {
-            ToastNotificationManager.History.Remove(IncomingCallTag, IncomingCallGroup, AppId);
+            ToastNotificationManager.History.Remove(IncomingCallTag, IncomingCallGroup, NotificationId);
         }
         catch (Exception)
         {
@@ -200,16 +207,6 @@ internal sealed class Notifier
             {
                 toast.Tag = tag;
             }
-            toast.Activated += OnActivated;
-            toast.Dismissed += (sender, _) => Forget(sender);
-            lock (_shown)
-            {
-                _shown.AddLast(toast);
-                while (_shown.Count > 100)
-                {
-                    _shown.RemoveFirst();
-                }
-            }
             _notifier.Show(toast);
         }
         catch (Exception e)
@@ -218,27 +215,15 @@ internal sealed class Notifier
         }
     }
 
-    private void Forget(ToastNotification toast)
+    private void OnActivated(string invokedArguments, IReadOnlyDictionary<string, string> input)
     {
-        lock (_shown)
-        {
-            _shown.Remove(toast);
-        }
-    }
-
-    private void OnActivated(ToastNotification sender, object args)
-    {
-        if (args is not ToastActivatedEventArgs activated)
-        {
-            return;
-        }
-        Dictionary<string, string> arguments = Parse(activated.Arguments);
+        Dictionary<string, string> arguments = Parse(invokedArguments);
         arguments.TryGetValue("chat", out string? chat);
         arguments.TryGetValue("action", out string? action);
         switch (action)
         {
             case "reply" when chat is not null:
-                if (activated.UserInput.TryGetValue(ReplyInput, out object? value) && value is string text && !string.IsNullOrWhiteSpace(text))
+                if (input.TryGetValue(ReplyInput, out string? text) && !string.IsNullOrWhiteSpace(text))
                 {
                     Replied?.Invoke(chat, text);
                 }
@@ -285,7 +270,7 @@ internal sealed class Notifier
     {
         try
         {
-            ToastNotificationManager.History.RemoveGroup(GroupOf(chat), AppId);
+            ToastNotificationManager.History.RemoveGroup(GroupOf(chat), NotificationId);
         }
         catch (Exception)
         {

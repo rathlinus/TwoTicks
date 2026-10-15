@@ -17,6 +17,9 @@ public static partial class Program
     /// <summary>Started at sign-in: stays in the notification area without opening the window.</summary>
     public const string BackgroundSwitch = "--background";
 
+    /// <summary>Whether the window stays closed at the start, as at login.</summary>
+    public static bool StartsHidden => Environment.GetCommandLineArgs().Contains(BackgroundSwitch);
+
     [STAThread]
     private static int Main(string[] args)
     {

@@ -111,6 +111,8 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 ; TwoTicks writes this itself at every start; listing it here lets the
 ; uninstaller remove it.
 Root: HKCU; Subkey: "Software\Classes\AppUserModelId\TwoTicks"; Flags: uninsdeletekey dontcreatekey
+; The same for the class that takes the clicks on notifications (NotificationActivator.cs).
+Root: HKCU; Subkey: "Software\Classes\CLSID\{{6c2f8e4b-27a1-4f7d-9b0e-3d5a1c9e7f42}"; Flags: uninsdeletekey dontcreatekey
 ; The same under the former name, which nothing writes any more.
 Root: HKCU; Subkey: "Software\Classes\AppUserModelId\WinWhatsApp"; Flags: deletekey dontcreatekey
 

@@ -113,8 +113,7 @@ public partial class App : Application
         // A new install writes the Start menu entry again, with the logo.
         _ = Task.Run(() => AppIcon.UpdateShortcuts(settings.WhatsAppIcon));
 
-        bool background = Environment.GetCommandLineArgs().Contains(Program.BackgroundSwitch);
-        if (!background)
+        if (!Program.StartsHidden)
         {
             Window.ShowAndActivate();
         }

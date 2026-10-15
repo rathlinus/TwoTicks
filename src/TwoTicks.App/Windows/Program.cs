@@ -18,9 +18,22 @@ public static class Program
     /// <summary>Started at sign-in: stays in the notification area without opening the window.</summary>
     public const string BackgroundSwitch = "--background";
 
+    /// <summary>Whether the window stays closed at the start: at sign-in, or for a click on a notification, which opens it itself if it should.</summary>
+    public static bool StartsHidden => Environment.GetCommandLineArgs() is var args && (args.Contains(BackgroundSwitch) || args.Contains(NotificationActivator.Switch));
+
+    /// <summary>The data folder, for when Windows starts a copy that has its own: TWOTICKS_DATA is not set then.</summary>
+    public const string DataSwitch = "--data";
+
     [STAThread]
     private static int Main()
     {
+        string[] args = Environment.GetCommandLineArgs();
+        int data = Array.IndexOf(args, DataSwitch);
+        if (data > 0 && data + 1 < args.Length)
+        {
+            // Before anything looks at the data folder.
+            Environment.SetEnvironmentVariable("TWOTICKS_DATA", args[data + 1]);
+        }
         WinRT.ComWrappersSupport.InitializeComWrappers();
         AppDomain.CurrentDomain.UnhandledException += (_, e) => Log.Error("Crashed", e.ExceptionObject as Exception);
 
