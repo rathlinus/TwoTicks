@@ -3,8 +3,13 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Version>0.1.0</Version>
+    <!-- Releases set the version; a build without one is a development build. -->
+    <DevelopmentBuild Condition="'$(Version)' == ''">true</DevelopmentBuild>
+    <Version Condition="'$(Version)' == ''">0.1.0</Version>
     <Product>TwoTicks</Product>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
+  <ItemGroup Condition="'$(DevelopmentBuild)' == 'true'">
+    <AssemblyMetadata Include="DevelopmentBuild" Value="true" />
+  </ItemGroup>
 </Project>

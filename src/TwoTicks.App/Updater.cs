@@ -29,7 +29,8 @@ public enum UpdateState
 /// </summary>
 /// <remarks>
 /// Only a copy that setup installed can update itself. A copy unpacked from the
-/// zip, or a build, only says that there is a new version.
+/// zip, or a build, only says that there is a new version. A development build
+/// does not look by itself: every release would be news to it.
 /// </remarks>
 internal sealed partial class Updater
 {
@@ -60,6 +61,12 @@ internal sealed partial class Updater
     }
 
     public static Version Current { get; } = Updates.Normalize(typeof(Updater).Assembly.GetName().Version ?? new Version(0, 0, 0));
+
+    /// <summary>Built without a version, as by hand or for a test; see Directory.Build.props.</summary>
+    public static bool IsDevelopmentBuild { get; } = typeof(Updater).Assembly
+        .GetCustomAttributes(typeof(System.Reflection.AssemblyMetadataAttribute), false)
+        .OfType<System.Reflection.AssemblyMetadataAttribute>()
+        .Any(a => a.Key == "DevelopmentBuild" && a.Value == "true");
 
     private static string DownloadFolder => Path.Combine(AppPaths.DataFolder, "updates");
 
@@ -119,7 +126,7 @@ internal sealed partial class Updater
             }
             return;
         }
-        if (_settings.CheckForUpdates)
+        if (_settings.CheckForUpdates && !IsDevelopmentBuild)
         {
             await CheckAsync(manual: false);
         }
