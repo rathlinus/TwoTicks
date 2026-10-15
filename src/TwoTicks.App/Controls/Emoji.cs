@@ -109,12 +109,26 @@ public static class EmojiText
 
     public static void SetText(RichTextBlock block, string? value) => block.SetValue(TextProperty, value);
 
+    // Whether the block already redraws its emoji when its font size changes.
+    private static readonly DependencyProperty WatchesFontSizeProperty = DependencyProperty.RegisterAttached(
+        "WatchesFontSize", typeof(bool), typeof(EmojiText), new PropertyMetadata(false));
+
     private static void OnTextChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is not RichTextBlock block)
         {
             return;
         }
-        Emoji.Fill(block, inlines => Emoji.AddText(inlines, (string?)e.NewValue ?? "", block.FontSize));
+        // The emoji are sized from the font size, which a binding may set only
+        // after the text, as for messages that are only emoji.
+        if (!(bool)block.GetValue(WatchesFontSizeProperty))
+        {
+            block.SetValue(WatchesFontSizeProperty, true);
+            block.RegisterPropertyChangedCallback(RichTextBlock.FontSizeProperty, (sender, _) => Fill((RichTextBlock)sender));
+        }
+        Fill(block);
     }
+
+    private static void Fill(RichTextBlock block) =>
+        Emoji.Fill(block, inlines => Emoji.AddText(inlines, GetText(block) ?? "", block.FontSize));
 }

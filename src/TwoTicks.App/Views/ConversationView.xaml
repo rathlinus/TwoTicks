@@ -269,7 +269,8 @@
                             <RichTextBlock c:EmojiText.Text="{x:Bind SenderName}" FontSize="13" FontWeight="SemiBold" Foreground="{x:Bind SenderBrush}" IsTextSelectionEnabled="False" />
                         </c:PlainButton>
                         <Image x:Name="StickerImage" x:Load="{x:Bind IsSticker}" Width="{x:Bind VisualWidth}" Height="{x:Bind VisualHeight}" Source="{x:Bind Visual, Mode=OneWay}" />
-                        <RichTextBlock x:Name="JumboText" x:Load="{x:Bind IsJumbo}" c:EmojiText.Text="{x:Bind Data.Text}" FontSize="{x:Bind JumboFontSize}"
+                        <!-- Hidden rather than loaded late with x:Load, which left the emoji out. -->
+                        <RichTextBlock x:Name="JumboText" Visibility="{x:Bind IsJumbo}" c:EmojiText.Text="{x:Bind Data.Text}" FontSize="{x:Bind JumboFontSize}"
                                        IsTextSelectionEnabled="False" />
                         <Border Padding="6,1,5,1" HorizontalAlignment="{x:Bind Alignment}" Background="{ThemeResource DayChipBrush}" CornerRadius="8">
                             <StackPanel Orientation="Horizontal" Spacing="3">
