@@ -317,6 +317,45 @@ func handle(d *demo, state map[string]any, method string, p map[string]any) any 
 		return map[string]any{"jid": str(p, "jid"), "name": ""}
 	case "groupInfo":
 		return d.Groups[str(p, "chat")]
+	// A sent message stays in the demo's chat, with the names of the members
+	// it mentions, so writing one can be tried without WhatsApp.
+	case "send":
+		chat := str(p, "chat")
+		m := map[string]any{
+			"chat": chat, "id": fmt.Sprintf("SENT%04d", len(d.Messages[chat])), "seq": float64(1000 + len(d.Messages[chat])),
+			"sender": d.Me["jid"], "fromMe": true, "ts": float64(time.Now().Unix()), "kind": "text", "status": float64(2),
+			"text": str(p, "text"),
+		}
+		// The chat list names the mentioned members, the message their numbers.
+		last := str(p, "text")
+		if names := mentionNames(d, chat, p["mentions"]); len(names) > 0 {
+			m["mentions"] = names
+			for user, name := range names {
+				last = strings.ReplaceAll(last, "@"+user, "@"+name)
+			}
+		}
+		d.Messages[chat] = append(d.Messages[chat], m)
+		for _, c := range d.Chats {
+			if c["jid"] == chat {
+				c["ts"] = m["ts"]
+				c["last"] = map[string]any{"id": m["id"], "fromMe": true, "kind": "text", "status": 2, "text": last}
+				go event("chat", c)
+			}
+		}
+		return m
+	case "edit":
+		for _, m := range d.Messages[str(p, "chat")] {
+			if m["id"] == str(p, "id") {
+				m["text"] = str(p, "text")
+				m["edited"] = true
+				delete(m, "mentions")
+				if names := mentionNames(d, str(p, "chat"), p["mentions"]); len(names) > 0 {
+					m["mentions"] = names
+				}
+				go event("message", m)
+			}
+		}
+		return true
 	case "messageInfo":
 		return messageInfo(d, str(p, "chat"), str(p, "id"))
 	case "contacts":
@@ -348,6 +387,23 @@ func handle(d *demo, state map[string]any, method string, p map[string]any) any 
 		return map[string]string{"node": "", "error": "0"}
 	}
 	return true
+}
+
+// mentionNames gives the names of the mentioned members of a group, by the
+// number of their JID, as the real helper sends them with a message.
+func mentionNames(d *demo, chat string, mentions any) map[string]string {
+	names := map[string]string{}
+	jids, _ := mentions.([]any)
+	members, _ := d.Groups[chat]["members"].([]any)
+	for _, jid := range jids {
+		for _, member := range members {
+			if m, _ := member.(map[string]any); m["jid"] == jid {
+				user, _, _ := strings.Cut(str(m, "jid"), "@")
+				names[user] = str(m, "name")
+			}
+		}
+	}
+	return names
 }
 
 // messageInfo makes up who got and read one of our messages, by its ticks:
