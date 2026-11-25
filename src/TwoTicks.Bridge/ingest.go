@@ -378,7 +378,19 @@ func (b *Bridge) applyEdit(chat, id string, edited *waE2E.Message) {
 	if edited == nil {
 		return
 	}
-	_, text, _, _ := describe(edited)
+	_, text, _, ci := describe(edited)
+	// The people the new text mentions; without any named, those of the old
+	// text that are still in it.
+	people := ci.GetMentionedJID()
+	if len(people) == 0 {
+		if m, err := b.loadMessage(b.ctx, chat, id); err == nil && m != nil {
+			people = m.mentionJIDs
+		}
+	}
+	var mentions any
+	if people = mentioned(text, people); len(people) > 0 {
+		mentions = marshalOrNil(people, false)
+	}
 	raw, err := b.loadRaw(b.ctx, chat, id)
 	if err == nil && len(raw) > 0 {
 		// Keep the media of an edited caption; only the text changes.
@@ -388,7 +400,7 @@ func (b *Bridge) applyEdit(chat, id string, edited *waE2E.Message) {
 			raw, _ = proto.Marshal(&original)
 		}
 	}
-	_, err = b.w.ExecContext(b.ctx, `UPDATE messages SET text = ?, edited = 1, raw = COALESCE(?, raw) WHERE chat = ? AND id = ?`, text, raw, chat, id)
+	_, err = b.w.ExecContext(b.ctx, `UPDATE messages SET text = ?, mentions = ?, edited = 1, raw = COALESCE(?, raw) WHERE chat = ? AND id = ?`, text, mentions, raw, chat, id)
 	if err != nil {
 		b.log.Errorf("Failed to edit message %s: %v", id, err)
 		return

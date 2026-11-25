@@ -175,18 +175,54 @@ func (b *Bridge) decorateMessages(ctx context.Context, list []*Message) {
 				r.Name = lookup(r.Sender, "")
 			}
 		}
-		if len(m.mentionJIDs) > 0 {
-			m.Mentions = make(map[string]string, len(m.mentionJIDs))
-			for _, s := range m.mentionJIDs {
-				jid, err := types.ParseJID(s)
-				if err != nil {
-					continue
-				}
-				name := lookup(b.canonical(ctx, jid).String(), "")
-				m.Mentions[jid.User] = strings.TrimPrefix(name, "~")
-			}
-		}
+		m.Mentions = b.mentionNames(ctx, m.mentionJIDs, lookup)
 	}
+}
+
+// mentionNames gives the name of each mentioned person, by the number that
+// stands for them in the text.
+func (b *Bridge) mentionNames(ctx context.Context, jids []string, lookup func(sender, pushName string) string) map[string]string {
+	if len(jids) == 0 {
+		return nil
+	}
+	names := make(map[string]string, len(jids))
+	for _, s := range jids {
+		jid, err := types.ParseJID(s)
+		if err != nil {
+			continue
+		}
+		name := lookup(b.canonical(ctx, jid).String(), "")
+		names[jid.User] = strings.TrimPrefix(name, "~")
+	}
+	return names
+}
+
+// namesForMentions writes a text as the chat list shows it: with the name of
+// each mentioned person in place of their number.
+func namesForMentions(text string, names map[string]string) string {
+	if len(names) == 0 || !strings.Contains(text, "@") {
+		return text
+	}
+	var out strings.Builder
+	for {
+		i := strings.IndexByte(text, '@')
+		if i < 0 {
+			break
+		}
+		end := i + 1
+		for end < len(text) && text[end] >= '0' && text[end] <= '9' {
+			end++
+		}
+		out.WriteString(text[:i+1])
+		if name, ok := names[text[i+1:end]]; ok {
+			out.WriteString(name)
+		} else {
+			out.WriteString(text[i+1 : end])
+		}
+		text = text[end:]
+	}
+	out.WriteString(text)
+	return out.String()
 }
 
 // decorateChats fills in the names in the chat list.
@@ -206,6 +242,11 @@ func (b *Bridge) decorateChats(ctx context.Context, list []*Chat) {
 				name = c.storedName
 			}
 			c.Name = name
+		}
+		if c.Last != nil && len(c.Last.mentionJIDs) > 0 {
+			c.Last.Text = namesForMentions(c.Last.Text, b.mentionNames(ctx, c.Last.mentionJIDs, func(sender, pushName string) string {
+				return b.senderName(ctx, sender, pushName)
+			}))
 		}
 		if c.Last != nil && c.Last.sender != "" {
 			c.Last.SenderName = strings.TrimPrefix(b.senderName(ctx, c.Last.sender, c.Last.pushName), "~")

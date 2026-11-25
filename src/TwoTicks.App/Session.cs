@@ -427,6 +427,9 @@ public sealed class Session : Observable
     /// <summary>The line under the name in the chat's header.</summary>
     public string? HeaderStatus { get => _headerStatus; private set => Set(ref _headerStatus, value); }
 
+    /// <summary>The members of the open group, once they are known; empty for other chats.</summary>
+    public IReadOnlyList<GroupMember> GroupMembers { get; private set; } = [];
+
     private void UpdateHeaderStatus()
     {
         ChatItem? chat = _current?.Chat;
@@ -469,6 +472,7 @@ public sealed class Session : Observable
             UpdateHeaderStatus();
             if (!sameChat)
             {
+                GroupMembers = [];
                 Pins = [];
             }
             ConversationOpened?.Invoke(aroundMessage);
@@ -498,6 +502,7 @@ public sealed class Session : Observable
         _openVersion++;
         Current = null;
         HeaderStatus = null;
+        GroupMembers = [];
         Pins = [];
         ConversationOpened?.Invoke(null);
     }
@@ -531,6 +536,7 @@ public sealed class Session : Observable
             {
                 return;
             }
+            GroupMembers = group.Members;
             IEnumerable<string> names = group.Members.Where(m => !m.Me).Select(m => m.Name).Order(StringComparer.CurrentCultureIgnoreCase);
             if (group.Members.Any(m => m.Me))
             {
@@ -733,7 +739,8 @@ public sealed class Session : Observable
 
     // ---- Writing ----
 
-    public async Task<bool> SendTextAsync(string text, string? replyTo, LinkData? link = null)
+    /// <param name="mentions">The JIDs of the people the text mentions, each as "@" and the number of the JID.</param>
+    public async Task<bool> SendTextAsync(string text, string? replyTo, LinkData? link = null, IReadOnlyList<string>? mentions = null)
     {
         if (_current is not { } conversation)
         {
@@ -742,7 +749,7 @@ public sealed class Session : Observable
         StopTyping();
         try
         {
-            MessageData message = await Client.SendTextAsync(conversation.Jid, text, replyTo, link);
+            MessageData message = await Client.SendTextAsync(conversation.Jid, text, replyTo, link, mentions);
             OnSent(message);
             return true;
         }
@@ -811,7 +818,7 @@ public sealed class Session : Observable
         OnMessage(message);
     }
 
-    public async Task EditAsync(MessageItem item, string text) => await Try(() => Client.EditAsync(item.Chat, item.Id, text));
+    public async Task EditAsync(MessageItem item, string text, IReadOnlyList<string>? mentions = null) => await Try(() => Client.EditAsync(item.Chat, item.Id, text, mentions));
     public async Task ReactAsync(MessageItem item, string emoji) => await Try(() => Client.ReactAsync(item.Chat, item.Id, emoji));
     public async Task RevokeAsync(MessageItem item) => await Try(() => Client.RevokeAsync(item.Chat, item.Id));
     public async Task DeleteForMeAsync(MessageItem item) => await Try(() => Client.DeleteForMeAsync(item.Chat, item.Id));

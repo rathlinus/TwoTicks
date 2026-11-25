@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -21,6 +22,8 @@ type sendParams struct {
 	ReplyTo string `json:"replyTo"`
 	// The preview of a link in the text, as linkPreview made it.
 	Link *Link `json:"link"`
+	// The people the text mentions, each as "@" and the number of their JID.
+	Mentions []string `json:"mentions"`
 }
 
 type sendMediaParams struct {
@@ -29,6 +32,8 @@ type sendMediaParams struct {
 	Caption    string `json:"caption"`
 	ReplyTo    string `json:"replyTo"`
 	AsDocument bool   `json:"asDocument"`
+	// The people the caption mentions, as in sendParams.
+	Mentions []string `json:"mentions"`
 	// Filled in by the app for videos, which Go cannot decode: a preview
 	// frame, the size and the length.
 	Thumb   []byte `json:"thumb"`
@@ -98,6 +103,49 @@ func (b *Bridge) replyContext(ctx context.Context, chat types.JID, replyTo strin
 	return ci, quote
 }
 
+// mentioned picks the people a text mentions: of the given JIDs, those whose
+// number stands in the text behind an "@". WhatsApp's apps show the name for
+// such a number and notify the person.
+func mentioned(text string, jids []string) []string {
+	var found []string
+	for _, s := range jids {
+		jid, err := types.ParseJID(s)
+		if err != nil || jid.User == "" {
+			continue
+		}
+		s = jid.ToNonAD().String()
+		if slices.Contains(found, s) {
+			continue
+		}
+		token := "@" + jid.User
+		for rest := text; ; {
+			i := strings.Index(rest, token)
+			if i < 0 {
+				break
+			}
+			rest = rest[i+len(token):]
+			// "@4917012" does not mention 49170.
+			if rest == "" || rest[0] < '0' || rest[0] > '9' {
+				found = append(found, s)
+				break
+			}
+		}
+	}
+	return found
+}
+
+// withMentions adds the mentioned people to the context of a message.
+func withMentions(ci *waE2E.ContextInfo, jids []string) *waE2E.ContextInfo {
+	if len(jids) == 0 {
+		return ci
+	}
+	if ci == nil {
+		ci = &waE2E.ContextInfo{}
+	}
+	ci.MentionedJID = jids
+	return ci
+}
+
 // withoutContext copies a message for quoting, without the message it
 // replied to itself, so replies to replies do not nest.
 func withoutContext(msg *waE2E.Message) *waE2E.Message {
@@ -131,6 +179,8 @@ func (b *Bridge) sendText(ctx context.Context, p sendParams) (*Message, error) {
 	m := b.newOutgoing(chat, "text", p.Text)
 	ci, quote := b.replyContext(ctx, chat, p.ReplyTo)
 	m.Quote = quote
+	m.mentionJIDs = mentioned(p.Text, p.Mentions)
+	ci = withMentions(ci, m.mentionJIDs)
 	if l := p.Link; l != nil && l.URL != "" && strings.Contains(p.Text, l.URL) && (l.Title != "" || l.Description != "") {
 		m.Link = l
 	}
@@ -317,6 +367,8 @@ func (b *Bridge) prepareMedia(ctx context.Context, chat types.JID, p sendMediaPa
 	}
 	ci, quote := b.replyContext(ctx, chat, p.ReplyTo)
 	m.Quote = quote
+	m.mentionJIDs = mentioned(caption, p.Mentions)
+	ci = withMentions(ci, m.mentionJIDs)
 
 	build := func(ctx context.Context, m *Message) (*waE2E.Message, error) {
 		var upload whatsmeow.UploadResponse
@@ -515,7 +567,9 @@ func (b *Bridge) react(ctx context.Context, chatText, id, emoji string) error {
 	return nil
 }
 
-func (b *Bridge) edit(ctx context.Context, chatText, id, text string) error {
+// edit changes the text of one's own message. It mentions the given people
+// and those the message mentioned before, as far as the new text names them.
+func (b *Bridge) edit(ctx context.Context, chatText, id, text string, mentions []string) error {
 	chat, keyChat, _, m, err := b.target(ctx, chatText, id)
 	if err != nil {
 		return err
@@ -527,6 +581,9 @@ func (b *Bridge) edit(ctx context.Context, chatText, id, text string) error {
 		return userError("editTooLate")
 	}
 	content := &waE2E.Message{Conversation: proto.String(text)}
+	if people := mentioned(text, append(mentions, m.mentionJIDs...)); len(people) > 0 {
+		content = &waE2E.Message{ExtendedTextMessage: &waE2E.ExtendedTextMessage{Text: proto.String(text), ContextInfo: withMentions(nil, people)}}
+	}
 	if _, err := b.cli.SendMessage(ctx, chat, b.cli.BuildEdit(keyChat, types.MessageID(id), content)); err != nil {
 		return err
 	}

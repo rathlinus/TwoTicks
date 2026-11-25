@@ -70,6 +70,53 @@ public sealed partial class EmojiTextBox : TextBox
         SelectionLength = 0;
     }
 
+    /// <summary>
+    /// The text from the start to the cursor, as the box holds it: with each
+    /// emoji as the font's code point. Positions in it are the ones
+    /// <see cref="Replace"/> takes.
+    /// </summary>
+    public string TextBeforeCursor
+    {
+        get
+        {
+            string shown = base.Text;
+            return shown[..Math.Clamp(SelectionStart, 0, shown.Length)];
+        }
+    }
+
+    /// <summary>Puts text in place of what is between two positions, and the cursor behind it. Returns where that is.</summary>
+    public int Replace(int start, int end, string text)
+    {
+        string shown = base.Text;
+        start = Math.Clamp(start, 0, shown.Length);
+        end = Math.Clamp(end, start, shown.Length);
+        string inserted = Emoji.ToPrivate(text);
+        _converting = true;
+        try
+        {
+            base.Text = string.Concat(shown.AsSpan(0, start), inserted, shown.AsSpan(end));
+        }
+        finally
+        {
+            _converting = false;
+        }
+        SelectionStart = start + inserted.Length;
+        SelectionLength = 0;
+        return start + inserted.Length;
+    }
+
+    /// <summary>Takes out the line break at a position, if there is one, and puts the cursor there.</summary>
+    public void RemoveLineBreak(int at)
+    {
+        string shown = base.Text;
+        if (at < 0 || at >= shown.Length || shown[at] is not ('\r' or '\n'))
+        {
+            return;
+        }
+        int length = shown[at] == '\r' && at + 1 < shown.Length && shown[at + 1] == '\n' ? 2 : 1;
+        Replace(at, at + length, "");
+    }
+
     /// <summary>Emoji typed or pasted arrive as they are written; they become the font's code points.</summary>
     private void OnTextChanged(object sender, TextChangedEventArgs e)
     {

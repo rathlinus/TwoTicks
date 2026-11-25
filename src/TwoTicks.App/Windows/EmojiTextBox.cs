@@ -49,6 +49,28 @@ public sealed partial class EmojiTextBox : RichEditBox
     /// <summary>Puts text where the cursor is, in place of what is selected, as if typed.</summary>
     public void Insert(string text) => Document.Selection.TypeText(text);
 
+    /// <summary>
+    /// The text from the start to the cursor, as the box counts it: an emoji is
+    /// one character in it, whatever it is made of. Positions in it are the
+    /// ones <see cref="Replace"/> takes.
+    /// </summary>
+    public string TextBeforeCursor
+    {
+        get
+        {
+            Document.GetRange(0, Document.Selection.StartPosition).GetText(TextGetOptions.None, out string text);
+            return text;
+        }
+    }
+
+    /// <summary>Puts text in place of what is between two positions, and the cursor behind it. Returns where that is.</summary>
+    public int Replace(int start, int end, string text)
+    {
+        Document.GetRange(start, end).SetText(TextSetOptions.None, text);
+        Document.Selection.SetRange(start + text.Length, start + text.Length);
+        return start + text.Length;
+    }
+
     private async void OnTextChanged(object sender, RoutedEventArgs e)
     {
         if (_converting || Emoji.Set is not { } set)

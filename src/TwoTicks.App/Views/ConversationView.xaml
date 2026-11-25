@@ -13,6 +13,18 @@
     Drop="OnDrop">
 
     <UserControl.Resources>
+        <!-- A member of the group to mention. -->
+        <DataTemplate x:Key="MentionTemplate" x:DataType="m:MemberItem">
+            <Grid Height="48" ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="32" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <c:Avatar VerticalAlignment="Center" Size="32" Source="{x:Bind Avatar, Mode=OneWay}" />
+                <c:EmojiLabel Text="{x:Bind Name}" Grid.Column="1" VerticalAlignment="Center" FontSize="15" Foreground="{ThemeResource TextPrimaryBrush}" />
+            </Grid>
+        </DataTemplate>
+
         <!-- One photo or video of an album, among the others in the album's bubble. -->
         <DataTemplate x:Key="AlbumTileTemplate" x:DataType="m:MessageItem">
             <Grid Background="{ThemeResource QuoteBackgroundBrush}" Tag="AlbumTile" Tapped="OnVisualTapped">
@@ -470,6 +482,21 @@
                 </Grid>
             </Button>
         </Grid>
+
+        <!-- The members to mention, over the messages while an @name is typed in a group. -->
+        <Border x:Name="MentionPanel" Grid.Row="1" Width="340" MaxHeight="268" Margin="12,0,12,2" HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                Background="{ThemeResource ComposerBrush}" BorderBrush="{ThemeResource DividerBrush}" BorderThickness="1" CornerRadius="12" Visibility="Collapsed">
+            <ListView
+                x:Name="MentionList"
+                Padding="0,4"
+                AutomationProperties.AutomationId="MentionList"
+                ContainerContentChanging="OnMentionContainerContentChanging"
+                IsItemClickEnabled="True"
+                IsTabStop="False"
+                ItemClick="OnMentionClick"
+                ItemTemplate="{StaticResource MentionTemplate}"
+                SelectionMode="Single" />
+        </Border>
 
         <!-- The preview of the first link in the text, which goes along with it. -->
         <Grid x:Name="LinkBar" Grid.Row="2" Padding="12,8,12,0" Visibility="Collapsed">

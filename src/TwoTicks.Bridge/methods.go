@@ -269,14 +269,15 @@ func (b *Bridge) methods() map[string]handler {
 
 		"edit": func(ctx context.Context, raw json.RawMessage) (any, error) {
 			p, err := params[struct {
-				Chat string `json:"chat"`
-				ID   string `json:"id"`
-				Text string `json:"text"`
+				Chat     string   `json:"chat"`
+				ID       string   `json:"id"`
+				Text     string   `json:"text"`
+				Mentions []string `json:"mentions"`
 			}](raw)
 			if err != nil {
 				return nil, err
 			}
-			return true, b.edit(ctx, p.Chat, p.ID, p.Text)
+			return true, b.edit(ctx, p.Chat, p.ID, p.Text, p.Mentions)
 		},
 
 		"pin": func(ctx context.Context, raw json.RawMessage) (any, error) {
@@ -666,10 +667,13 @@ func (b *Bridge) methods() map[string]handler {
 				return nil, err
 			}
 			type member struct {
-				JID   string `json:"jid"`
-				Name  string `json:"name"`
-				Admin bool   `json:"admin,omitempty"`
-				Me    bool   `json:"me,omitempty"`
+				JID  string `json:"jid"`
+				Name string `json:"name"`
+				// The JID the group knows the member by, which a message
+				// that mentions them has to name.
+				Mention string `json:"mention"`
+				Admin   bool   `json:"admin,omitempty"`
+				Me      bool   `json:"me,omitempty"`
 			}
 			members := make([]member, 0, len(info.Participants))
 			for _, part := range info.Participants {
@@ -683,7 +687,7 @@ func (b *Bridge) methods() map[string]handler {
 				if me {
 					name = "You"
 				}
-				members = append(members, member{JID: person.String(), Name: name, Admin: part.IsAdmin || part.IsSuperAdmin, Me: me})
+				members = append(members, member{JID: person.String(), Name: name, Mention: part.JID.ToNonAD().String(), Admin: part.IsAdmin || part.IsSuperAdmin, Me: me})
 			}
 			_, _ = b.w.ExecContext(ctx, `UPDATE chats SET name = ?, members = ? WHERE jid = ?`, info.Name, len(members), jid.String())
 			result := map[string]any{"name": info.Name, "topic": info.Topic, "members": members}

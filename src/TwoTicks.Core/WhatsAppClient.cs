@@ -252,9 +252,14 @@ public sealed class WhatsAppClient : IDisposable
     public Task<List<MessageData>> SearchAsync(string query, int limit = 50, string? chat = null) =>
         CallAsync("search", new JsonObject { ["query"] = query, ["limit"] = limit, ["chat"] = chat ?? "" }, BridgeJson.Default.ListMessageData);
 
-    public Task<MessageData> SendTextAsync(string chat, string text, string? replyTo, LinkData? link = null)
+    /// <param name="mentions">The JIDs of the people the text mentions, each as "@" and the number of the JID.</param>
+    public Task<MessageData> SendTextAsync(string chat, string text, string? replyTo, LinkData? link = null, IReadOnlyList<string>? mentions = null)
     {
         var parameters = new JsonObject { ["chat"] = chat, ["text"] = text, ["replyTo"] = replyTo };
+        if (mentions is { Count: > 0 })
+        {
+            parameters["mentions"] = JidArray(mentions);
+        }
         if (link is not null)
         {
             parameters["link"] = JsonSerializer.SerializeToNode(link, BridgeJson.Default.LinkData);
@@ -304,16 +309,23 @@ public sealed class WhatsAppClient : IDisposable
         {
             parameters["thumb"] = Convert.ToBase64String(media.Thumbnail);
         }
+        if (media.Mentions is { Count: > 0 })
+        {
+            parameters["mentions"] = JidArray(media.Mentions);
+        }
         return parameters;
     }
+
+    private static JsonArray JidArray(IReadOnlyList<string> jids) => new(jids.Select(j => (JsonNode)JsonValue.Create(j)).ToArray());
 
     public Task RetryAsync(string chat, string id) => CallAsync("retry", new JsonObject { ["chat"] = chat, ["id"] = id });
 
     public Task ReactAsync(string chat, string id, string emoji) =>
         CallAsync("react", new JsonObject { ["chat"] = chat, ["id"] = id, ["emoji"] = emoji });
 
-    public Task EditAsync(string chat, string id, string text) =>
-        CallAsync("edit", new JsonObject { ["chat"] = chat, ["id"] = id, ["text"] = text });
+    /// <param name="mentions">The JIDs of the people the new text mentions, besides those it mentioned before.</param>
+    public Task EditAsync(string chat, string id, string text, IReadOnlyList<string>? mentions = null) =>
+        CallAsync("edit", new JsonObject { ["chat"] = chat, ["id"] = id, ["text"] = text, ["mentions"] = JidArray(mentions ?? []) });
 
     /// <param name="seconds">How long the message stays pinned.</param>
     public Task PinMessageAsync(string chat, string id, bool pin, long seconds = 0) =>
@@ -428,6 +440,9 @@ public sealed class OutgoingMedia
     public required string Chat { get; init; }
     public required string Path { get; init; }
     public string? Caption { get; init; }
+
+    /// <summary>The JIDs of the people the caption mentions, each as "@" and the number of the JID.</summary>
+    public IReadOnlyList<string>? Mentions { get; init; }
     public string? ReplyTo { get; init; }
     public bool AsDocument { get; init; }
 

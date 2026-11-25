@@ -9,6 +9,7 @@ public sealed class MemberItem(GroupMember data) : Observable
 {
     private ImageSource? _avatar;
 
+    public GroupMember Data { get; } = data;
     public string Jid { get; } = data.Jid;
     public string Name { get; } = data.Name;
     public bool IsMe { get; } = data.Me;

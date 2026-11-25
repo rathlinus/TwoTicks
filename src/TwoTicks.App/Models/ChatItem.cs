@@ -140,6 +140,9 @@ public sealed class ChatItem : Observable
         }
     }
 
+    /// <summary>The members picked to be mentioned in the draft.</summary>
+    public IReadOnlyList<Mention>? DraftMentions { get; set; }
+
     /// <summary>A message typed but not sent, kept while switching chats.</summary>
     public string? Draft
     {

@@ -246,8 +246,9 @@ type LastMessage struct {
 	Name       string `json:"name,omitempty"`
 	Seconds    int    `json:"secs,omitempty"`
 
-	sender   string
-	pushName string
+	sender      string
+	pushName    string
+	mentionJIDs []string
 }
 
 // openDatabases opens the chats database twice: one connection that does all
@@ -452,7 +453,7 @@ func (b *Bridge) queryChats(ctx context.Context, where string, args ...any) ([]*
 	rows, err := b.r.QueryContext(ctx, `
 		SELECT c.jid, c.name, c.is_group, c.last_ts, c.unread, c.marked_unread, c.muted_until, c.pinned, c.archived,
 			c.read_only, c.members, c.ephemeral, COALESCE(a.path, ''),
-			m.id, m.sender, m.from_me, m.kind, m.text, m.status, m.media, m.push_name
+			m.id, m.sender, m.from_me, m.kind, m.text, m.status, m.media, m.push_name, m.mentions
 		FROM chats c
 		LEFT JOIN messages m ON m.chat = c.jid AND m.id = c.last_id
 		LEFT JOIN avatars a ON a.jid = c.jid
@@ -466,12 +467,12 @@ func (b *Bridge) queryChats(ctx context.Context, where string, args ...any) ([]*
 	var list []*Chat
 	for rows.Next() {
 		var c Chat
-		var lastID, lastSender, lastKind, lastText, lastMedia, lastPush sql.NullString
+		var lastID, lastSender, lastKind, lastText, lastMedia, lastPush, lastMentions sql.NullString
 		var lastFromMe sql.NullBool
 		var lastStatus sql.NullInt64
 		err := rows.Scan(&c.JID, &c.storedName, &c.Group, &c.TS, &c.Unread, &c.MarkedUnread, &c.MutedUntil, &c.Pinned, &c.Archived,
 			&c.ReadOnly, &c.Members, &c.Ephemeral, &c.Avatar,
-			&lastID, &lastSender, &lastFromMe, &lastKind, &lastText, &lastStatus, &lastMedia, &lastPush)
+			&lastID, &lastSender, &lastFromMe, &lastKind, &lastText, &lastStatus, &lastMedia, &lastPush, &lastMentions)
 		if err != nil {
 			return nil, err
 		}
@@ -489,6 +490,9 @@ func (b *Bridge) queryChats(ctx context.Context, where string, args ...any) ([]*
 					last.Name = media.Name
 					last.Seconds = media.Seconds
 				}
+			}
+			if lastMentions.Valid {
+				_ = json.Unmarshal([]byte(lastMentions.String), &last.mentionJIDs)
 			}
 			if c.Group && !last.FromMe {
 				last.sender = lastSender.String

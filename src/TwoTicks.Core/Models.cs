@@ -341,6 +341,9 @@ public sealed class GroupMember
 {
     public string Jid { get; set; } = "";
     public string Name { get; set; } = "";
+
+    /// <summary>The JID the group knows the member by, which a message that mentions them names.</summary>
+    public string Mention { get; set; } = "";
     public bool Admin { get; set; }
     public bool Me { get; set; }
 }

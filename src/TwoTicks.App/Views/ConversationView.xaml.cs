@@ -39,6 +39,14 @@ public sealed partial class ConversationView : UserControl
     private string? _removedLinkUrl;
     private int _linkVersion;
     private string? _captionFromComposer;
+
+    // The members picked to be mentioned in the text being written, and the
+    // "@name" being typed: where it starts and ends in the message box.
+    private readonly List<Mention> _mentions = [];
+    private readonly Dictionary<string, MemberItem> _mentionItems = [];
+    private int _mentionStart = -1;
+    private int _mentionEnd;
+    private int _mentionDismissed = -1;
     private ScrollViewer? _scroller;
     private Conversation? _shown;
     private MessageItem? _replyTo;
@@ -129,6 +137,7 @@ public sealed partial class ConversationView : UserControl
         if (conversation is null)
         {
             SaveDraft();
+            ForgetMentions();
             MediaPreview.Close();
             ClearLinkPreview();
             _shown = null;
@@ -156,10 +165,13 @@ public sealed partial class ConversationView : UserControl
             _newWhileAway = 0;
             UpdateScrollButton();
 
+            ForgetMentions();
             _settingText = true;
             MessageBox.Text = conversation.Chat.Draft ?? "";
             _settingText = false;
+            _mentions.AddRange(conversation.Chat.DraftMentions ?? []);
             conversation.Chat.Draft = null;
+            conversation.Chat.DraftMentions = null;
             UpdateSendButton();
         }
 
@@ -229,6 +241,7 @@ public sealed partial class ConversationView : UserControl
         {
             string draft = MessageBox.Text;
             _shown.Chat.Draft = string.IsNullOrWhiteSpace(draft) ? null : draft;
+            _shown.Chat.DraftMentions = _shown.Chat.Draft is not null && _mentions.Count > 0 ? _mentions.ToList() : null;
         }
     }
 
@@ -510,6 +523,35 @@ public sealed partial class ConversationView : UserControl
     private void OnMessageBoxKeyDown(object sender, KeyRoutedEventArgs e)
     {
         bool shift = InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Shift).HasFlag(CoreVirtualKeyStates.Down);
+        if (MentionPanel.Visibility == Visibility.Visible)
+        {
+            // While the members are listed, the keys that would move in the text or send it pick one.
+            switch (e.Key)
+            {
+                case VirtualKey.Down:
+                case VirtualKey.Up:
+                    e.Handled = true;
+                    int count = MentionList.Items.Count;
+                    MentionList.SelectedIndex = (MentionList.SelectedIndex + (e.Key == VirtualKey.Down ? 1 : count - 1)) % count;
+                    MentionList.ScrollIntoView(MentionList.SelectedItem);
+#if HAS_UNO
+                    // The text box here moves the cursor to another line all the same; put it back behind the name.
+                    int cursor = _mentionEnd;
+                    DispatcherQueue.TryEnqueue(() => MessageBox.Select(cursor, 0));
+#endif
+                    return;
+                case VirtualKey.Enter when !shift:
+                case VirtualKey.Tab:
+                    e.Handled = true;
+                    PickMention(MentionList.SelectedItem as MemberItem, byEnter: e.Key == VirtualKey.Enter);
+                    return;
+                case VirtualKey.Escape:
+                    e.Handled = true;
+                    _mentionDismissed = _mentionStart;
+                    HideMentions();
+                    return;
+            }
+        }
         switch (e.Key)
         {
 #if HAS_UNO
@@ -551,6 +593,120 @@ public sealed partial class ConversationView : UserControl
         }
         _linkTimer.Stop();
         _linkTimer.Start();
+        UpdateMentions();
+    }
+
+    // ---- Mentions ----
+
+    /// <summary>Lists the members that the "@name" being typed in a group can mean, as WhatsApp does.</summary>
+    private void UpdateMentions()
+    {
+        if (MessageBox.Text.Length == 0)
+        {
+            _mentions.Clear();
+        }
+        if (_settingText || _shown is not { Chat: { IsGroup: true, IsReadOnly: false } } || Session.GroupMembers.Count == 0
+            || MentionText.QueryAt(MessageBox.TextBeforeCursor) is not { } typed)
+        {
+            _mentionDismissed = -1;
+            HideMentions();
+            return;
+        }
+        // Closed with Esc, the list stays away until another "@" is typed.
+        List<GroupMember> members = typed.Start == _mentionDismissed ? [] : MentionText.Match(Session.GroupMembers, typed.Query);
+        if (members.Count == 0)
+        {
+            HideMentions();
+            return;
+        }
+
+        _mentionStart = typed.Start;
+        _mentionEnd = typed.Start + 1 + typed.Query.Length;
+        var items = new List<MemberItem>(members.Count);
+        foreach (GroupMember member in members)
+        {
+            if (!_mentionItems.TryGetValue(member.Jid, out MemberItem? item))
+            {
+                _mentionItems[member.Jid] = item = new MemberItem(member);
+            }
+            items.Add(item);
+        }
+        MentionList.ItemsSource = items;
+        MentionList.SelectedIndex = 0;
+        MentionPanel.Visibility = Visibility.Visible;
+    }
+
+    private void HideMentions()
+    {
+        _mentionStart = -1;
+        if (MentionPanel.Visibility == Visibility.Visible)
+        {
+            MentionPanel.Visibility = Visibility.Collapsed;
+            MentionList.ItemsSource = null;
+        }
+    }
+
+    /// <summary>Another chat has other members, and its own text.</summary>
+    private void ForgetMentions()
+    {
+        HideMentions();
+        _mentions.Clear();
+        _mentionItems.Clear();
+        _mentionDismissed = -1;
+    }
+
+    /// <summary>Writes the name of the picked member in place of what was typed of it.</summary>
+    private void PickMention(MemberItem? item, bool byEnter = false)
+    {
+        int start = _mentionStart;
+        int end = _mentionEnd;
+        HideMentions();
+        if (item is null || start < 0)
+        {
+            return;
+        }
+        Mention mention = MentionText.For(item.Data);
+        if (!_mentions.Contains(mention))
+        {
+            _mentions.Add(mention);
+        }
+        int cursor = MessageBox.Replace(start, end, "@" + mention.Name + " ");
+#if HAS_UNO
+        // The text box here still breaks the line on the Enter that picked the member; take the break out again.
+        if (byEnter)
+        {
+            DispatcherQueue.TryEnqueue(() => MessageBox.RemoveLineBreak(cursor));
+        }
+#endif
+        FocusComposer();
+    }
+
+    private void OnMentionClick(object sender, ItemClickEventArgs e) => PickMention(e.ClickedItem as MemberItem);
+
+    private void OnMentionContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
+    {
+        if (!args.InRecycleQueue && args.Item is MemberItem { AvatarRequested: false } member)
+        {
+            member.AvatarRequested = true;
+            _ = LoadMentionAvatarAsync(member);
+        }
+    }
+
+    private async Task LoadMentionAvatarAsync(MemberItem member)
+    {
+        if (Session.Chats.Get(member.Jid) is { AvatarPath: not null } chat)
+        {
+            member.Avatar = chat.Avatar;
+            return;
+        }
+        try
+        {
+            member.Avatar = Images.Avatar(await Session.Client.GetAvatarAsync(member.Jid));
+        }
+        catch (BridgeException)
+        {
+            member.AvatarRequested = false;
+        }
     }
 
     // ---- The preview of a link ----
@@ -640,11 +796,15 @@ public sealed partial class ConversationView : UserControl
     private void UpdateSendButton() =>
         SendButton.Visibility = MessageBox.Text.Trim().Length > 0 ? Visibility.Visible : Visibility.Collapsed;
 
-    private void SetText(string text)
+    /// <param name="mentions">The members the text names as "@Name", to be mentioned when it is sent.</param>
+    private void SetText(string text, IEnumerable<Mention>? mentions = null)
     {
+        HideMentions();
         _settingText = true;
         MessageBox.Text = text;
         _settingText = false;
+        _mentions.Clear();
+        _mentions.AddRange(mentions ?? []);
     }
 
     private void OnSendClick(object sender, RoutedEventArgs e) => _ = SendAsync();
@@ -656,13 +816,15 @@ public sealed partial class ConversationView : UserControl
         {
             return;
         }
+        List<Mention> picked = _mentions.ToList();
+        (string toSend, List<string> mentioned) = MentionText.ToSend(text, picked);
         if (_editing is { } editing)
         {
             SetText("");
             CancelReply();
-            if (text != editing.Data.Text)
+            if (toSend != editing.Data.Text)
             {
-                await Session.EditAsync(editing, text);
+                await Session.EditAsync(editing, toSend, mentioned);
             }
             return;
         }
@@ -673,10 +835,10 @@ public sealed partial class ConversationView : UserControl
         CancelReply();
         ClearLinkPreview();
         _removedLinkUrl = null;
-        if (!await Session.SendTextAsync(text, replyTo, link) && MessageBox.Text.Length == 0)
+        if (!await Session.SendTextAsync(toSend, replyTo, link, mentioned) && MessageBox.Text.Length == 0)
         {
             // Keep what was typed when it could not be sent.
-            SetText(text);
+            SetText(text, picked);
         }
     }
 
@@ -697,7 +859,9 @@ public sealed partial class ConversationView : UserControl
         EmojiText.SetText(ReplyTitle, Loc.T("conversation.editMessage"));
         EmojiText.SetText(ReplyText, item.Data.Text ?? "");
         ShowReplyBar((Brush)Application.Current.Resources["AccentGreenBrush"]);
-        SetText(item.Data.Text ?? "");
+        // The people it mentions show by name, as when it was written.
+        (string text, List<Mention> mentions) = MentionText.ToEdit(item.Data.Text ?? "", item.Data.Mentions, Session.GroupMembers);
+        SetText(text, mentions);
         FocusComposer();
     }
 
@@ -782,6 +946,8 @@ public sealed partial class ConversationView : UserControl
         {
             return;
         }
+        // A caption can mention the members picked in the message box, where it was typed first.
+        List<Mention> picked = _mentions.ToList();
         if (_captionFromComposer is { Length: > 0 } typed && files[0].Caption.Trim() == typed && MessageBox.Text.Trim() == typed)
         {
             SetText("");
@@ -796,17 +962,17 @@ public sealed partial class ConversationView : UserControl
             var album = new List<OutgoingMedia>();
             foreach (PendingFile file in files)
             {
-                string caption = file.Caption.Trim();
-                album.Add(await MediaInfo.DescribeAsync(conversation.Jid, file.Path, caption.Length > 0 ? caption : null, null, false));
+                (string caption, List<string> mentioned) = MentionText.ToSend(file.Caption.Trim(), picked);
+                album.Add(await MediaInfo.DescribeAsync(conversation.Jid, file.Path, caption.Length > 0 ? caption : null, null, false, mentioned));
             }
             await Session.SendFilesAsync(conversation.Jid, replyTo, album);
             return;
         }
         for (int i = 0; i < files.Count; i++)
         {
-            string caption = files[i].Caption.Trim();
+            (string caption, List<string> mentioned) = MentionText.ToSend(files[i].Caption.Trim(), picked);
             OutgoingMedia media = await MediaInfo.DescribeAsync(conversation.Jid, files[i].Path, caption.Length > 0 ? caption : null,
-                i == 0 ? replyTo : null, asDocument);
+                i == 0 ? replyTo : null, asDocument, mentioned);
             await Session.SendFileAsync(media);
         }
     }

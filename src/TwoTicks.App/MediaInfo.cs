@@ -17,7 +17,8 @@ internal static partial class MediaInfo
 
     public static bool IsVideo(string path) => s_videoTypes.Contains(Path.GetExtension(path));
 
-    public static async Task<OutgoingMedia> DescribeAsync(string chat, string path, string? caption, string? replyTo, bool asDocument)
+    public static async Task<OutgoingMedia> DescribeAsync(string chat, string path, string? caption, string? replyTo, bool asDocument,
+        IReadOnlyList<string>? mentions = null)
     {
         if (!asDocument && s_audioTypes.Contains(Path.GetExtension(path)))
         {
@@ -35,7 +36,7 @@ internal static partial class MediaInfo
         }
         if (asDocument || !IsVideo(path))
         {
-            return new OutgoingMedia { Chat = chat, Path = path, Caption = caption, ReplyTo = replyTo, AsDocument = asDocument };
+            return new OutgoingMedia { Chat = chat, Path = path, Caption = caption, ReplyTo = replyTo, AsDocument = asDocument, Mentions = mentions };
         }
 
         int width = 0, height = 0, seconds = 0;
@@ -50,7 +51,7 @@ internal static partial class MediaInfo
         }
         return new OutgoingMedia
         {
-            Chat = chat, Path = path, Caption = caption, ReplyTo = replyTo,
+            Chat = chat, Path = path, Caption = caption, ReplyTo = replyTo, Mentions = mentions,
             Width = width, Height = height, Seconds = seconds, Thumbnail = thumbnail,
         };
     }
